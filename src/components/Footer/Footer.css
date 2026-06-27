@@ -1,0 +1,149 @@
+.footer {
+  background: var(--footer-bg);
+  padding: 52px 60px 28px;
+  margin-top: auto;
+}
+
+.footer__main {
+  display: grid;
+  grid-template-columns: auto 1fr 1fr auto;
+  gap: 48px;
+  margin-bottom: 40px;
+  align-items: start;
+}
+
+/* Logo column */
+.footer__logo {
+  display: flex;
+  align-items: center;
+}
+
+.footer__logo img {
+  height: 32px;
+  width: auto;
+}
+
+/* Link columns */
+.footer__col-title {
+  font-size: 15px;
+  font-weight: 700;
+  margin-bottom: 18px;
+  color: var(--text);
+}
+
+.footer__col ul {
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.footer__col ul li a {
+  font-size: 14px;
+  color: var(--text-muted);
+  transition: color 0.18s;
+}
+
+.footer__col ul li a:hover {
+  color: var(--text);
+}
+
+.footer__col-detail {
+  font-size: 13px;
+  color: var(--text-muted);
+  line-height: 1.6;
+}
+
+/* Social column */
+.footer__social-title {
+  font-size: 15px;
+  font-weight: 700;
+  margin-bottom: 16px;
+  color: var(--text);
+}
+
+.footer__social-icons {
+  display: flex;
+  gap: 10px;
+  margin-bottom: 20px;
+}
+
+.footer__social-link {
+  width: 34px;
+  height: 34px;
+  border-radius: 50%;
+  background: var(--text);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: opacity 0.18s;
+}
+
+.footer__social-link:hover {
+  opacity: 0.7;
+}
+
+.footer__social-link svg {
+  width: 16px;
+  height: 16px;
+  fill: var(--white);
+}
+
+.footer__email-row {
+  display: flex;
+  border: 1px solid #ccc;
+  border-radius: 10px;
+  overflow: hidden;
+  background: var(--white);
+  width: 200px;
+}
+
+.footer__email-row input {
+  flex: 1;
+  padding: 10px 12px;
+  font-size: 13px;
+  border: none;
+  color: var(--text);
+  min-width: 0;
+}
+
+.footer__email-row input::placeholder {
+  color: #bbb;
+}
+
+/* Bottom bar */
+.footer__bottom {
+  border-top: 1px solid #ddd;
+  padding-top: 20px;
+  font-size: 13px;
+  color: var(--text-muted);
+  text-align: center;
+}
+
+/* WhatsApp floating button */
+.whatsapp-fab {
+  position: fixed;
+  bottom: 24px;
+  left: 24px;
+  width: 52px;
+  height: 52px;
+  border-radius: 50%;
+  background: #25d366;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 4px 16px rgba(0,0,0,0.18);
+  z-index: 300;
+  transition: transform 0.18s, box-shadow 0.18s;
+}
+
+.whatsapp-fab:hover {
+  transform: scale(1.06);
+  box-shadow: 0 6px 20px rgba(0,0,0,0.22);
+}
+
+.whatsapp-fab svg {
+  width: 28px;
+  height: 28px;
+  fill: white;
+}

@@ -1,0 +1,90 @@
+.navbar {
+  background: var(--sage);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 48px;
+  height: 70px;
+  position: sticky;
+  top: 0;
+  z-index: 200;
+}
+
+/* Logo — right side in RTL */
+.navbar__logo {
+  display: flex;
+  align-items: center;
+  gap: 0;
+  font-size: 24px;
+  font-weight: 700;
+  letter-spacing: -0.3px;
+  color: var(--text);
+  white-space: nowrap;
+}
+
+.navbar__logo img {
+  height: 36px;
+  width: auto;
+  display: block;
+}
+
+.navbar__logo-tag {
+  display: inline-flex;
+  align-items: center;
+  font-size: 8px;
+  font-weight: 700;
+  letter-spacing: 1.2px;
+  border: 1.5px solid var(--text);
+  border-radius: 4px;
+  padding: 2px 4px;
+  margin: 0 3px;
+  line-height: 1;
+  vertical-align: middle;
+}
+
+/* Center nav links */
+.navbar__nav {
+  display: flex;
+  align-items: center;
+  gap: 36px;
+  list-style: none;
+}
+
+.navbar__nav a {
+  font-size: 14px;
+  font-weight: 500;
+  color: var(--text);
+  transition: opacity 0.18s;
+}
+
+.navbar__nav a:hover {
+  opacity: 0.6;
+}
+
+/* Left icons in RTL */
+.navbar__icons {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.navbar__icon-btn {
+  width: 42px;
+  height: 42px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--white);
+  transition: background 0.18s;
+}
+
+.navbar__icon-btn:hover {
+  background: var(--sage-hover);
+}
+
+.navbar__icon-btn svg {
+  width: 20px;
+  height: 20px;
+  stroke: #377E2B;
+}
