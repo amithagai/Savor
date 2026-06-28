@@ -14,7 +14,7 @@ export default function MaterialsSection() {
       <div className="materials__grid">
         {materials.map((m, i) => (
           <>
-            <div key={m.label} className="materials__item">
+            <div key={m.label + i} className="materials__item">
               {/* Replace placeholder with: <img src={m.image} alt={m.label} /> */}
               <div
                 className="materials__img-placeholder"
