@@ -112,4 +112,4 @@ See [savor-hld.md](./savor-hld.md) for the full High-Level Design document cover
 - Data model design (Composite Product pattern)
 - Backend module breakdown
 - Phase 2 Configurator planning
->>>>>>> origin/chore/templte
+  
