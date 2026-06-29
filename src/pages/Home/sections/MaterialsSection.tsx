@@ -1,3 +1,5 @@
+import React from "react"
+
 const materials = [
   { label: 'צירים של החברה העולמית DTC', color: '#c8c0b8' },
   { label: 'ארונות מעץ סנדוויץ׳', color: '#d4c4a8' },
@@ -13,7 +15,7 @@ export default function MaterialsSection() {
       <h2 className="section-title">החומרים שלנו</h2>
       <div className="materials__grid">
         {materials.map((m, i) => (
-          <>
+          <React.Fragment>
             <div key={m.label + i} className="materials__item">
               {/* Replace placeholder with: <img src={m.image} alt={m.label} /> */}
               <div
@@ -24,7 +26,7 @@ export default function MaterialsSection() {
             </div>
             {/* Vertical divider after every 1st and 2nd item in each row of 3 */}
             {i % 3 !== 2 && <div key={`div-${i}`} className="materials__divider" />}
-          </>
+          </React.Fragment>
         ))}
       </div>
     </section>

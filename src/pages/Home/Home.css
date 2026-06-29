@@ -30,18 +30,18 @@
   gap: 0;
   white-space: nowrap;
   animation: scroll-rtl 28s linear infinite;
+  color: var(--white);
+
 }
 
 .announcement-bar__item {
   font-size: 13px;
   font-weight: 500;
-  color: var(--text);
   padding: 0 8px;
 }
 
 .announcement-bar__dot {
   margin-inline-start: 8px;
-  color: var(--text-muted);
 }
 
 @keyframes scroll-rtl {
@@ -116,6 +116,7 @@
   display: inline-block;
   background: var(--sage);
   color: var(--text);
+  color: #377E2B;
   font-size: 15px;
   font-weight: 600;
   padding: 12px 28px;
