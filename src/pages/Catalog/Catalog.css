@@ -1,0 +1,48 @@
+.catalog-page {
+  direction: rtl;
+  padding: 48px 24px;
+  max-width: 1200px;
+  margin: 0 auto;
+}
+
+.catalog-page__header {
+  text-align: center;
+  margin-bottom: 32px;
+}
+
+.catalog-page__header h1 {
+  font-size: 40px;
+  margin-bottom: 12px;
+}
+
+.catalog-page__header p {
+  color: var(--text-muted);
+}
+
+.catalog-page__filters {
+  display: flex;
+  justify-content: center;
+  gap: 12px;
+  margin-bottom: 32px;
+  flex-wrap: wrap;
+}
+
+.catalog-page__filter {
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  padding: 10px 18px;
+  background: var(--white);
+  cursor: pointer;
+}
+
+.catalog-page__filter--active {
+  background: var(--sage);
+  color: var(--white);
+  border-color: var(--sage);
+}
+
+.catalog-page__grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(300px, 1fr));
+  gap: 36px;
+}
