@@ -19,7 +19,7 @@ export default function HeroSection() {
         <p className="hero__subtitle">
           תכנון חכם, התאמה אישית מלאה ואספקה תוך 14 ימי עסקים!
         </p>
-        <Link to="#" className="hero__cta">
+        <Link to="/configurator" className="hero__cta">
           כלי תכנון ← 
         </Link>
       </div>
