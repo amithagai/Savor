@@ -8,6 +8,7 @@
   --sage:        #DDF0DA;
   --sage-hover:  #d0e3be;
   --green:       #5a9a28;
+  --signup-button:#377E2B;
   --badge-bg:    #d6edba;
   --badge-text:  #3a7a18;
   --text:        #1a1a1a;
@@ -16,6 +17,8 @@
   --star:        #f0a030;
   --footer-bg:   #f2f2f2;
   --white:       #ffffff;
+  --black:       #000000;
+  --blue:        #1A75FF;
   --font:        'Heebo', system-ui, sans-serif;
 }
 

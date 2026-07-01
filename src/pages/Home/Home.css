@@ -432,7 +432,7 @@
 
 .newsletter__subtitle {
   font-size: 16px;
-  color: var(--text-muted);
+  color: var(--black);
   margin-bottom: 6px;
 }
 
@@ -446,17 +446,17 @@
 .newsletter__form {
   display: flex;
   flex-direction: column;
-  align-items: flex-end;
+  align-items: flex-start;
   gap: 16px;
-  max-width: 480px;
-  margin-inline-start: auto;
+  max-width: 380px;
+  margin-inline-end: auto;
 }
 
 .newsletter__input-row {
   display: flex;
   width: 100%;
   border: 1.5px solid var(--border);
-  border-radius: 12px;
+  border-radius:  25px;
   overflow: hidden;
   background: var(--white);
 }
@@ -477,11 +477,11 @@
 
 .newsletter__input-row button {
   background: var(--sage);
-  color: var(--text);
+  color: var(--signup-button);
   font-size: 14px;
   font-weight: 600;
   padding: 0 24px;
-  border-radius: 10px;
+  border-radius: 999px;
   margin: 4px;
   transition: background 0.18s;
 }
@@ -503,6 +503,6 @@
 
 .newsletter__consent input[type="checkbox"] {
   margin-top: 2px;
-  accent-color: var(--green);
+  accent-color: var(--blue);
   flex-shrink: 0;
 }
