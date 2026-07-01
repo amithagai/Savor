@@ -1,7 +1,12 @@
 import './Footer.css'
 import savorLogo from '../../assets/savor-logo.svg'
+import { EmnailInput } from '../Input/EmailInput'
+import { useState } from 'react'
 
 export default function Footer() {
+  const [email, setEmail] = useState('')
+  const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => setEmail(e.target.value)
+
   return (
     <>
       <footer className="footer">
@@ -60,7 +65,9 @@ export default function Footer() {
               </a>
             </div>
             <div className="footer__email-row">
-              <input type="email" placeholder="כתובת אימייל" />
+              {/* <input type="email" placeholder="כתובת אימייל" /> */}
+              <EmnailInput handleChange={handleChange} email={email} /> 
+              
             </div>
           </div>
         </div>

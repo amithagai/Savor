@@ -1,6 +1,7 @@
 import { createBrowserRouter } from 'react-router-dom'
 import Layout from '../components/Layout'
 import Home from '../pages/Home'
+import Configurator from '../pages/Configurator'
 import Catalog from '../pages/Catalog'
 import ProductDetail from '../pages/ProductDetail'
 import Accessories from '../pages/Accessories'
@@ -21,6 +22,9 @@ const router = createBrowserRouter([
     element: <Layout />,
     children: [
       { index: true, element: <Home /> },
+
+      // Configurator (kitchen planner)
+      { path: 'configurator', element: <Configurator /> },
 
       // Kitchen catalog
       { path: 'catalog', element: <Catalog /> },
