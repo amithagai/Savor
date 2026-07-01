@@ -16,29 +16,29 @@ type CabinetProduct = {
 type CartItem = CabinetProduct & { qty: number }
 
 const COLORS: ColorOption[] = [
-  { id: 'cream',  label: 'CREAM',  hex: '#C8AE8A' },
+  { id: 'cream', label: 'CREAM', hex: '#C8AE8A' },
   { id: 'timber', label: 'TIMBER', hex: '#9B7B3E' },
-  { id: 'cloud',  label: 'CLOUD',  hex: '#B4B0AB' },
-  { id: 'latte',  label: 'LATTE',  hex: '#DDD9D4' },
+  { id: 'cloud', label: 'CLOUD', hex: '#B4B0AB' },
+  { id: 'latte', label: 'LATTE', hex: '#DDD9D4' },
 ]
 
 const CATEGORIES: CabinetCategory[] = ['עליונים', 'גבוהים', 'תחתונים', 'כיור']
 
 const PRODUCTS: CabinetProduct[] = [
-  { id: 'p1',  name: 'CREAM דגם - יחידת תנור',              subtitle: 'יחידות תנור',   width: 60, price: 1230, category: 'תחתונים' },
-  { id: 'p13',  name: 'CREAM דגם - יחידת תנור',              subtitle: 'יחידות תנור',   width: 60, price: 1230, category: 'תחתונים' },
-  { id: 'p12',  name: 'CREAM דגם - יחידת תנור',              subtitle: 'יחידות תנור',   width: 60, price: 1230, category: 'תחתונים' },
-  { id: 'p11',  name: 'CREAM דגם - יחידת תנור',              subtitle: 'יחידות תנור',   width: 60, price: 1230, category: 'תחתונים' },
-  { id: 'p2',  name: 'ארון תחתון 60 ס"מ - חזית 2 דלתות',   subtitle: 'חזית 2 דלתות',  width: 60, price: 1230, category: 'תחתונים' },
-  { id: 'p3',  name: 'ארון תחתון 90 ס"מ - חזית 3 דלתות',   subtitle: 'חזית 3 דלתות',  width: 90, price: 1490, category: 'תחתונים' },
-  { id: 'p4',  name: 'ארון תחתון 45 ס"מ - חזית דלת',       subtitle: 'חזית דלת',       width: 45, price: 980,  category: 'תחתונים' },
-  { id: 'p5',  name: 'ארון עליון 60 ס"מ - חזית 2 דלתות',   subtitle: 'חזית 2 דלתות',  width: 60, price: 980,  category: 'עליונים' },
-  { id: 'p6',  name: 'ארון עליון 90 ס"מ - חזית 2 דלתות',   subtitle: 'חזית 2 דלתות',  width: 90, price: 1150, category: 'עליונים' },
-  { id: 'p7',  name: 'ארון עליון 30 ס"מ - חזית דלת',       subtitle: 'חזית דלת',       width: 30, price: 720,  category: 'עליונים' },
-  { id: 'p8',  name: 'ארון גבוה 60 ס"מ - חזית 2 דלתות',    subtitle: 'חזית 2 דלתות',  width: 60, price: 1650, category: 'גבוהים' },
-  { id: 'p9',  name: 'ארון גבוה 60 ס"מ - חזית 4 דלתות',    subtitle: 'חזית 4 דלתות',  width: 60, price: 1850, category: 'גבוהים' },
-  { id: 'p10', name: 'ארון כיור 60 ס"מ - חזית 2 דלתות',    subtitle: 'חזית 2 דלתות',  width: 60, price: 1350, category: 'כיור' },
-  { id: 'p11', name: 'ארון כיור 80 ס"מ - חזית 2 דלתות',    subtitle: 'חזית 2 דלתות',  width: 80, price: 1550, category: 'כיור' },
+  { id: 'p1', name: 'CREAM דגם - יחידת תנור', subtitle: 'יחידות תנור', width: 60, price: 1230, category: 'תחתונים' },
+  { id: 'p13', name: 'CREAM דגם - יחידת תנור', subtitle: 'יחידות תנור', width: 60, price: 1230, category: 'תחתונים' },
+  { id: 'p12', name: 'CREAM דגם - יחידת תנור', subtitle: 'יחידות תנור', width: 60, price: 1230, category: 'תחתונים' },
+  { id: 'p11', name: 'CREAM דגם - יחידת תנור', subtitle: 'יחידות תנור', width: 60, price: 1230, category: 'תחתונים' },
+  { id: 'p2', name: 'ארון תחתון 60 ס"מ - חזית 2 דלתות', subtitle: 'חזית 2 דלתות', width: 60, price: 1230, category: 'תחתונים' },
+  { id: 'p3', name: 'ארון תחתון 90 ס"מ - חזית 3 דלתות', subtitle: 'חזית 3 דלתות', width: 90, price: 1490, category: 'תחתונים' },
+  { id: 'p4', name: 'ארון תחתון 45 ס"מ - חזית דלת', subtitle: 'חזית דלת', width: 45, price: 980, category: 'תחתונים' },
+  { id: 'p5', name: 'ארון עליון 60 ס"מ - חזית 2 דלתות', subtitle: 'חזית 2 דלתות', width: 60, price: 980, category: 'עליונים' },
+  { id: 'p6', name: 'ארון עליון 90 ס"מ - חזית 2 דלתות', subtitle: 'חזית 2 דלתות', width: 90, price: 1150, category: 'עליונים' },
+  { id: 'p7', name: 'ארון עליון 30 ס"מ - חזית דלת', subtitle: 'חזית דלת', width: 30, price: 720, category: 'עליונים' },
+  { id: 'p8', name: 'ארון גבוה 60 ס"מ - חזית 2 דלתות', subtitle: 'חזית 2 דלתות', width: 60, price: 1650, category: 'גבוהים' },
+  { id: 'p9', name: 'ארון גבוה 60 ס"מ - חזית 4 דלתות', subtitle: 'חזית 4 דלתות', width: 60, price: 1850, category: 'גבוהים' },
+  { id: 'p10', name: 'ארון כיור 60 ס"מ - חזית 2 דלתות', subtitle: 'חזית 2 דלתות', width: 60, price: 1350, category: 'כיור' },
+  { id: 'p11', name: 'ארון כיור 80 ס"מ - חזית 2 דלתות', subtitle: 'חזית 2 דלתות', width: 80, price: 1550, category: 'כיור' },
 ]
 
 const HOW_STEPS = [
@@ -52,11 +52,11 @@ const INITIAL_CART: CartItem[] = [
   { ...PRODUCTS[1], qty: 1 },
   { ...PRODUCTS[2], qty: 1 },
 ]
-interface ActionButtonProps { 
-  resetAll:() => void
+interface ActionButtonProps {
+  resetAll: () => void
 }
 
-const TotalPrice:FC<{cartItems: Array<CartItem>}> = ({ cartItems }) => {
+const TotalPrice: FC<{ cartItems: Array<CartItem> }> = ({ cartItems }) => {
   const total = cartItems.reduce((sum, item) => sum + item.price * item.qty, 0)
 
   return (
@@ -68,24 +68,24 @@ const TotalPrice:FC<{cartItems: Array<CartItem>}> = ({ cartItems }) => {
   )
 }
 
-export const ActionButton:FC<ActionButtonProps> = ({resetAll}) => { 
+export const ActionButton: FC<ActionButtonProps> = ({ resetAll }) => {
 
-  return ( 
-        <div className="cfg__cart-footer">
-            <button  onClick={resetAll}>איפוס</button>
-            <button className="cfg__outline-btn">שמירת תכנון ויצרות קשר</button>
-            <button className="cfg__buy-btn">לרכישת המטבח</button>
-          </div>
+  return (
+    <div className="cfg__cart-footer">
+      <button onClick={resetAll}>איפוס</button>
+      <button className="cfg__outline-btn">שמירת תכנון ויצרות קשר</button>
+      <button className="cfg__buy-btn">לרכישת המטבח</button>
+    </div>
   )
 }
 
 export default function Configurator() {
-  const [wallLength, setWallLength]     = useState('')
+  const [wallLength, setWallLength] = useState('')
   const [selectedColor, setSelectedColor] = useState('cream')
   const [activeCategory, setActiveCategory] = useState<CabinetCategory>('תחתונים')
-  const [cartItems, setCartItems]       = useState<CartItem[]>(INITIAL_CART)
-  const [viewMode, setViewMode]         = useState<'2D' | '3D'>('3D')
-  const [hoverColor, setHoverColor]     = useState<string | null>(null)
+  const [cartItems, setCartItems] = useState<CartItem[]>(INITIAL_CART)
+  const [viewMode, setViewMode] = useState<'2D' | '3D'>('3D')
+  const [hoverColor, setHoverColor] = useState<string | null>(null)
 
   const filteredProducts = PRODUCTS.filter(p => p.category === activeCategory)
   const colorHex = COLORS.find(c => c.id === selectedColor)?.hex ?? '#C8AE8A'
@@ -166,48 +166,50 @@ export default function Configurator() {
         </div>
 
       </div>
-      
+
       <div className='cfg__filter-row'>
-          <div className="cfg__color-row">
-            <h2 className="cfg__field-label">צבעים</h2>
-            <div className="cfg__color-dots">
-              {COLORS.map(c => (
-                <div
-                  key={c.id}
-                  className="cfg__color-wrap"
-                  onMouseEnter={() => setHoverColor(c.id)}
-                  onMouseLeave={() => setHoverColor(null)}
-                >
-                  <button
-                    className={`cfg__color-dot${selectedColor === c.id ? ' cfg__color-dot--on' : ''}`}
-                    style={{ background: c.hex }}
-                    onClick={() => setSelectedColor(c.id)}
-                    aria-label={c.label}
-                  />
-                  {hoverColor === c.id && (
-                    <span className="cfg__color-tip">{c.label}</span>
-                  )}
-                </div>
-              ))}
-            </div>
-          </div>
-
         <div className="cfg__catalog-hdr">
-            <h2 className="cfg__catalog-title">ארונות</h2>
-            <div className="cfg__tabs">
-              {CATEGORIES.map(cat => (
-                <button
-                  key={cat}
-                  className={`cfg__tab${activeCategory === cat ? ' cfg__tab--on' : ''}`}
-                  onClick={() => setActiveCategory(cat)}
-                >
-                  {cat}
-                </button>
-              ))}
-            </div>
+          <h2 className="cfg__catalog-title">ארונות</h2>
+          <div className="cfg__tabs">
+            {CATEGORIES.map(cat => (
+              <button
+                key={cat}
+                className={`cfg__tab${activeCategory === cat ? ' cfg__tab--on' : ''}`}
+                onClick={() => setActiveCategory(cat)}
+              >
+                {cat}
+              </button>
+            ))}
           </div>
+        </div>
 
-          <ActionButton resetAll={resetAll} />
+        <div className="cfg__color-row">
+          <h2 className="cfg__field-label">צבעים</h2>
+          <div className="cfg__color-dots">
+            {COLORS.map(c => (
+              <div
+                key={c.id}
+                className="cfg__color-wrap"
+                onMouseEnter={() => setHoverColor(c.id)}
+                onMouseLeave={() => setHoverColor(null)}
+              >
+                <button
+                  className={`cfg__color-dot${selectedColor === c.id ? ' cfg__color-dot--on' : ''}`}
+                  style={{ background: c.hex }}
+                  onClick={() => setSelectedColor(c.id)}
+                  aria-label={c.label}
+                />
+                {hoverColor === c.id && (
+                  <span className="cfg__color-tip">{c.label}</span>
+                )}
+              </div>
+            ))}
+          </div>
+        </div>
+
+
+
+        <ActionButton resetAll={resetAll} />
       </div>
 
       {/* ══════════ MAIN THREE-PANEL ══════════ */}
@@ -292,7 +294,7 @@ export default function Configurator() {
             ))}
           </div>
 
-          <TotalPrice cartItems={cartItems}/>
+          <TotalPrice cartItems={cartItems} />
         </div>
 
       </div>
