@@ -131,7 +131,7 @@
 
 /* Cookie banner */
 .cookie-banner {
-  position: absolute;
+  position: fixed;
   bottom: 28px;
   left: 28px;
   z-index: 10;
