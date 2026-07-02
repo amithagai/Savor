@@ -1,5 +1,4 @@
 import { Link } from 'react-router-dom'
-import { useState } from 'react'
 import heroBg from '../../../assets/hero-bg.svg'
 import AnnouncementBar from './AnnouncementBar'
 
@@ -19,7 +18,7 @@ export default function HeroSection() {
           תכנון חכם, התאמה אישית מלאה ואספקה תוך 14 ימי עסקים!
         </p>
         <Link to="/configurator" className="hero__cta">
-          כלי תכנון ← 
+          כלי תכנון ←
         </Link>
       </div>
     </section>

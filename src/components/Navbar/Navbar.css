@@ -88,3 +88,76 @@
   height: 20px;
   stroke: #377E2B;
 }
+
+/* Hamburger is desktop-hidden; shown only on mobile */
+.navbar__hamburger {
+  display: none;
+}
+
+/* ─── Mobile ─────────────────────────────────────── */
+@media (max-width: 768px) {
+  .navbar {
+    padding: 0 16px;
+    height: 60px;
+    position: relative;
+  }
+
+  .navbar__logo img {
+    height: 28px;
+  }
+
+  /* Center links collapse into the hamburger menu */
+  .navbar__nav {
+    display: none;
+  }
+
+  .navbar__hamburger {
+    display: flex;
+    order: 3;
+  }
+
+  .navbar__icons a[href="/cart"] {
+    order: 2;
+  }
+
+  .navbar__icons a[href="/wishlist"] {
+    order: 1;
+  }
+
+  .navbar__icon-btn {
+    width: 36px;
+    height: 36px;
+  }
+
+  .navbar__icons {
+    gap: 6px;
+  }
+
+  .navbar__mobile-nav {
+    position: absolute;
+    top: 100%;
+    left: 0;
+    right: 0;
+    background: var(--sage);
+    list-style: none;
+    display: flex;
+    flex-direction: column;
+    padding: 8px 16px 16px;
+    box-shadow: 0 8px 16px rgba(0, 0, 0, 0.08);
+    z-index: 199;
+  }
+
+  .navbar__mobile-nav a {
+    display: block;
+    padding: 12px 4px;
+    font-size: 15px;
+    font-weight: 500;
+    color: var(--text);
+    border-bottom: 1px solid rgba(0, 0, 0, 0.06);
+    text-align: right;
+  }
+
+  .navbar__mobile-nav li:last-child a {
+    border-bottom: none;
+  }
+}
