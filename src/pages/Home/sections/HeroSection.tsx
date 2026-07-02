@@ -4,7 +4,6 @@ import heroBg from '../../../assets/hero-bg.svg'
 import AnnouncementBar from './AnnouncementBar'
 
 export default function HeroSection() {
-  const [cookieDismissed, setCookieDismissed] = useState(false)
 
   return (
     <section className="hero">
@@ -23,36 +22,6 @@ export default function HeroSection() {
           כלי תכנון ← 
         </Link>
       </div>
-
-      {!cookieDismissed && (
-        <div className="cookie-banner">
-          <div className="cookie-banner__icon">🍪</div>
-          <div className="cookie-banner__body">
-            <p>
-              אתר זה משתמש בקוקיז כדי להבטיח את החוויה הטובה ביותר. אנו
-              משתמשים בהם לצרכי פעולה האתר, ניתוח סטטיסטי והתאמת פרסומות.{' '}
-              <a href="/warranty" className="cookie-banner__link">
-                מדיניות הפרטיות
-              </a>
-              .
-            </p>
-            <div className="cookie-banner__actions">
-              <button
-                className="cookie-banner__accept"
-                onClick={() => setCookieDismissed(true)}
-              >
-                אני מסכים
-              </button>
-              <button
-                className="cookie-banner__dismiss"
-                onClick={() => setCookieDismissed(true)}
-              >
-                דחייה
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
     </section>
   )
 }
