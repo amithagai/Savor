@@ -1,7 +1,7 @@
 import { useMemo, useState } from 'react'
 import ProductCard from '../../components/ProductCard'
 import './Catalog.css'
-
+import { useCart } from '../../context/useCart'
 type Kitchen = {
   id: number
   name: string
@@ -19,6 +19,8 @@ const sizeFilters = ['הכל', '1.5 מטר', '2 מטר']
 export default function Catalog() {
   const [selectedSize, setSelectedSize] = useState('הכל')
 
+  const { addToCart } = useCart()
+
   const filteredKitchens = useMemo(() => {
     if (selectedSize === 'הכל') {
       return kitchens
@@ -27,9 +29,14 @@ export default function Catalog() {
     return kitchens.filter((kitchen) => kitchen.size === selectedSize)
   }, [selectedSize])
 
-  const handleAddToCart = (name: string) => {
-    alert(`${name} נוסף לסל`)
-  }
+const handleAddToCart = (kitchen: Kitchen) => {
+  addToCart({
+    id: kitchen.id,
+    name: kitchen.name,
+    size: kitchen.size,
+    quantity: 1,
+  })
+}
 
   return (
     <main className="catalog-page">
@@ -56,7 +63,7 @@ export default function Catalog() {
             key={kitchen.id}
             name={kitchen.name}
             subtitle={kitchen.size}
-            onAddToCart={() => handleAddToCart(kitchen.name)}
+            onAddToCart={() => handleAddToCart(kitchen)}
           />
         ))}
       </section>
