@@ -1,4 +1,5 @@
 import { Link } from 'react-router-dom'
+import { useState } from 'react'
 import './Navbar.css'
 import savorLogo from '../../assets/savor-logo.svg'
 
@@ -11,6 +12,8 @@ const navLinks = [
 ]
 
 export default function Navbar() {
+  const [menuOpen, setMenuOpen] = useState(false)
+
   return (
     <nav className="navbar">
       {/* Right side — logo */}
@@ -27,8 +30,30 @@ export default function Navbar() {
           </li>
         ))}
       </ul>
-      {/* Left side — cart + wishlist */}
+      {/* Left side — hamburger (mobile) + cart + wishlist */}
       <div className="navbar__icons">
+        <button
+          type="button"
+          className="navbar__icon-btn navbar__hamburger"
+          aria-label="תפריט"
+          aria-expanded={menuOpen}
+          onClick={() => setMenuOpen((open) => !open)}
+        >
+          <svg viewBox="0 0 24 24" fill="none" stroke="#377E2B" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round">
+            {menuOpen ? (
+              <>
+                <line x1="5" y1="5" x2="19" y2="19" />
+                <line x1="19" y1="5" x2="5" y2="19" />
+              </>
+            ) : (
+              <>
+                <line x1="4" y1="7" x2="20" y2="7" />
+                <line x1="4" y1="12" x2="20" y2="12" />
+                <line x1="4" y1="17" x2="20" y2="17" />
+              </>
+            )}
+          </svg>
+        </button>
         <Link to="/cart" className="navbar__icon-btn" aria-label="עגלת קניות">
           <svg viewBox="0 0 24 24" fill="none" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round">
             <path d="M6 2L3 6v14a2 2 0 002 2h14a2 2 0 002-2V6l-3-4z" />
@@ -42,6 +67,17 @@ export default function Navbar() {
           </svg>
         </Link>
       </div>
+
+      {/* Mobile dropdown nav */}
+      {menuOpen && (
+        <ul className="navbar__mobile-nav">
+          {navLinks.map((link) => (
+            <li key={link.label}>
+              <Link to={link.to} onClick={() => setMenuOpen(false)}>{link.label}</Link>
+            </li>
+          ))}
+        </ul>
+      )}
     </nav>
   )
 }

@@ -15,8 +15,8 @@ export default function MaterialsSection() {
       <h2 className="section-title">החומרים שלנו</h2>
       <div className="materials__grid">
         {materials.map((m, i) => (
-          <React.Fragment>
-            <div key={m.label + i} className="materials__item">
+          <React.Fragment key={m.label + i}>
+            <div className={`materials__item${i % 2 === 1 ? ' materials__item--reverse' : ''}`}>
               {/* Replace placeholder with: <img src={m.image} alt={m.label} /> */}
               <div
                 className="materials__img-placeholder"
