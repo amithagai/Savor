@@ -1,0 +1,37 @@
+.newsletter__input-row {
+  display: flex;
+  width: 100%;
+  border: 1.5px solid var(--border);
+  border-radius: 25px;
+  overflow: hidden;
+  background: var(--white);
+}
+
+.newsletter__input-row input {
+  flex: 1;
+  padding: 14px 18px;
+  font-size: 14px;
+  border: none;
+  text-align: right;
+  min-width: 0;
+  color: var(--text);
+}
+
+.newsletter__input-row input::placeholder {
+  color: #bbb;
+}
+
+.newsletter__input-row button {
+  background: var(--sage);
+  color: var(--signup-button);
+  font-size: 14px;
+  font-weight: 600;
+  padding: 0 24px;
+  border-radius: 999px;
+  margin: 4px;
+  transition: background 0.18s;
+}
+
+.newsletter__input-row button:hover {
+  background: var(--sage-hover);
+}

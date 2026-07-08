@@ -1,5 +1,7 @@
 import { useState, type FC } from 'react'
+import { useNavigate } from 'react-router-dom'
 import './Configurator.css'
+import sketch from '../../assets/סקיצה .png'
 
 type ColorOption = { id: string; label: string; hex: string }
 type CabinetCategory = 'תחתונים' | 'כיור' | 'גבוהים' | 'עליונים'
@@ -54,6 +56,26 @@ const INITIAL_CART: CartItem[] = [
 ]
 interface ActionButtonProps {
   resetAll: () => void
+  onContact: () => void
+}
+
+const Chevron: FC<{ open: boolean }> = ({ open }) => (
+  <svg
+    className={`cfg__chevron${open ? ' cfg__chevron--open' : ''}`}
+    width="14"
+    height="14"
+    viewBox="0 0 14 14"
+    fill="none"
+    aria-hidden="true"
+  >
+    <path d="M3 5.5L7 9.5L11 5.5" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" />
+  </svg>
+)
+
+function categoryLabel(cats: CabinetCategory[]) {
+  if (cats.length === 0) return 'בחרו ארונות'
+  if (cats.length <= 2) return cats.join(', ')
+  return `${cats[0]}, ${cats[1]} (+${cats.length - 2})`
 }
 
 const TotalPrice: FC<{ cartItems: Array<CartItem> }> = ({ cartItems }) => {
@@ -68,13 +90,33 @@ const TotalPrice: FC<{ cartItems: Array<CartItem> }> = ({ cartItems }) => {
   )
 }
 
-export const ActionButton: FC<ActionButtonProps> = ({ resetAll }) => {
+export const ActionButton: FC<ActionButtonProps> = ({ resetAll, onContact }) => {
 
   return (
     <div className="cfg__cart-footer">
-      <button onClick={resetAll}>איפוס</button>
-      <button className="cfg__outline-btn">שמירת תכנון ויצרות קשר</button>
+      <button className="cfg__reset-btn" onClick={resetAll}>איפוס</button>
+      <button className="cfg__outline-btn" onClick={onContact}>שמירת תכנון ויצרות קשר</button>
       <button className="cfg__buy-btn">לרכישת המטבח</button>
+    </div>
+  )
+}
+
+const ContactPopup: FC<{ open: boolean; onClose: () => void }> = ({ open, onClose }) => {
+  const navigate = useNavigate()
+
+  if (!open) return null
+
+  return (
+    <div className="cfg__contact-popup" role="dialog" aria-modal="true">
+      <button className="cfg__contact-close" onClick={onClose} aria-label="סגור">×</button>
+      <h3 className="cfg__contact-title">שמירת תכנון ויצירת קשר</h3>
+      <p className="cfg__contact-text">בואו לדבר איתי ולהתייעץ בנוגע לעיצוב שלכם :)</p>
+      <div className="cfg__contact-actions">
+        <button className="cfg__outline-btn" onClick={onClose}>לא עכשיו, תודה</button>
+        <button className="cfg__buy-btn" onClick={() => { onClose(); navigate('/contact') }}>
+          יצירת קשר
+        </button>
+      </div>
     </div>
   )
 }
@@ -82,13 +124,26 @@ export const ActionButton: FC<ActionButtonProps> = ({ resetAll }) => {
 export default function Configurator() {
   const [wallLength, setWallLength] = useState('')
   const [selectedColor, setSelectedColor] = useState('cream')
-  const [activeCategory, setActiveCategory] = useState<CabinetCategory>('תחתונים')
+  const [selectedCategories, setSelectedCategories] = useState<CabinetCategory[]>(['תחתונים'])
   const [cartItems, setCartItems] = useState<CartItem[]>(INITIAL_CART)
   const [viewMode, setViewMode] = useState<'2D' | '3D'>('3D')
   const [hoverColor, setHoverColor] = useState<string | null>(null)
+  const [howOpen, setHowOpen] = useState(true)
+  const [catMenuOpen, setCatMenuOpen] = useState(false)
+  const [contactOpen, setContactOpen] = useState(false)
 
-  const filteredProducts = PRODUCTS.filter(p => p.category === activeCategory)
+  const filteredProducts = PRODUCTS.filter(p => selectedCategories.includes(p.category))
   const colorHex = COLORS.find(c => c.id === selectedColor)?.hex ?? '#C8AE8A'
+
+  function toggleCategory(cat: CabinetCategory) {
+    setSelectedCategories(prev => {
+      if (prev.includes(cat)) {
+        const next = prev.filter(c => c !== cat)
+        return next.length === 0 ? prev : next
+      }
+      return [...prev, cat]
+    })
+  }
 
   function addToCart(product: CabinetProduct) {
     setCartItems(prev => {
@@ -155,8 +210,16 @@ export default function Configurator() {
 
         {/* LEFT side (RTL end — second in DOM): how-to steps */}
         <div className="cfg__steps">
-          <p className="cfg__steps-label">איך זה עובד?</p>
-          <ol className="cfg__steps-list">
+          <button
+            type="button"
+            className="cfg__steps-hdr"
+            onClick={() => setHowOpen(o => !o)}
+            aria-expanded={howOpen}
+          >
+            <span className="cfg__steps-label">איך זה עובד?</span>
+            <Chevron open={howOpen} />
+          </button>
+          <ol className={`cfg__steps-list${howOpen ? '' : ' cfg__steps-list--closed'}`}>
             {HOW_STEPS.map((step, i) => (
               <li key={i}>
                 <span className="cfg__step-num">{i + 1}.</span> {step}
@@ -174,12 +237,41 @@ export default function Configurator() {
             {CATEGORIES.map(cat => (
               <button
                 key={cat}
-                className={`cfg__tab${activeCategory === cat ? ' cfg__tab--on' : ''}`}
-                onClick={() => setActiveCategory(cat)}
+                className={`cfg__tab${selectedCategories.length === 1 && selectedCategories[0] === cat ? ' cfg__tab--on' : ''}`}
+                onClick={() => setSelectedCategories([cat])}
               >
                 {cat}
               </button>
             ))}
+          </div>
+
+          <div className="cfg__cat-dropdown">
+            <button
+              type="button"
+              className="cfg__cat-dropdown-btn"
+              onClick={() => setCatMenuOpen(o => !o)}
+              aria-expanded={catMenuOpen}
+            >
+              <Chevron open={catMenuOpen} />
+              <span>{categoryLabel(selectedCategories)}</span>
+            </button>
+            {catMenuOpen && (
+              <>
+                <div className="cfg__cat-backdrop" onClick={() => setCatMenuOpen(false)} />
+                <div className="cfg__cat-menu">
+                  {CATEGORIES.map(cat => (
+                    <label key={cat} className="cfg__cat-option">
+                      <input
+                        type="checkbox"
+                        checked={selectedCategories.includes(cat)}
+                        onChange={() => toggleCategory(cat)}
+                      />
+                      <span>{cat}</span>
+                    </label>
+                  ))}
+                </div>
+              </>
+            )}
           </div>
         </div>
 
@@ -198,6 +290,7 @@ export default function Configurator() {
                   style={{ background: c.hex }}
                   onClick={() => setSelectedColor(c.id)}
                   aria-label={c.label}
+                  data-label={c.label}
                 />
                 {hoverColor === c.id && (
                   <span className="cfg__color-tip">{c.label}</span>
@@ -209,7 +302,9 @@ export default function Configurator() {
 
 
 
-        <ActionButton resetAll={resetAll} />
+        <div className="cfg__actions cfg__actions--desktop">
+          <ActionButton resetAll={resetAll} onContact={() => setContactOpen(true)} />
+        </div>
       </div>
 
       {/* ══════════ MAIN THREE-PANEL ══════════ */}
@@ -242,7 +337,10 @@ export default function Configurator() {
 
         {/* CENTER panel: visualization canvas */}
         <div className="cfg__canvas">
-          <div className="cfg__canvas-area" />
+          <div
+            className="cfg__canvas-area"
+            style={{ backgroundImage: `url(${sketch})`, backgroundSize: 'contain', backgroundRepeat: 'no-repeat', backgroundPosition: 'center' }}
+          />
           <div className="cfg__view-btns">
             {(['3D', '2D'] as const).map(mode => (
               <button
@@ -295,9 +393,15 @@ export default function Configurator() {
           </div>
 
           <TotalPrice cartItems={cartItems} />
+
+          <div className="cfg__actions cfg__actions--mobile">
+            <ActionButton resetAll={resetAll} onContact={() => setContactOpen(true)} />
+          </div>
         </div>
 
       </div>
+
+      <ContactPopup open={contactOpen} onClose={() => setContactOpen(false)} />
     </div>
   )
 }

@@ -1,18 +1,21 @@
 import { useState } from 'react'
+import galleryPhoto from '../../../assets/LATTE לעמוד הבית.png'
 
 type Hotspot = { top: string; left: string; label: string; detail: string }
 
-const topImages: { color: string; hotspot: Hotspot }[] = [
+// One shared lifestyle photo, sliced across the tiles via background-position
+// so the top row and bottom band read as facets of the same kitchen.
+const topImages: { bgPosition: string; hotspot: Hotspot }[] = [
   {
-    color: '#c8c0b4',
+    bgPosition: '5% 55%',
     hotspot: { top: '30%', left: '25%', label: 'ארון עליון', detail: 'גימור לבן מט, 60×90 ס״מ' },
   },
   {
-    color: '#d0c8bc',
+    bgPosition: '48% 5%',
     hotspot: { top: '40%', left: '50%', label: 'ארון תחתון', detail: 'גוף סנדוויץ, 60×85 ס״מ' },
   },
   {
-    color: '#b8c0b0',
+    bgPosition: '100% 40%',
     hotspot: { top: '35%', left: '60%', label: 'חזית', detail: 'צבע בתנור, גימור עץ' },
   },
 ]
@@ -38,7 +41,7 @@ export default function GallerySection() {
           <div
             key={i}
             className="gallery__img-wrap"
-            style={{ background: img.color }}
+            style={{ backgroundImage: `url(${galleryPhoto})`, backgroundSize: '300% auto', backgroundPosition: img.bgPosition }}
           >
             <button
               className="gallery__hotspot"
@@ -59,7 +62,7 @@ export default function GallerySection() {
       {/* Bottom — single wide image */}
       <div
         className="gallery__bottom gallery__img-wrap"
-        style={{ background: '#c4beb6' }}
+        style={{ backgroundImage: `url(${galleryPhoto})`, backgroundSize: 'cover', backgroundPosition: 'center 78%' }}
       >
         <button
           className="gallery__hotspot"
