@@ -1,9 +1,12 @@
 import { Link } from 'react-router-dom'
+import craem from '../../../assets/CRAEM 1.5.png'
+import craem4 from '../../../assets/CRAEM4 1.5 .png'
+import craem5 from '../../../assets/CRAEM5 1.5.png'
 
 const products = [
-  { id: '1', name: 'מטבח', size: '1.5m', badge: 'קל לבנייה' },
-  { id: '2', name: 'מטבח', size: '1.5m', badge: 'להיט' },
-  { id: '3', name: 'מטבח', size: '1.5m', badge: 'פופולרי' },
+  { id: '1', name: 'מטבח', size: '1.5m', badge: 'קל לבנייה', image: craem4 },
+  { id: '2', name: 'מטבח', size: '1.5m', badge: 'להיט', image: craem },
+  { id: '3', name: 'מטבח', size: '1.5m', badge: 'פופולרי', image: craem5 },
 ]
 
 export default function BestSellersSection() {
@@ -14,8 +17,7 @@ export default function BestSellersSection() {
         {products.map((p) => (
           <Link to={`/catalog/${p.id}`} key={p.id} className="product-card">
             <div className="product-card__image-wrap">
-              {/* Replace with: <img src={p.image} alt={p.name} /> */}
-              <div className="product-card__image-placeholder" />
+              <img src={p.image} alt={p.name} className="product-card__image" />
               <span className="product-card__badge">{p.badge}</span>
             </div>
             <div className="product-card__info">

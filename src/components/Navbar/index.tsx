@@ -1,25 +1,77 @@
 import { Link } from 'react-router-dom'
+import { useEffect, useState } from 'react'
 import './Navbar.css'
 import savorLogo from '../../assets/savor-logo.svg'
-
+import { useCart } from '../../context/useCart'
 const navLinks = [
   { label: 'מטבחים', to: '/catalog' },
-  { label: 'כלי תכנון', to: '#' },
+  { label: 'כלי תכנון', to: '/configurator' },
   { label: 'מוצרים בודדים', to: '/accessories' },
   { label: 'מוצרים משלמים', to: '/accessories' },
   { label: 'צור קשר', to: '/contact' },
 ]
 
+const kitchenGroups = [
+  { label: 'מטבחים 1.5 מטר', models: ['LATTE', 'CLOUD', 'CREAM'] },
+  { label: 'מטבחים 2 מטר', models: ['LATTE', 'CLOUD', 'CREAM'] },
+  { label: 'מטבחים 2.1 מטר', models: ['LATTE', 'CLOUD', 'CREAM'] },
+  { label: 'מטבחים 2.6 מטר', models: ['LATTE', 'CLOUD', 'CREAM'] },
+  { label: 'מטבחים 3.2 מטר', models: ['LATTE', 'CLOUD', 'CREAM'] },
+]
+
+const mobileFlatLinks = navLinks.filter((link) => link.label !== 'מטבחים')
+
+function Chevron({ open }: { open: boolean }) {
+  return (
+    <svg
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="1.7"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      className={open ? 'navbar__chevron navbar__chevron--open' : 'navbar__chevron'}
+    >
+      <polyline points="6 9 12 15 18 9" />
+    </svg>
+  )
+}
+
 export default function Navbar() {
+  const { cartItems } = useCart()
+  const cartCount = cartItems.length
+  const [menuOpen, setMenuOpen] = useState(false)
+  const [openGroups, setOpenGroups] = useState<Set<string>>(
+    () => new Set(['מטבחים', 'מטבחים 1.5 מטר']),
+  )
+
+  useEffect(() => {
+    document.body.style.overflow = menuOpen ? 'hidden' : ''
+    return () => {
+      document.body.style.overflow = ''
+    }
+  }, [menuOpen])
+
+  const closeMenu = () => setMenuOpen(false)
+
+  const toggleGroup = (key: string) => {
+    setOpenGroups((prev) => {
+      const next = new Set(prev)
+      if (next.has(key)) {
+        next.delete(key)
+      } else {
+        next.add(key)
+      }
+      return next
+    })
+  }
+
   return (
     <nav className="navbar">
-      {/* Right side — logo */}
       <Link to="/" className="navbar__logo">
-        {/* Sav<span className="navbar__logo-tag">KITCHENS</span>or */}
         <img src={savorLogo} alt="savorLogo" />
       </Link>
 
-      {/* Center nav */}
       <ul className="navbar__nav">
         {navLinks.map((link) => (
           <li key={link.label}>
@@ -27,21 +79,120 @@ export default function Navbar() {
           </li>
         ))}
       </ul>
-      {/* Left side — cart + wishlist */}
+      {/* Left side — hamburger (mobile) + cart + wishlist */}
       <div className="navbar__icons">
+        <button
+          type="button"
+          className="navbar__icon-btn navbar__hamburger"
+          aria-label="תפריט"
+          aria-expanded={menuOpen}
+          onClick={() => setMenuOpen((open) => !open)}
+        >
+          <svg viewBox="0 0 24 24" fill="none" stroke="#377E2B" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round">
+            {menuOpen ? (
+              <>
+                <line x1="5" y1="5" x2="19" y2="19" />
+                <line x1="19" y1="5" x2="5" y2="19" />
+              </>
+            ) : (
+              <>
+                <line x1="4" y1="7" x2="20" y2="7" />
+                <line x1="4" y1="12" x2="20" y2="12" />
+                <line x1="4" y1="17" x2="20" y2="17" />
+              </>
+            )}
+          </svg>
+        </button>
         <Link to="/cart" className="navbar__icon-btn" aria-label="עגלת קניות">
           <svg viewBox="0 0 24 24" fill="none" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round">
             <path d="M6 2L3 6v14a2 2 0 002 2h14a2 2 0 002-2V6l-3-4z" />
             <line x1="3" y1="6" x2="21" y2="6" />
             <path d="M16 10a4 4 0 01-8 0" />
           </svg>
+
+          {cartCount > 0 && (
+            <span className="navbar__cart-badge">{cartCount}</span>
+          )}
         </Link>
+
         <Link to="/wishlist" className="navbar__icon-btn" aria-label="רשימת מועדפים">
           <svg viewBox="0 0 24 24" fill="none" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round">
             <path d="M20.84 4.61a5.5 5.5 0 00-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 00-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 000-7.78z" />
           </svg>
         </Link>
       </div>
+
+      {/* Mobile full-screen menu */}
+      {menuOpen && (
+        <div className="navbar__mobile-menu">
+          <button
+            type="button"
+            className="navbar__mobile-menu-close"
+            aria-label="סגירת תפריט"
+            onClick={closeMenu}
+          >
+            <svg viewBox="0 0 24 24" fill="none" stroke="#377E2B" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round">
+              <line x1="5" y1="5" x2="19" y2="19" />
+              <line x1="19" y1="5" x2="5" y2="19" />
+            </svg>
+          </button>
+
+          <div className="navbar__mobile-menu-body">
+            <div className="navbar__mobile-group">
+              <button
+                type="button"
+                className="navbar__mobile-group-toggle"
+                onClick={() => toggleGroup('מטבחים')}
+              >
+                <span>מטבחים</span>
+                <Chevron open={openGroups.has('מטבחים')} />
+              </button>
+
+              {openGroups.has('מטבחים') && (
+                <div className="navbar__mobile-subgroup-list">
+                  {kitchenGroups.map((group) => (
+                    <div key={group.label} className="navbar__mobile-subgroup">
+                      <button
+                        type="button"
+                        className="navbar__mobile-subgroup-toggle"
+                        onClick={() => toggleGroup(group.label)}
+                      >
+                        <span>{group.label}</span>
+                        <Chevron open={openGroups.has(group.label)} />
+                      </button>
+
+                      {openGroups.has(group.label) && (
+                        <div className="navbar__mobile-models">
+                          {group.models.map((model) => (
+                            <Link key={model} to="/catalog" onClick={closeMenu}>
+                              {`דגם ${model}`}
+                            </Link>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+
+            {mobileFlatLinks.map((link) => (
+              <Link
+                key={link.label}
+                to={link.to}
+                className="navbar__mobile-flat-link"
+                onClick={closeMenu}
+              >
+                {link.label}
+              </Link>
+            ))}
+          </div>
+
+          <div className="navbar__mobile-menu-footer">
+            <img src={savorLogo} alt="Savor Kitchens" />
+          </div>
+        </div>
+      )}
     </nav>
   )
 }

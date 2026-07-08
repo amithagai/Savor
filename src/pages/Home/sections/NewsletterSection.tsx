@@ -1,4 +1,6 @@
-import { useState } from 'react'
+import React, { useState } from 'react'
+import { EmnailInput } from '../../../components/Input/EmailInput'
+
 
 export default function NewsletterSection() {
   const [email, setEmail] = useState('')
@@ -12,22 +14,15 @@ export default function NewsletterSection() {
     setAgreed(false)
   }
 
+  const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => setEmail(e.target.value)
+
   return (
     <section className="newsletter">
-      <p className="newsletter__subtitle">באו להשאר מעודכנים.</p>
+      <p className="newsletter__subtitle">בואו להשאר מעודכנים.</p>
       <h2 className="newsletter__title">ניוזלטר סאבור</h2>
 
       <form className="newsletter__form" onSubmit={handleSubmit}>
-        <div className="newsletter__input-row">
-          <input
-            type="email"
-            placeholder="כתובת אימייל"
-            value={email}
-            onChange={(e) => setEmail(e.target.value)}
-            required
-          />
-          <button type="submit">הרשמה</button>
-        </div>
+        <EmnailInput handleChange={handleChange} email={email} /> 
         <label className="newsletter__consent">
           <input
             type="checkbox"
@@ -35,8 +30,8 @@ export default function NewsletterSection() {
             onChange={(e) => setAgreed(e.target.checked)}
           />
           <span>
-            אני מסכים/ה לקבל דיוור ישיר, הודעות, דברי פרסום ומסרים שיווקים
-            מהאחר באמצעות הדוא״ל
+            אני מסכים/ה לקבל דיוור ישיר, הודעות, דברי פרסום <br />ומסרים שיווקים 
+            מהאתר באמצעות הדוא״ל
           </span>
         </label>
       </form>

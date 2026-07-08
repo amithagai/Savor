@@ -1,0 +1,109 @@
+.savor-product-card {
+  border: 1px solid #d8d8d8;
+  border-radius: 26px;
+  padding: 18px;
+  background: #fff;
+  display: flex;
+  flex-direction: column;
+  min-height: 420px;
+}
+
+.savor-product-card__image,
+.savor-product-card__placeholder {
+  width: 100%;
+  height: 250px;
+  border-radius: 18px;
+  object-fit: cover;
+}
+
+.savor-product-card__placeholder {
+  background: linear-gradient(135deg, #d8d2cb, #bfb8ae);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 28px;
+  font-weight: 800;
+  color: #fff;
+}
+
+.savor-product-card__content {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  text-align: right;
+  padding-top: 18px;
+}
+
+.savor-product-card__content h3 {
+  font-size: 32px;
+  font-weight: 800;
+  margin: 0 0 14px;
+  color: #1f1f1f;
+}
+
+.savor-product-card__content p {
+  font-size: 22px;
+  color: #777;
+  margin: 0 0 24px;
+}
+
+.savor-product-card__button {
+  align-self: flex-end;
+  margin-top: auto;
+  background: #dff0da;
+  color: #4c7d42;
+  border: none;
+  border-radius: 999px;
+  padding: 12px 26px;
+  font-size: 20px;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.savor-product-card__button:hover {
+  background: #cfe8c8;
+}
+
+.savor-product-card__button:focus-visible {
+  outline: 2px solid #4c7d42;
+  outline-offset: 2px;
+}
+
+/* ─── Mobile ─────────────────────────────────────── */
+@media (max-width: 768px) {
+  .savor-product-card {
+    min-height: 0;
+    border-radius: 20px;
+    padding: 14px;
+  }
+
+  .savor-product-card__image,
+  .savor-product-card__placeholder {
+    height: 180px;
+    border-radius: 14px;
+  }
+
+  .savor-product-card__placeholder {
+    font-size: 20px;
+  }
+
+  .savor-product-card__content {
+    padding-top: 14px;
+  }
+
+  .savor-product-card__content h3 {
+    font-size: 22px;
+    margin: 0 0 8px;
+  }
+
+  .savor-product-card__content p {
+    font-size: 16px;
+    margin: 0 0 16px;
+  }
+
+  .savor-product-card__button {
+    font-size: 16px;
+    padding: 10px 20px;
+    min-height: 44px;
+  }
+}

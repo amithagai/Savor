@@ -30,18 +30,18 @@
   gap: 0;
   white-space: nowrap;
   animation: scroll-rtl 28s linear infinite;
+  color: var(--white);
+
 }
 
 .announcement-bar__item {
   font-size: 13px;
   font-weight: 500;
-  color: var(--text);
   padding: 0 8px;
 }
 
 .announcement-bar__dot {
   margin-inline-start: 8px;
-  color: var(--text-muted);
 }
 
 @keyframes scroll-rtl {
@@ -116,11 +116,13 @@
   display: inline-block;
   background: var(--sage);
   color: var(--text);
+  color: #377E2B;
   font-size: 15px;
   font-weight: 600;
   padding: 12px 28px;
   border-radius: 999px;
   transition: background 0.2s, transform 0.15s;
+  max-width: 131px;
 }
 
 .hero__cta:hover {
@@ -128,9 +130,14 @@
   transform: scale(1.03);
 }
 
+/* Mobile-only quick links row, hidden on desktop */
+.hero__tags {
+  display: none;
+}
+
 /* Cookie banner */
 .cookie-banner {
-  position: absolute;
+  position: fixed;
   bottom: 28px;
   left: 28px;
   z-index: 10;
@@ -213,9 +220,14 @@
   overflow: hidden;
 }
 
+.product-card__image,
 .product-card__image-placeholder {
   width: 100%;
   height: 100%;
+  object-fit: cover;
+}
+
+.product-card__image-placeholder {
   /* Replace with real product image */
   background: linear-gradient(135deg, #d4cec8 0%, #bfb9b0 100%);
 }
@@ -253,38 +265,42 @@
 
 /* ─── Materials ──────────────────────────────────── */
 .materials {
-  padding: 64px 60px;
-  background: #fafafa;
+  padding: 48px 60px;
+  /* background: #fafafa; */
 }
 
 .materials__grid {
   display: grid;
-  grid-template-columns: 1fr 1px 1fr 1px 1fr;
-  column-gap: 0;
-  row-gap: 40px;
+  grid-template-columns: 220px auto 220px auto 220px;
+  justify-content: center;
+  column-gap: 20px;
+  row-gap: 32px;
 }
 
 .materials__divider {
+  width: 1px;
+  height: 180px; /* matches .materials__img max-width (square aspect ratio) */
   background: #b4d494;
-  margin: 0 24px;
+  margin: 0 20px;
   border-radius: 2px;
   grid-row: span 1;
-  align-self: stretch;
+  align-self: start;
 }
 
 .materials__item {
   display: flex;
   flex-direction: column;
   align-items: flex-end;
-  gap: 14px;
-  padding: 0 24px;
+  gap: 12px;
+  padding: 0 20px;
 }
 
-.materials__img-placeholder {
+.materials__img {
   width: 100%;
+  max-width: 180px;
   aspect-ratio: 1;
   border-radius: 12px;
-  /* Will be replaced with <img> once real images are available */
+  object-fit: cover;
 }
 
 .materials__label {
@@ -304,6 +320,7 @@
 }
 
 .gallery__top {
+  direction: ltr;
   display: grid;
   grid-template-columns: repeat(3, 1fr);
   gap: 6px;
@@ -431,7 +448,7 @@
 
 .newsletter__subtitle {
   font-size: 16px;
-  color: var(--text-muted);
+  color: var(--black);
   margin-bottom: 6px;
 }
 
@@ -445,48 +462,10 @@
 .newsletter__form {
   display: flex;
   flex-direction: column;
-  align-items: flex-end;
+  align-items: flex-start;
   gap: 16px;
-  max-width: 480px;
-  margin-inline-start: auto;
-}
-
-.newsletter__input-row {
-  display: flex;
-  width: 100%;
-  border: 1.5px solid var(--border);
-  border-radius: 12px;
-  overflow: hidden;
-  background: var(--white);
-}
-
-.newsletter__input-row input {
-  flex: 1;
-  padding: 14px 18px;
-  font-size: 14px;
-  border: none;
-  text-align: right;
-  min-width: 0;
-  color: var(--text);
-}
-
-.newsletter__input-row input::placeholder {
-  color: #bbb;
-}
-
-.newsletter__input-row button {
-  background: var(--sage);
-  color: var(--text);
-  font-size: 14px;
-  font-weight: 600;
-  padding: 0 24px;
-  border-radius: 10px;
-  margin: 4px;
-  transition: background 0.18s;
-}
-
-.newsletter__input-row button:hover {
-  background: var(--sage-hover);
+  max-width: 380px;
+  margin-inline-end: auto;
 }
 
 .newsletter__consent {
@@ -502,6 +481,168 @@
 
 .newsletter__consent input[type="checkbox"] {
   margin-top: 2px;
-  accent-color: var(--green);
+  accent-color: var(--blue);
   flex-shrink: 0;
+}
+
+/* ═══════════════════════════════════════════════════
+   Mobile (desktop styles above are untouched)
+   ═══════════════════════════════════════════════════ */
+@media (max-width: 768px) {
+  .section-title {
+    font-size: 24px;
+    margin-bottom: 20px;
+  }
+
+  /* ─── Hero ─────────────────────────────────────── */
+  .hero {
+    height: auto;
+    min-height: 520px;
+    padding: 0 20px;
+    /* align-items: flex-start; */
+    padding-bottom: 40px;
+  }
+
+  .hero__content {
+    max-width: 100%;
+  }
+
+  .hero__title {
+    font-size: 32px;
+    letter-spacing: -0.5px;
+  }
+
+  .hero__subtitle {
+    font-size: 15px;
+    margin-bottom: 20px;
+  }
+
+  .hero__cta {
+    display: flex;
+    justify-content: center;
+    font-size: 14px;
+    padding: 12px 24px;
+  }
+
+  .hero__tags {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+    padding: 20px 20px 0;
+    justify-content: flex-end;
+  }
+
+  .hero__tag {
+    font-size: 13px;
+    font-weight: 500;
+    color: var(--text);
+    border: 1px solid var(--border);
+    border-radius: 999px;
+    padding: 8px 16px;
+  }
+
+  .home__content {
+    border-radius: 24px 24px 0 0;
+  }
+
+  /* ─── Best Sellers ─────────────────────────────── */
+  .best-sellers {
+    padding: 40px 20px;
+  }
+
+  .best-sellers__grid {
+    grid-template-columns: 1fr;
+    gap: 20px;
+  }
+
+  /* ─── Materials ────────────────────────────────── */
+  .materials {
+    padding: 40px 20px;
+  }
+
+  .materials__grid {
+    display: flex;
+    flex-direction: column;
+    gap: 24px;
+  }
+
+  .materials__divider {
+    display: none;
+  }
+
+  .materials__item {
+    flex-direction: row;
+    align-items: center;
+    gap: 16px;
+    padding: 0;
+  }
+
+  .materials__item--reverse {
+    flex-direction: row-reverse;
+  }
+
+  .materials__img {
+    width: 110px;
+    flex-shrink: 0;
+  }
+
+  .materials__label {
+    flex: 1;
+  }
+
+  /* ─── Gallery ──────────────────────────────────── */
+  .gallery {
+    padding: 0 20px 40px;
+  }
+
+  .gallery__bottom {
+    height: 220px;
+  }
+
+  /* ─── Testimonials ─────────────────────────────── */
+  .testimonials {
+    padding: 40px 0 40px 20px;
+    background: #fafafa;
+  }
+
+  .testimonials .section-title {
+    padding-right: 20px;
+  }
+
+  .testimonials__grid {
+    display: flex;
+    grid-template-columns: none;
+    overflow-x: auto;
+    scroll-snap-type: x mandatory;
+    padding-right: 20px;
+    padding-bottom: 4px;
+  }
+
+  .testimonial-card {
+    flex: 0 0 82%;
+    scroll-snap-align: start;
+  }
+
+  /* ─── Newsletter ───────────────────────────────── */
+  .newsletter {
+    padding: 48px 20px;
+  }
+
+  .newsletter__title {
+    font-size: 28px;
+    margin-bottom: 24px;
+  }
+
+  .newsletter__form {
+    max-width: 100%;
+    width: 100%;
+  }
+
+  /* ─── Cookie banner ─────────────────────────────── */
+  .cookie-banner {
+    left: 16px;
+    right: 16px;
+    bottom: 96px;
+    max-width: none;
+  }
 }
