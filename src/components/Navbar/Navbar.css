@@ -77,6 +77,7 @@
   justify-content: center;
   background: var(--white);
   transition: background 0.18s;
+  position: relative;
 }
 
 .navbar__icon-btn:hover {
@@ -89,6 +90,27 @@
   stroke: #377E2B;
 }
 
+
+.navbar__cart-badge {
+  position: absolute;
+  top: -6px;
+  right: -6px;
+
+  width: 18px;
+  height: 18px;
+
+  border-radius: 50%;
+
+  background-color: #d94d3f;
+  color: white;
+
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  font-size: 11px;
+  font-weight: 600;
+}
 /* Hamburger is desktop-hidden; shown only on mobile */
 .navbar__hamburger {
   display: none;
