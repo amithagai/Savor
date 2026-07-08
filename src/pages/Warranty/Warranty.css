@@ -1,0 +1,36 @@
+.warranty {
+  direction: rtl;
+  display: flex;
+  justify-content: center;
+  padding: 60px 24px 96px;
+}
+
+.warranty__container {
+  width: 100%;
+  max-width: 760px;
+}
+
+.warranty__title {
+  font-size: 2rem;
+  font-weight: 800;
+  margin-bottom: 32px;
+  text-align: center;
+}
+
+.warranty__paragraph {
+  font-size: 1rem;
+  line-height: 1.9;
+  color: var(--text);
+  margin-bottom: 20px;
+}
+
+.warranty__paragraph--closing {
+  margin-bottom: 0;
+  font-weight: 600;
+}
+
+@media (max-width: 600px) {
+  .warranty__title {
+    font-size: 1.6rem;
+  }
+}

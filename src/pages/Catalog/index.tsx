@@ -2,16 +2,21 @@ import { useMemo, useState } from 'react'
 import ProductCard from '../../components/ProductCard'
 import './Catalog.css'
 import { useCart } from '../../context/useCart'
+import creamImage from '../../assets/CRAEM 1.5.png'
+import latteImage from '../../assets/LATTE לעמוד הבית.png'
+
 type Kitchen = {
   id: number
   name: string
   size: string
+  price: number
+  image?: string
 }
 
 const kitchens: Kitchen[] = [
-  { id: 1, name: 'CREAM', size: '1.5 מטר' },
-  { id: 2, name: 'CLOUD', size: '1.5 מטר' },
-  { id: 3, name: 'LATTE', size: '2 מטר' },
+  { id: 1, name: 'CREAM', size: '1.5 מטר', price: 1230, image: creamImage },
+  { id: 2, name: 'CLOUD', size: '1.5 מטר', price: 1450 },
+  { id: 3, name: 'LATTE', size: '2 מטר', price: 1690, image: latteImage },
 ]
 
 const sizeFilters = ['הכל', '1.5 מטר', '2 מטר']
@@ -34,6 +39,7 @@ const handleAddToCart = (kitchen: Kitchen) => {
     id: kitchen.id,
     name: kitchen.name,
     size: kitchen.size,
+    price: kitchen.price,
     quantity: 1,
   })
 }
@@ -63,6 +69,7 @@ const handleAddToCart = (kitchen: Kitchen) => {
             key={kitchen.id}
             name={kitchen.name}
             subtitle={kitchen.size}
+            image={kitchen.image}
             onAddToCart={() => handleAddToCart(kitchen)}
           />
         ))}

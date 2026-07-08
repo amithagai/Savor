@@ -161,10 +161,33 @@
   height: fit-content;
 }
 
+.cfg__steps-hdr {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  width: 100%;
+  background: none;
+  border: none;
+  padding: 0;
+  cursor: pointer;
+  font-family: var(--font);
+}
+
 .cfg__steps-label {
   font-size: 14px;
   font-weight: 700;
   color: var(--text);
+}
+
+.cfg__chevron {
+  flex-shrink: 0;
+  color: var(--text);
+  transition: transform 0.2s;
+  display: none;
+}
+
+.cfg__chevron--open {
+  transform: rotate(180deg);
 }
 
 .cfg__steps-list {
@@ -245,6 +268,75 @@
   background: var(--sage);
   border-color: var(--sage);
   font-weight: 700;
+}
+
+/* Mobile-only category multi-select dropdown (hidden on desktop) */
+.cfg__cat-dropdown {
+  position: relative;
+  display: none;
+}
+
+.cfg__cat-dropdown-btn {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  border: 1.5px solid var(--border);
+  border-radius: 8px;
+  padding: 7px 12px;
+  font-size: 12.5px;
+  font-weight: 600;
+  color: var(--text);
+  background: var(--white);
+  font-family: var(--font);
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+.cfg__cat-dropdown .cfg__chevron {
+  display: inline-flex;
+}
+
+.cfg__cat-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 30;
+}
+
+.cfg__cat-menu {
+  position: absolute;
+  top: calc(100% + 6px);
+  right: 0;
+  min-width: 180px;
+  background: var(--white);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  box-shadow: 0 8px 20px rgba(0,0,0,0.12);
+  padding: 8px;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  z-index: 31;
+}
+
+.cfg__cat-option {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 6px;
+  font-size: 13px;
+  color: var(--text);
+  border-radius: 6px;
+  cursor: pointer;
+}
+
+.cfg__cat-option:hover {
+  background: #f5f5f5;
+}
+
+.cfg__cat-option input {
+  accent-color: var(--green);
+  width: 15px;
+  height: 15px;
 }
 
 .cfg__product-list {
@@ -524,6 +616,85 @@
   width: 40%;
 }
 
+.cfg__actions--desktop {
+  display: contents;
+}
+
+.cfg__actions--mobile {
+  display: none;
+}
+
+.cfg__reset-btn {
+  background: none;
+  border: none;
+  color: var(--text-muted);
+  font-size: 12.5px;
+  font-weight: 500;
+  cursor: pointer;
+  font-family: var(--font);
+  padding: 9px 4px;
+  white-space: nowrap;
+}
+
+.cfg__reset-btn:hover {
+  color: var(--text);
+}
+
+/* Floating contact widget */
+.cfg__contact-popup {
+  position: fixed;
+  left: 24px;
+  bottom: 24px;
+  width: 300px;
+  max-width: calc(100vw - 32px);
+  background: var(--white);
+  border-radius: 14px;
+  box-shadow: 0 12px 32px rgba(0,0,0,0.18);
+  padding: 18px;
+  z-index: 100;
+  text-align: right;
+}
+
+.cfg__contact-close {
+  position: absolute;
+  top: 8px;
+  left: 10px;
+  border: none;
+  background: none;
+  font-size: 18px;
+  line-height: 1;
+  color: var(--text-muted);
+  cursor: pointer;
+}
+
+.cfg__contact-close:hover {
+  color: var(--text);
+}
+
+.cfg__contact-title {
+  font-size: 14.5px;
+  font-weight: 700;
+  color: var(--text);
+  margin: 0 0 8px;
+}
+
+.cfg__contact-text {
+  font-size: 12.5px;
+  color: var(--text-muted);
+  line-height: 1.6;
+  margin: 0 0 14px;
+}
+
+.cfg__contact-actions {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.cfg__contact-actions .cfg__outline-btn {
+  margin-right: 0;
+}
+
 .cfg__total {
   font-size: 14px;
   font-weight: 700;
@@ -573,7 +744,197 @@
 }
 
 
-.cfg__filter-row { 
+.cfg__filter-row {
   display: flex;
   justify-content: space-between;
+}
+
+/* ═══════════════════════ Mobile ═══════════════════════ */
+@media (max-width: 768px) {
+  .cfg {
+    margin: 8% 5%;
+  }
+.cfg__outline-btn { 
+  margin: 0;
+}
+
+  /* ── Header / title ── */
+  .cfg__top {
+    flex-direction: column;
+    gap: 16px;
+  }
+
+  .cfg__header {
+    padding: 0;
+    gap: 16px;
+  }
+
+  .cfg__title {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 2px;
+    font-size: 26px;
+  }
+
+  .cfg__title span {
+    font-size: 15px;
+  }
+
+  .cfg__desc {
+    font-size: 12px;
+    max-width: 100%;
+  }
+
+  .cfg__wall-row {
+    width: 100%;
+  }
+
+  .cfg__wall-input-group {
+    width: 100%;
+  }
+
+  .cfg__wall-input {
+    flex: 1;
+    width: auto;
+  }
+
+  /* ── How-it-works accordion ── */
+  .cfg__steps {
+    flex-basis: auto;
+    width: 100%;
+    padding: 16px;
+  }
+
+  .cfg__steps-hdr .cfg__chevron {
+    display: inline-flex;
+  }
+
+  .cfg__steps-list--closed {
+    display: none;
+  }
+
+  /* ── Category dropdown + colors row ── */
+  .cfg__filter-row {
+    flex-wrap: wrap;
+    align-items: flex-start;
+    row-gap: 14px;
+  }
+
+  .cfg__catalog-hdr {
+    flex: 1 1 55%;
+    gap: 8px;
+  }
+
+  .cfg__tabs {
+    display: none;
+  }
+
+  .cfg__cat-dropdown {
+    display: block;
+  }
+
+  .cfg__color-row {
+    flex: 1 1 40%;
+    gap: 8px;
+  }
+
+  /* Persistent label above the selected swatch (no hover on touch) */
+  .cfg__color-tip {
+    display: none;
+  }
+
+  .cfg__color-wrap {
+    position: relative;
+  }
+
+  .cfg__color-dot--on::after {
+    content: attr(data-label);
+    position: absolute;
+    bottom: calc(100% + 6px);
+    left: 50%;
+    transform: translateX(-50%);
+    background: var(--text);
+    color: var(--white);
+    font-size: 9px;
+    font-weight: 700;
+    letter-spacing: 0.8px;
+    padding: 3px 8px;
+    border-radius: 4px;
+    white-space: nowrap;
+    pointer-events: none;
+  }
+
+  /* Desktop action row hidden; buttons move down to the cart footer */
+  .cfg__actions--desktop {
+    display: none;
+  }
+
+  .cfg__actions--mobile {
+    display: block;
+    width: 100%;
+  }
+
+  .cfg__cart-footer {
+    flex-direction: column;
+    width: 100%;
+    padding: 16px 4px 4px;
+    gap: 10px;
+  }
+
+  .cfg__reset-btn {
+    align-self: center;
+    padding: 4px;
+  }
+
+  /* ── Main stacked layout ── */
+  .cfg__main {
+    flex-direction: column;
+    height: auto;
+    gap: 18px;
+  }
+
+  .cfg__catalog {
+    flex-basis: auto;
+    width: 100%;
+  }
+
+  .cfg__product-list {
+    flex-direction: row;
+    direction: rtl;
+    overflow-x: auto;
+    overflow-y: hidden;
+    padding: 4px 2px 12px;
+    scroll-snap-type: x mandatory;
+  }
+
+  .cfg__product {
+    flex: 0 0 82%;
+    max-width: 320px;
+    scroll-snap-align: center;
+  }
+
+  .cfg__canvas {
+    width: 100%;
+    aspect-ratio: 1 / 1;
+    min-height: 300px;
+  }
+
+  .cfg__view-btns {
+    left: 50%;
+  }
+
+  .cfg__cart {
+    flex-basis: auto;
+    width: 100%;
+    height: 600px;
+  }
+
+  /* ── Contact widget ── */
+  .cfg__contact-popup {
+    left: 16px;
+    right: 16px;
+    bottom: 16px;
+    width: auto;
+    max-width: none;
+  }
 }

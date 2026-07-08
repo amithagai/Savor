@@ -63,3 +63,47 @@
 .savor-product-card__button:hover {
   background: #cfe8c8;
 }
+
+.savor-product-card__button:focus-visible {
+  outline: 2px solid #4c7d42;
+  outline-offset: 2px;
+}
+
+/* ─── Mobile ─────────────────────────────────────── */
+@media (max-width: 768px) {
+  .savor-product-card {
+    min-height: 0;
+    border-radius: 20px;
+    padding: 14px;
+  }
+
+  .savor-product-card__image,
+  .savor-product-card__placeholder {
+    height: 180px;
+    border-radius: 14px;
+  }
+
+  .savor-product-card__placeholder {
+    font-size: 20px;
+  }
+
+  .savor-product-card__content {
+    padding-top: 14px;
+  }
+
+  .savor-product-card__content h3 {
+    font-size: 22px;
+    margin: 0 0 8px;
+  }
+
+  .savor-product-card__content p {
+    font-size: 16px;
+    margin: 0 0 16px;
+  }
+
+  .savor-product-card__button {
+    font-size: 16px;
+    padding: 10px 20px;
+    min-height: 44px;
+  }
+}

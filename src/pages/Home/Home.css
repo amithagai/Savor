@@ -220,9 +220,14 @@
   overflow: hidden;
 }
 
+.product-card__image,
 .product-card__image-placeholder {
   width: 100%;
   height: 100%;
+  object-fit: cover;
+}
+
+.product-card__image-placeholder {
   /* Replace with real product image */
   background: linear-gradient(135deg, #d4cec8 0%, #bfb9b0 100%);
 }
@@ -260,38 +265,42 @@
 
 /* ─── Materials ──────────────────────────────────── */
 .materials {
-  padding: 64px 60px;
+  padding: 48px 60px;
   /* background: #fafafa; */
 }
 
 .materials__grid {
   display: grid;
-  grid-template-columns: 1fr 1px 1fr 1px 1fr;
-  column-gap: 0;
-  row-gap: 40px;
+  grid-template-columns: 220px auto 220px auto 220px;
+  justify-content: center;
+  column-gap: 20px;
+  row-gap: 32px;
 }
 
 .materials__divider {
+  width: 1px;
+  height: 180px; /* matches .materials__img max-width (square aspect ratio) */
   background: #b4d494;
-  margin: 0 24px;
+  margin: 0 20px;
   border-radius: 2px;
   grid-row: span 1;
-  align-self: stretch;
+  align-self: start;
 }
 
 .materials__item {
   display: flex;
   flex-direction: column;
   align-items: flex-end;
-  gap: 14px;
-  padding: 0 24px;
+  gap: 12px;
+  padding: 0 20px;
 }
 
-.materials__img-placeholder {
+.materials__img {
   width: 100%;
+  max-width: 180px;
   aspect-ratio: 1;
   border-radius: 12px;
-  /* Will be replaced with <img> once real images are available */
+  object-fit: cover;
 }
 
 .materials__label {
@@ -311,6 +320,7 @@
 }
 
 .gallery__top {
+  direction: ltr;
   display: grid;
   grid-template-columns: repeat(3, 1fr);
   gap: 6px;
@@ -458,44 +468,6 @@
   margin-inline-end: auto;
 }
 
-.newsletter__input-row {
-  display: flex;
-  width: 100%;
-  border: 1.5px solid var(--border);
-  border-radius:  25px;
-  overflow: hidden;
-  background: var(--white);
-}
-
-.newsletter__input-row input {
-  flex: 1;
-  padding: 14px 18px;
-  font-size: 14px;
-  border: none;
-  text-align: right;
-  min-width: 0;
-  color: var(--text);
-}
-
-.newsletter__input-row input::placeholder {
-  color: #bbb;
-}
-
-.newsletter__input-row button {
-  background: var(--sage);
-  color: var(--signup-button);
-  font-size: 14px;
-  font-weight: 600;
-  padding: 0 24px;
-  border-radius: 999px;
-  margin: 4px;
-  transition: background 0.18s;
-}
-
-.newsletter__input-row button:hover {
-  background: var(--sage-hover);
-}
-
 .newsletter__consent {
   display: flex;
   align-items: flex-start;
@@ -609,7 +581,7 @@
     flex-direction: row-reverse;
   }
 
-  .materials__img-placeholder {
+  .materials__img {
     width: 110px;
     flex-shrink: 0;
   }

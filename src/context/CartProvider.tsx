@@ -21,6 +21,14 @@ export function CartProvider({ children }: CartProviderProps) {
     )
   }
 
+  const updateQuantity = (id: number, quantity: number) => {
+    setCartItems((currentItems) =>
+      currentItems.map((item) =>
+        item.id === id ? { ...item, quantity } : item
+      )
+    )
+  }
+
   const clearCart = () => {
     setCartItems([])
   }
@@ -31,6 +39,7 @@ export function CartProvider({ children }: CartProviderProps) {
         cartItems,
         addToCart,
         removeFromCart,
+        updateQuantity,
         clearCart,
       }}
     >
