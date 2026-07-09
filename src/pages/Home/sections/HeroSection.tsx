@@ -1,5 +1,5 @@
 import { Link } from 'react-router-dom'
-import heroBg from '../../../assets/לעמוד הבית.png'
+import { heroHome as heroBg } from '../../../assets/cloudinaryImages'
 import AnnouncementBar from './AnnouncementBar'
 
 export default function HeroSection() {

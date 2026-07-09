@@ -3,6 +3,8 @@ import { useEffect, useState } from 'react'
 import './Navbar.css'
 import savorLogo from '../../assets/savor-logo.svg'
 import { useCart } from '../../context/useCart'
+import { useWishlist } from '../../context/useWishlist'
+import HeartIcon from '../HeartIcon'
 const navLinks = [
   { label: 'מטבחים', to: '/catalog' },
   { label: 'כלי תכנון', to: '/configurator' },
@@ -40,7 +42,9 @@ function Chevron({ open }: { open: boolean }) {
 export default function Navbar() {
   const { cartItems } = useCart()
   const cartCount = cartItems.length
+  const { wishlistItems, removeFromWishlist } = useWishlist()
   const [menuOpen, setMenuOpen] = useState(false)
+  const [wishlistOpen, setWishlistOpen] = useState(false)
   const [openGroups, setOpenGroups] = useState<Set<string>>(
     () => new Set(['מטבחים', 'מטבחים 1.5 מטר']),
   )
@@ -115,11 +119,57 @@ export default function Navbar() {
           )}
         </Link>
 
-        <Link to="/wishlist" className="navbar__icon-btn" aria-label="רשימת מועדפים">
-          <svg viewBox="0 0 24 24" fill="none" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round">
-            <path d="M20.84 4.61a5.5 5.5 0 00-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 00-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 000-7.78z" />
-          </svg>
-        </Link>
+        <div className="navbar__wishlist-wrap">
+          <button
+            type="button"
+            className="navbar__icon-btn"
+            aria-label="מוצרים שאהבתי"
+            aria-expanded={wishlistOpen}
+            onClick={() => setWishlistOpen((open) => !open)}
+          >
+            <HeartIcon filled={wishlistItems.length > 0} />
+            {wishlistItems.length > 0 && (
+              <span className="navbar__cart-badge">{wishlistItems.length}</span>
+            )}
+          </button>
+
+          {wishlistOpen && (
+            <>
+              <div className="navbar__wishlist-backdrop" onClick={() => setWishlistOpen(false)} />
+              <div className="navbar__wishlist-panel">
+                <h3 className="navbar__wishlist-title">מוצרים שאהבתי</h3>
+
+                {wishlistItems.length === 0 ? (
+                  <p className="navbar__wishlist-empty">עדיין לא הוספתם מוצרים לרשימת המועדפים</p>
+                ) : (
+                  <div className="navbar__wishlist-list">
+                    {wishlistItems.map((item) => (
+                      <div key={item.id} className="navbar__wishlist-item">
+                        <button
+                          type="button"
+                          className="navbar__wishlist-item-heart"
+                          aria-label="הסרה מהמועדפים"
+                          onClick={() => removeFromWishlist(item.id)}
+                        >
+                          <HeartIcon filled />
+                        </button>
+                        <div className="navbar__wishlist-item-info">
+                          <span className="navbar__wishlist-item-name">{item.name}</span>
+                          {item.subtitle && (
+                            <span className="navbar__wishlist-item-sub">{item.subtitle}</span>
+                          )}
+                        </div>
+                        <span className="navbar__wishlist-item-price">
+                          {item.price.toLocaleString()} ₪
+                        </span>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+            </>
+          )}
+        </div>
       </div>
 
       {/* Mobile full-screen menu */}
