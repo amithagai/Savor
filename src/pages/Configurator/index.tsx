@@ -31,19 +31,19 @@ const CATEGORIES: CabinetCategory[] = ['עליונים', 'גבוהים', 'תחת
 
 const PRODUCTS: CabinetProduct[] = [
   { id: 'p1', name: 'CREAM דגם - יחידת תנור', subtitle: 'יחידות תנור', width: 60, price: 1230, category: 'תחתונים' },
-  { id: 'p13', name: 'CREAM דגם - יחידת תנור', subtitle: 'יחידות תנור', width: 60, price: 1230, category: 'תחתונים' },
-  { id: 'p12', name: 'CREAM דגם - יחידת תנור', subtitle: 'יחידות תנור', width: 60, price: 1230, category: 'תחתונים' },
-  { id: 'p11', name: 'CREAM דגם - יחידת תנור', subtitle: 'יחידות תנור', width: 60, price: 1230, category: 'תחתונים' },
-  { id: 'p2', name: 'ארון תחתון 60 ס"מ - חזית 2 דלתות', subtitle: 'חזית 2 דלתות', width: 60, price: 1230, category: 'תחתונים' },
-  { id: 'p3', name: 'ארון תחתון 90 ס"מ - חזית 3 דלתות', subtitle: 'חזית 3 דלתות', width: 90, price: 1490, category: 'תחתונים' },
-  { id: 'p4', name: 'ארון תחתון 45 ס"מ - חזית דלת', subtitle: 'חזית דלת', width: 45, price: 980, category: 'תחתונים' },
-  { id: 'p5', name: 'ארון עליון 60 ס"מ - חזית 2 דלתות', subtitle: 'חזית 2 דלתות', width: 60, price: 980, category: 'עליונים' },
-  { id: 'p6', name: 'ארון עליון 90 ס"מ - חזית 2 דלתות', subtitle: 'חזית 2 דלתות', width: 90, price: 1150, category: 'עליונים' },
-  { id: 'p7', name: 'ארון עליון 30 ס"מ - חזית דלת', subtitle: 'חזית דלת', width: 30, price: 720, category: 'עליונים' },
-  { id: 'p8', name: 'ארון גבוה 60 ס"מ - חזית 2 דלתות', subtitle: 'חזית 2 דלתות', width: 60, price: 1650, category: 'גבוהים' },
-  { id: 'p9', name: 'ארון גבוה 60 ס"מ - חזית 4 דלתות', subtitle: 'חזית 4 דלתות', width: 60, price: 1850, category: 'גבוהים' },
-  { id: 'p10', name: 'ארון כיור 60 ס"מ - חזית 2 דלתות', subtitle: 'חזית 2 דלתות', width: 60, price: 1350, category: 'כיור' },
-  { id: 'p11', name: 'ארון כיור 80 ס"מ - חזית 2 דלתות', subtitle: 'חזית 2 דלתות', width: 80, price: 1550, category: 'כיור' },
+  { id: 'p2', name: 'CREAM דגם - יחידת תנור', subtitle: 'יחידות תנור', width: 60, price: 1230, category: 'תחתונים' },
+  { id: 'p3', name: 'CREAM דגם - יחידת תנור', subtitle: 'יחידות תנור', width: 60, price: 1230, category: 'תחתונים' },
+  { id: 'p4', name: 'CREAM דגם - יחידת תנור', subtitle: 'יחידות תנור', width: 60, price: 1230, category: 'תחתונים' },
+  { id: 'p5', name: 'ארון תחתון 60 ס"מ - חזית 2 דלתות', subtitle: 'חזית 2 דלתות', width: 60, price: 1230, category: 'תחתונים' },
+  { id: 'p6', name: 'ארון תחתון 90 ס"מ - חזית 3 דלתות', subtitle: 'חזית 3 דלתות', width: 90, price: 1490, category: 'תחתונים' },
+  { id: 'p7', name: 'ארון תחתון 45 ס"מ - חזית דלת', subtitle: 'חזית דלת', width: 45, price: 980, category: 'תחתונים' },
+  { id: 'p8', name: 'ארון עליון 60 ס"מ - חזית 2 דלתות', subtitle: 'חזית 2 דלתות', width: 60, price: 980, category: 'עליונים' },
+  { id: 'p9', name: 'ארון עליון 90 ס"מ - חזית 2 דלתות', subtitle: 'חזית 2 דלתות', width: 90, price: 1150, category: 'עליונים' },
+  { id: 'p10', name: 'ארון עליון 30 ס"מ - חזית דלת', subtitle: 'חזית דלת', width: 30, price: 720, category: 'עליונים' },
+  { id: 'p11', name: 'ארון גבוה 60 ס"מ - חזית 2 דלתות', subtitle: 'חזית 2 דלתות', width: 60, price: 1650, category: 'גבוהים' },
+  { id: 'p12', name: 'ארון גבוה 60 ס"מ - חזית 4 דלתות', subtitle: 'חזית 4 דלתות', width: 60, price: 1850, category: 'גבוהים' },
+  { id: 'p13', name: 'ארון כיור 60 ס"מ - חזית 2 דלתות', subtitle: 'חזית 2 דלתות', width: 60, price: 1350, category: 'כיור' },
+  { id: 'p14', name: 'ארון כיור 80 ס"מ - חזית 2 דלתות', subtitle: 'חזית 2 דלתות', width: 80, price: 1550, category: 'כיור' },
 ]
 
 const HOW_STEPS = [
@@ -359,7 +359,7 @@ export default function Configurator() {
         <div className="cfg__canvas">
           {viewMode === '3D' ? (
             <div className="cfg__canvas-area">
-              <KitchenModelViewer />
+              <KitchenModelViewer cartItems={cartItems} colorHex={colorHex} />
             </div>
           ) : (
             <div
