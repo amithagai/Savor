@@ -21,6 +21,7 @@ const targets = [
   { file: 'CRAEM5 1.5 7.svg', publicId: 'savor/material-handles' },
   { file: 'CRAEM5 1.5 8.svg', publicId: 'savor/material-soft-close' },
   { file: 'CRAEM5 1.5 9.svg', publicId: 'savor/material-marble' },
+  { file: 'configurator-model.glb', publicId: 'savor/configurator-model', resourceType: 'raw' },
 ];
 
 if (!process.env.VITE_CLOUDINARY_URL) {
@@ -28,9 +29,17 @@ if (!process.env.VITE_CLOUDINARY_URL) {
   process.exit(1);
 }
 
+const cloudinaryUrl = new URL(process.env.VITE_CLOUDINARY_URL);
+cloudinary.config({
+  cloud_name: cloudinaryUrl.hostname,
+  api_key: cloudinaryUrl.username,
+  api_secret: cloudinaryUrl.password,
+  secure: true,
+});
+
 const manifest = {};
 
-for (const { file, publicId } of targets) {
+for (const { file, publicId, resourceType } of targets) {
   const filePath = path.join(assetsDir, file);
   process.stdout.write(`Uploading ${file} -> ${publicId} ... `);
   try {
@@ -38,7 +47,7 @@ for (const { file, publicId } of targets) {
       public_id: publicId,
       overwrite: true,
       invalidate: true,
-      resource_type: 'image',
+      resource_type: resourceType ?? 'image',
     });
     manifest[publicId] = res.secure_url;
     console.log('done');
