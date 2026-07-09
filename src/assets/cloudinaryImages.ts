@@ -1,4 +1,4 @@
-import { cldUrl } from '../lib/cloudinary'
+import { cldUrl, cldRawUrl } from '../lib/cloudinary'
 
 export const craem1 = cldUrl('savor/craem-1', 'f_auto,q_auto,w_800')
 export const craem4 = cldUrl('savor/craem-4', 'f_auto,q_auto,w_800')
@@ -14,3 +14,5 @@ export const materialPlywood = cldUrl('savor/material-plywood')
 export const materialHandles = cldUrl('savor/material-handles')
 export const materialSoftClose = cldUrl('savor/material-soft-close')
 export const materialMarble = cldUrl('savor/material-marble')
+
+export const configuratorModelUrl = cldRawUrl('savor/configurator-model.glb')

@@ -4,6 +4,7 @@ import './Configurator.css'
 import { sketch } from '../../assets/cloudinaryImages'
 import HeartIcon from '../../components/HeartIcon'
 import { useWishlist } from '../../context/useWishlist'
+import KitchenModelViewer from './KitchenModelViewer'
 
 type ColorOption = { id: string; label: string; hex: string }
 type CabinetCategory = 'תחתונים' | 'כיור' | 'גבוהים' | 'עליונים'
@@ -356,10 +357,16 @@ export default function Configurator() {
 
         {/* CENTER panel: visualization canvas */}
         <div className="cfg__canvas">
-          <div
-            className="cfg__canvas-area"
-            style={{ backgroundImage: `url(${sketch})`, backgroundSize: 'contain', backgroundRepeat: 'no-repeat', backgroundPosition: 'center' }}
-          />
+          {viewMode === '3D' ? (
+            <div className="cfg__canvas-area">
+              <KitchenModelViewer />
+            </div>
+          ) : (
+            <div
+              className="cfg__canvas-area"
+              style={{ backgroundImage: `url(${sketch})`, backgroundSize: 'contain', backgroundRepeat: 'no-repeat', backgroundPosition: 'center' }}
+            />
+          )}
           <div className="cfg__view-btns">
             {(['3D', '2D'] as const).map(mode => (
               <button
