@@ -3,11 +3,14 @@ import { createRoot } from 'react-dom/client'
 import './index.css'
 import App from './App.tsx'
 import { CartProvider } from './context/CartProvider'
+import { WishlistProvider } from './context/WishlistProvider'
 
 createRoot(document.getElementById('root')!).render(
   <StrictMode>
     <CartProvider>
-      <App />
+      <WishlistProvider>
+        <App />
+      </WishlistProvider>
     </CartProvider>
   </StrictMode>,
 )

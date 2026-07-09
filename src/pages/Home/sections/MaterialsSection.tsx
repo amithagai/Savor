@@ -1,10 +1,12 @@
 import React from "react"
-import hingesImg from '../../../assets/CRAEM5 1.5 4.svg'
-import plywoodImg from '../../../assets/CRAEM5 1.5 6.svg'
-import softCloseImg from '../../../assets/CRAEM5 1.5 8.svg'
-import paintDoorsImg from '../../../assets/CRAEM5 1.5 5.svg'
-import handlesImg from '../../../assets/CRAEM5 1.5 7.svg'
-import marbleImg from '../../../assets/CRAEM5 1.5 9.svg'
+import {
+  materialHinges as hingesImg,
+  materialPlywood as plywoodImg,
+  materialSoftClose as softCloseImg,
+  materialPaintDoors as paintDoorsImg,
+  materialHandles as handlesImg,
+  materialMarble as marbleImg,
+} from '../../../assets/cloudinaryImages'
 
 const materials = [
   { label: 'צירים של החברה העולמית DTC', image: hingesImg },
@@ -23,7 +25,7 @@ export default function MaterialsSection() {
         {materials.map((m, i) => (
           <React.Fragment key={m.label + i}>
             <div className={`materials__item${i % 2 === 1 ? ' materials__item--reverse' : ''}`}>
-              <img className="materials__img" src={m.image} alt={m.label} />
+              <img className="materials__img" src={m.image} alt={m.label} loading="lazy" />
               <p className="materials__label">{m.label}</p>
             </div>
             {/* Vertical divider after every 1st and 2nd item in each row of 3 */}

@@ -1,7 +1,9 @@
 import { useState, type FC } from 'react'
 import { useNavigate } from 'react-router-dom'
 import './Configurator.css'
-import sketch from '../../assets/סקיצה .png'
+import { sketch } from '../../assets/cloudinaryImages'
+import HeartIcon from '../../components/HeartIcon'
+import { useWishlist } from '../../context/useWishlist'
 
 type ColorOption = { id: string; label: string; hex: string }
 type CabinetCategory = 'תחתונים' | 'כיור' | 'גבוהים' | 'עליונים'
@@ -131,6 +133,7 @@ export default function Configurator() {
   const [howOpen, setHowOpen] = useState(true)
   const [catMenuOpen, setCatMenuOpen] = useState(false)
   const [contactOpen, setContactOpen] = useState(false)
+  const { isInWishlist, toggleWishlist } = useWishlist()
 
   const filteredProducts = PRODUCTS.filter(p => selectedCategories.includes(p.category))
   const colorHex = COLORS.find(c => c.id === selectedColor)?.hex ?? '#C8AE8A'
@@ -329,6 +332,22 @@ export default function Configurator() {
                     {product.width} ס"מ מ- {product.price.toLocaleString()} ₪
                   </span>
                 </div>
+                <button
+                  type="button"
+                  className={`cfg__product-heart${isInWishlist(product.id) ? ' cfg__product-heart--on' : ''}`}
+                  aria-label={isInWishlist(product.id) ? 'הסרה מהמועדפים' : 'הוספה למועדפים'}
+                  onClick={e => {
+                    e.stopPropagation()
+                    toggleWishlist({
+                      id: product.id,
+                      name: product.name,
+                      subtitle: product.subtitle,
+                      price: product.price,
+                    })
+                  }}
+                >
+                  <HeartIcon filled={isInWishlist(product.id)} />
+                </button>
                 <div className="cfg__product-swatch" style={{ background: colorHex }} />
               </div>
             ))}
