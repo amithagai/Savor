@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import galleryPhoto from '../../../assets/LATTE לעמוד הבית.png'
+import { galleryPhoto } from '../../../assets/cloudinaryImages'
 
 type Hotspot = { top: string; left: string; label: string; detail: string }
 

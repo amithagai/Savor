@@ -1,7 +1,5 @@
 import { Link } from 'react-router-dom'
-import craem from '../../../assets/CRAEM 1.5.png'
-import craem4 from '../../../assets/CRAEM4 1.5 .png'
-import craem5 from '../../../assets/CRAEM5 1.5.png'
+import { craem1 as craem, craem4, craem5 } from '../../../assets/cloudinaryImages'
 
 const products = [
   { id: '1', name: 'מטבח', size: '1.5m', badge: 'קל לבנייה', image: craem4 },
@@ -17,7 +15,7 @@ export default function BestSellersSection() {
         {products.map((p) => (
           <Link to={`/catalog/${p.id}`} key={p.id} className="product-card">
             <div className="product-card__image-wrap">
-              <img src={p.image} alt={p.name} className="product-card__image" />
+              <img src={p.image} alt={p.name} className="product-card__image" loading="lazy" />
               <span className="product-card__badge">{p.badge}</span>
             </div>
             <div className="product-card__info">

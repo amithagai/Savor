@@ -2,8 +2,7 @@ import { useMemo, useState } from 'react'
 import ProductCard from '../../components/ProductCard'
 import './Catalog.css'
 import { useCart } from '../../context/useCart'
-import creamImage from '../../assets/CRAEM 1.5.png'
-import latteImage from '../../assets/LATTE לעמוד הבית.png'
+import { craem1 as creamImage, latteHome as latteImage } from '../../assets/cloudinaryImages'
 
 type Kitchen = {
   id: number

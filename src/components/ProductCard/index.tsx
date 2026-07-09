@@ -11,7 +11,7 @@ export default function ProductCard({ name, subtitle, image, onAddToCart }: Prod
   return (
     <article className="savor-product-card">
       {image ? (
-        <img src={image} alt={name} className="savor-product-card__image" />
+        <img src={image} alt={name} className="savor-product-card__image" loading="lazy" />
       ) : (
         <div className="savor-product-card__placeholder">{name}</div>
       )}
