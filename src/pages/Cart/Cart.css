@@ -40,7 +40,20 @@
   flex-direction: column;
   gap: 16px;
   margin-bottom: 24px;
+
+  overflow-y: scroll;
+  scrollbar-width: auto;
+  height: 60vh;
+  padding: 0 10px;
 }
+
+
+.cart-page__items::-webkit-scrollbar {
+  width: 6px; /* Chrome/Edge/Safari: show minimal thumb, no track/arrows */
+}
+.cart-page__items::-webkit-scrollbar-button { display: none; }
+.cart-page__items::-webkit-scrollbar-track { background: none; }
+.cart-page__items::-webkit-scrollbar-thumb { background: #c1c1c1; border-radius: 4px; }
 
 .cart-page__item {
   position: relative;
