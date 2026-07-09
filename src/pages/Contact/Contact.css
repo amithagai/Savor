@@ -1,0 +1,95 @@
+.contact {
+  min-height: 60vh;
+  display: flex;
+  align-items: flex-start;
+  justify-content: center;
+  padding: 60px 24px;
+  direction: rtl;
+}
+
+.contact__container {
+  width: 100%;
+  max-width: 560px;
+}
+
+.contact__title {
+  font-size: 2rem;
+  font-weight: 700;
+  margin-bottom: 8px;
+}
+
+.contact__subtitle {
+  color: var(--text-muted);
+  margin-bottom: 36px;
+}
+
+.contact__form {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.contact__row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 14px;
+}
+
+.contact__form input,
+.contact__form textarea {
+  width: 100%;
+  padding: 12px 14px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  font-size: 0.95rem;
+  font-family: var(--font);
+  background: var(--white);
+  color: var(--text);
+  transition: border-color 0.2s;
+  outline: none;
+  resize: none;
+}
+
+.contact__form input:focus,
+.contact__form textarea:focus {
+  border-color: var(--green);
+}
+
+.contact__form button[type='submit'] {
+  margin-top: 4px;
+  padding: 13px;
+  background: var(--green);
+  color: var(--white);
+  font-size: 1rem;
+  font-weight: 600;
+  border-radius: 8px;
+  transition: opacity 0.2s;
+}
+
+.contact__form button[type='submit']:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.contact__form button[type='submit']:not(:disabled):hover {
+  opacity: 0.88;
+}
+
+.contact__success {
+  background: var(--badge-bg);
+  color: var(--badge-text);
+  padding: 20px;
+  border-radius: 8px;
+  font-weight: 500;
+}
+
+.contact__error {
+  color: #c0392b;
+  font-size: 0.9rem;
+}
+
+@media (max-width: 500px) {
+  .contact__row {
+    grid-template-columns: 1fr;
+  }
+}
