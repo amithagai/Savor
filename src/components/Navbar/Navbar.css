@@ -250,6 +250,23 @@
     gap: 6px;
   }
 
+  .navbar__wishlist-backdrop {
+    background: rgba(0, 0, 0, 0.35);
+  }
+
+  .navbar__wishlist-panel {
+    position: fixed;
+    top: 68px;
+    left: 12px;
+    right: 12px;
+    width: auto;
+    max-width: none;
+  }
+
+  .navbar__wishlist-list {
+    max-height: 50vh;
+  }
+
   .navbar__mobile-menu {
     position: fixed;
     top: 60px;
