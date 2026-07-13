@@ -3,8 +3,7 @@ import styled from "styled-components";
 
 const Title = styled.h1`
 display: flex;
-justify-content:
-
+margin-right: 50px;
 `;
 
 export default function Header(){
