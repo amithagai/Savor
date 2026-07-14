@@ -5,6 +5,7 @@ const Wrapper = styled.label`
   align-items: center;
   gap: 6px;
   font-size: 10px;
+  width: 20%;
 `;
 
 const Selfpick = styled.input.attrs({ type: "radio" })`
