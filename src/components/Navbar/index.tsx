@@ -14,11 +14,11 @@ const navLinks = [
 ]
 
 const kitchenGroups = [
-  { label: 'מטבחים 1.5 מטר', models: ['LATTE', 'CLOUD', 'CREAM'] },
-  { label: 'מטבחים 2 מטר', models: ['LATTE', 'CLOUD', 'CREAM'] },
-  { label: 'מטבחים 2.1 מטר', models: ['LATTE', 'CLOUD', 'CREAM'] },
-  { label: 'מטבחים 2.6 מטר', models: ['LATTE', 'CLOUD', 'CREAM'] },
-  { label: 'מטבחים 3.2 מטר', models: ['LATTE', 'CLOUD', 'CREAM'] },
+  { label: 'מטבחים 1.5 מטר' },
+  { label: 'מטבחים 2 מטר' },
+  { label: 'מטבחים 2.1 מטר' },
+  { label: 'מטבחים 2.6 מטר' },
+  { label: 'מטבחים 3.2 מטר' },
 ]
 
 const mobileFlatLinks = navLinks.filter((link) => link.label !== 'מטבחים')
@@ -46,7 +46,7 @@ export default function Navbar() {
   const [menuOpen, setMenuOpen] = useState(false)
   const [wishlistOpen, setWishlistOpen] = useState(false)
   const [openGroups, setOpenGroups] = useState<Set<string>>(
-    () => new Set(['מטבחים', 'מטבחים 1.5 מטר']),
+    () => new Set(['מטבחים']),
   )
 
   useEffect(() => {
@@ -201,26 +201,14 @@ export default function Navbar() {
               {openGroups.has('מטבחים') && (
                 <div className="navbar__mobile-subgroup-list">
                   {kitchenGroups.map((group) => (
-                    <div key={group.label} className="navbar__mobile-subgroup">
-                      <button
-                        type="button"
-                        className="navbar__mobile-subgroup-toggle"
-                        onClick={() => toggleGroup(group.label)}
-                      >
-                        <span>{group.label}</span>
-                        <Chevron open={openGroups.has(group.label)} />
-                      </button>
-
-                      {openGroups.has(group.label) && (
-                        <div className="navbar__mobile-models">
-                          {group.models.map((model) => (
-                            <Link key={model} to="/catalog" onClick={closeMenu}>
-                              {`דגם ${model}`}
-                            </Link>
-                          ))}
-                        </div>
-                      )}
-                    </div>
+                    <Link
+                      key={group.label}
+                      to="/catalog"
+                      className="navbar__mobile-subgroup-toggle"
+                      onClick={closeMenu}
+                    >
+                      <span>{group.label}</span>
+                    </Link>
                   ))}
                 </div>
               )}

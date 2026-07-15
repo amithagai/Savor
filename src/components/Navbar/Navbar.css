@@ -329,32 +329,15 @@
     padding-right: 16px;
   }
 
-  .navbar__mobile-subgroup {
-    border-top: 1px solid rgba(0, 0, 0, 0.06);
-  }
-
-  .navbar__mobile-subgroup:first-child {
-    border-top: none;
-  }
-
   .navbar__mobile-subgroup-toggle {
     font-size: 14px;
     font-weight: 500;
     padding: 12px 4px;
+    border-top: 1px solid rgba(0, 0, 0, 0.06);
   }
 
-  .navbar__mobile-models {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    padding: 0 24px 10px;
-  }
-
-  .navbar__mobile-models a {
-    padding: 8px 4px;
-    font-size: 14px;
-    color: var(--text);
-    text-align: center;
+  .navbar__mobile-subgroup-toggle:first-child {
+    border-top: none;
   }
 
   .navbar__chevron {
