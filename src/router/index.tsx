@@ -1,4 +1,4 @@
-import { createBrowserRouter } from 'react-router-dom'
+import { createBrowserRouter, Navigate, Outlet } from 'react-router-dom'
 import Layout from '../components/Layout'
 import Home from '../pages/Home'
 import Configurator from '../pages/Configurator'
@@ -15,6 +15,12 @@ import Contact from '../pages/Contact'
 import SizeGuide from '../pages/SizeGuide'
 import Warranty from '../pages/Warranty'
 import NotFound from '../pages/NotFound'
+import { AdminAuthProvider } from '../context/AdminAuthProvider'
+import ProtectedAdminRoute from '../components/ProtectedAdminRoute'
+import AdminLayout from '../components/AdminLayout'
+import AdminLogin from '../pages/AdminLogin'
+import AdminPrices from '../pages/AdminPrices'
+import AdminOrders from '../pages/AdminOrders'
 
 const router = createBrowserRouter([
   {
@@ -46,6 +52,33 @@ const router = createBrowserRouter([
       { path: 'size-guide', element: <SizeGuide /> },
       { path: 'warranty', element: <Warranty /> },
 
+      { path: '*', element: <NotFound /> },
+    ],
+  },
+
+  // Admin area — separate shell, no storefront Navbar/Footer
+  {
+    path: '/admin',
+    element: (
+      <AdminAuthProvider>
+        <Outlet />
+      </AdminAuthProvider>
+    ),
+    children: [
+      { path: 'login', element: <AdminLogin /> },
+      {
+        element: <ProtectedAdminRoute />,
+        children: [
+          {
+            element: <AdminLayout />,
+            children: [
+              { index: true, element: <Navigate to="orders" replace /> },
+              { path: 'prices', element: <AdminPrices /> },
+              { path: 'orders', element: <AdminOrders /> },
+            ],
+          },
+        ],
+      },
       { path: '*', element: <NotFound /> },
     ],
   },

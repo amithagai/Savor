@@ -55,9 +55,10 @@ export default function Footer() {
             <p className="footer__col-title">שירות לקוחות</p>
             <ul>
               <li><a href="/contact">צור קשר</a></li>
-              <li>
+              <li className="footer__hours">
                 <span className="footer__col-detail">
-                  שעות פעילות: ימי א׳ - ה׳ 08:00 - 16:00
+                  <span className="footer__hours-days">שעות פעילות: ימי א׳ - ה׳</span>{' '}
+                  <span className="footer__hours-time">08:00 - 16:00</span>
                 </span>
               </li>
               <li>
@@ -89,7 +90,8 @@ export default function Footer() {
         </div>
 
         <div className="footer__bottom">
-          © 2026 כל הזכויות שמורות לסאבור מטבחים
+          <span>© 2026 כל הזכויות שמורות לסאבור מטבחים</span>
+          <a href="/admin/login" className="footer__admin-link">כניסת מנהלים</a>
         </div>
       </footer>
 

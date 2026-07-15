@@ -97,6 +97,13 @@
   transition: background 0.18s;
 }
 
+.cfg__wall-warning {
+  font-size: 12px;
+  font-weight: 600;
+  color: #b3261e;
+  max-width: 320px;
+}
+
 
 /* Color picker */
 .cfg__color-row {

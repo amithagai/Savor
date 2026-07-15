@@ -38,11 +38,11 @@ export default function GallerySection() {
       {/* Top row — 3 equal images */}
       <div className="gallery__top">
         {topImages.map((img, i) => (
-          <div
-            key={i}
-            className="gallery__img-wrap"
-            style={{ backgroundImage: `url(${galleryPhoto})`, backgroundSize: '300% auto', backgroundPosition: img.bgPosition }}
-          >
+          <div key={i} className="gallery__img-wrap">
+            <div
+              className="gallery__img-bg"
+              style={{ backgroundImage: `url(${galleryPhoto})`, backgroundSize: '300% auto', backgroundPosition: img.bgPosition }}
+            />
             <button
               className="gallery__hotspot"
               style={{ top: img.hotspot.top, left: img.hotspot.left }}
@@ -60,10 +60,11 @@ export default function GallerySection() {
       </div>
 
       {/* Bottom — single wide image */}
-      <div
-        className="gallery__bottom gallery__img-wrap"
-        style={{ backgroundImage: `url(${galleryPhoto})`, backgroundSize: 'cover', backgroundPosition: 'center 78%' }}
-      >
+      <div className="gallery__bottom gallery__img-wrap">
+        <div
+          className="gallery__img-bg"
+          style={{ backgroundImage: `url(${galleryPhoto})`, backgroundSize: 'cover', backgroundPosition: 'center 78%' }}
+        />
         <button
           className="gallery__hotspot"
           style={{ top: bottomHotspot.top, left: bottomHotspot.left }}
