@@ -1,53 +1,26 @@
-import { Suspense, useLayoutEffect, useMemo } from 'react'
+import { Suspense, useMemo } from 'react'
 import { Canvas } from '@react-three/fiber'
 import { Edges, Environment, Line, OrbitControls, Text, useGLTF } from '@react-three/drei'
 import { Box3, Vector3 } from 'three'
 import { getModelUrl } from './modelCatalog'
-
-type CabinetCategory = 'תחתונים' | 'כיור' | 'גבוהים' | 'עליונים'
-
-type CartItem3D = {
-  id: string
-  qty: number
-  width: number
-  category: CabinetCategory
-  subtitle: string
-  modelSlug?: string
-}
+import { colorHexOf } from './colors'
+import {
+  buildCabinetLayout,
+  COUNTERTOP_DEPTH_CM,
+  COUNTERTOP_HEIGHT_CM,
+  doorCount,
+  isOven,
+  type CabinetLayoutItem,
+  type CategorySpec,
+} from './cabinetLayout'
 
 type Props = {
-  cartItems: CartItem3D[]
-  colorHex: string
-  colorId: string
+  cartItems: CabinetLayoutItem[]
   wallLengthCm?: number | null
 }
 
 const CM = 0.01
-
-// Matches the real per-SKU models' measured dimensions (legs + overhang add
-// a few cm on top of the spec sheet's nominal carcass sizes), so the
-// countertop and procedural fallback boxes align with the real geometry.
-const CATEGORY_SPEC: Record<CabinetCategory, { height: number; depth: number; elevation: number }> = {
-  'תחתונים': { height: 87.5 * CM, depth: 64 * CM, elevation: 0 },
-  'כיור': { height: 87.5 * CM, depth: 64 * CM, elevation: 0 },
-  'גבוהים': { height: 225 * CM, depth: 64 * CM, elevation: 0 },
-  'עליונים': { height: 78 * CM, depth: 32 * CM, elevation: 150 * CM },
-}
-
-const GAP = 0.01
-const COUNTERTOP_HEIGHT = CATEGORY_SPEC['תחתונים'].height
-const COUNTERTOP_DEPTH = CATEGORY_SPEC['תחתונים'].depth
-
-function doorCount(subtitle: string): number {
-  const match = subtitle.match(/(\d+)\s*דלתות/)
-  if (match) return Number(match[1])
-  if (subtitle.includes('דלת')) return 1
-  return 0
-}
-
-function isOven(subtitle: string): boolean {
-  return subtitle.includes('תנור')
-}
+const GAP_M = 0.01
 
 function OvenFront({ width, height, depth }: { width: number; height: number; depth: number }) {
   const panelWidth = width * 0.82
@@ -103,47 +76,38 @@ function ProceduralCabinet({ width, height, depth, color, subtitle }: { width: n
 
 function RealCabinetModel({ url, width }: { url: string; width: number }) {
   const { scene } = useGLTF(url)
-  const cloned = useMemo(() => scene.clone(true), [scene])
-
-  useLayoutEffect(() => {
-    const box = new Box3().setFromObject(cloned)
+  // Measure/scale/align on a fresh clone inside the memo — mutating the clone
+  // in an effect is not idempotent (StrictMode's double effect run re-measured
+  // the already-scaled model and reset its scale to the raw GLB units).
+  const cloned = useMemo(() => {
+    const clone = scene.clone(true)
+    const box = new Box3().setFromObject(clone)
     const size = new Vector3()
     box.getSize(size)
     if (size.x > 0.0001) {
-      cloned.scale.setScalar(width / size.x)
+      clone.scale.setScalar(width / size.x)
     }
-    const aligned = new Box3().setFromObject(cloned)
-    cloned.position.x -= (aligned.min.x + aligned.max.x) / 2
-    cloned.position.y -= aligned.min.y
-    cloned.position.z -= aligned.min.z
-    cloned.traverse(node => {
+    const aligned = new Box3().setFromObject(clone)
+    clone.position.x -= (aligned.min.x + aligned.max.x) / 2
+    clone.position.y -= aligned.min.y
+    clone.position.z -= aligned.min.z
+    clone.traverse(node => {
       const mesh = node as unknown as { isMesh?: boolean; castShadow?: boolean; receiveShadow?: boolean }
       if (mesh.isMesh) {
         mesh.castShadow = true
         mesh.receiveShadow = true
       }
     })
-  }, [cloned, width])
+    return clone
+  }, [scene, width])
 
   return <primitive object={cloned} />
 }
 
-type Placed = { item: CartItem3D; x: number; width: number; spec: (typeof CATEGORY_SPEC)[CabinetCategory]; key: string }
-
-function layoutRow(items: CartItem3D[]): Placed[] {
-  let cursor = 0
-  const placed: Placed[] = []
-  items.forEach((item, i) => {
-    const spec = CATEGORY_SPEC[item.category]
-    const w = item.width * CM
-    placed.push({ item, x: cursor + w / 2, width: w, spec, key: `${item.id}-${i}` })
-    cursor += w + GAP
-  })
-  return placed
-}
-
-function Cabinet({ x, width, spec, color, subtitle, modelUrl }: { x: number; width: number; spec: (typeof CATEGORY_SPEC)[CabinetCategory]; color: string; subtitle: string; modelUrl?: string }) {
-  const { height, depth, elevation } = spec
+function Cabinet({ x, width, spec, color, subtitle, modelUrl }: { x: number; width: number; spec: CategorySpec; color: string; subtitle: string; modelUrl?: string }) {
+  const height = spec.height * CM
+  const depth = spec.depth * CM
+  const elevation = spec.elevation * CM
   const fallback = <ProceduralCabinet width={width} height={height} depth={depth} color={color} subtitle={subtitle} />
 
   return (
@@ -177,40 +141,25 @@ function WallGuide({ lengthM, exceeds }: { lengthM: number; exceeds: boolean }) 
 
 function Countertop({ width, x }: { width: number; x: number }) {
   if (width <= 0) return null
+  const height = COUNTERTOP_HEIGHT_CM * CM
+  const depth = COUNTERTOP_DEPTH_CM * CM
   return (
-    <mesh position={[x, COUNTERTOP_HEIGHT + 0.015, COUNTERTOP_DEPTH / 2 - 0.02]} castShadow receiveShadow>
-      <boxGeometry args={[width + GAP, 0.03, COUNTERTOP_DEPTH + 0.06]} />
+    <mesh position={[x, height + 0.015, depth / 2 - 0.02]} castShadow receiveShadow>
+      <boxGeometry args={[width + GAP_M, 0.03, depth + 0.06]} />
       <meshStandardMaterial color="#f5f3ef" roughness={0.3} />
     </mesh>
   )
 }
 
-export default function KitchenModelViewer({ cartItems, colorHex, colorId, wallLengthCm }: Props) {
-  const floorItems = useMemo(
-    () => cartItems.filter(item => item.category !== 'עליונים').flatMap(item => Array(item.qty).fill(item)),
-    [cartItems]
-  )
-  const wallItems = useMemo(
-    () => cartItems.filter(item => item.category === 'עליונים').flatMap(item => Array(item.qty).fill(item)),
-    [cartItems]
-  )
+export default function KitchenModelViewer({ cartItems, wallLengthCm }: Props) {
+  const layout = useMemo(() => buildCabinetLayout(cartItems), [cartItems])
 
-  // Tall units go floor-to-ceiling, so they're placed after the counter run —
-  // wall cabinets are only ever positioned above the counter run, never above a tall unit.
-  const orderedFloorItems = useMemo(() => {
-    const counterItems = floorItems.filter(item => item.category !== 'גבוהים')
-    const tallItems = floorItems.filter(item => item.category === 'גבוהים')
-    return { counterItems, tallItems, all: [...counterItems, ...tallItems] }
-  }, [floorItems])
+  const floorRow = layout.floorRow.map(p => ({ ...p, x: p.x * CM, width: p.width * CM }))
+  const wallRow = layout.wallRow.map(p => ({ ...p, x: p.x * CM, width: p.width * CM }))
+  const counterSpan = layout.counterSpan * CM
+  const floorSpan = layout.floorSpan * CM
+  const wallSpan = layout.wallSpan * CM
 
-  const floorRow = useMemo(() => layoutRow(orderedFloorItems.all), [orderedFloorItems])
-  const wallRow = useMemo(() => layoutRow(wallItems), [wallItems])
-
-  const counterSpan = orderedFloorItems.counterItems.length
-    ? floorRow[orderedFloorItems.counterItems.length - 1].x + floorRow[orderedFloorItems.counterItems.length - 1].width / 2
-    : 0
-  const floorSpan = floorRow.length ? floorRow[floorRow.length - 1].x + floorRow[floorRow.length - 1].width / 2 : 0
-  const wallSpan = wallRow.length ? wallRow[wallRow.length - 1].x + wallRow[wallRow.length - 1].width / 2 : 0
   const wallGuideM = wallLengthCm != null ? wallLengthCm * CM : undefined
   const totalSpan = Math.max(floorSpan, wallSpan, wallGuideM ?? 0, 1.5)
   const offsetX = -totalSpan / 2
@@ -233,11 +182,11 @@ export default function KitchenModelViewer({ cartItems, colorHex, colorId, wallL
 
       <group position={[offsetX, 0, 0]}>
         {floorRow.map(({ item, x, width, spec, key }) => (
-          <Cabinet key={key} x={x} width={width} spec={spec} color={colorHex} subtitle={item.subtitle} modelUrl={getModelUrl(item.modelSlug, colorId)} />
+          <Cabinet key={key} x={x} width={width} spec={spec} color={colorHexOf(item.colorId)} subtitle={item.subtitle} modelUrl={getModelUrl(item.modelSlug, item.colorId)} />
         ))}
         <Countertop width={counterSpan} x={counterSpan / 2} />
         {wallRow.map(({ item, x, width, spec, key }) => (
-          <Cabinet key={key} x={x} width={width} spec={spec} color={colorHex} subtitle={item.subtitle} modelUrl={getModelUrl(item.modelSlug, colorId)} />
+          <Cabinet key={key} x={x} width={width} spec={spec} color={colorHexOf(item.colorId)} subtitle={item.subtitle} modelUrl={getModelUrl(item.modelSlug, item.colorId)} />
         ))}
       </group>
 
