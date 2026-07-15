@@ -16,6 +16,7 @@ type CabinetProduct = {
   width: number
   price: number
   category: CabinetCategory
+  modelSlug?: string
 }
 
 type CartItem = CabinetProduct & { qty: number }
@@ -30,20 +31,19 @@ const COLORS: ColorOption[] = [
 const CATEGORIES: CabinetCategory[] = ['עליונים', 'גבוהים', 'תחתונים', 'כיור']
 
 const PRODUCTS: CabinetProduct[] = [
-  { id: 'p1', name: 'CREAM דגם - יחידת תנור', subtitle: 'יחידות תנור', width: 60, price: 1230, category: 'תחתונים' },
-  { id: 'p2', name: 'CREAM דגם - יחידת תנור', subtitle: 'יחידות תנור', width: 60, price: 1230, category: 'תחתונים' },
-  { id: 'p3', name: 'CREAM דגם - יחידת תנור', subtitle: 'יחידות תנור', width: 60, price: 1230, category: 'תחתונים' },
-  { id: 'p4', name: 'CREAM דגם - יחידת תנור', subtitle: 'יחידות תנור', width: 60, price: 1230, category: 'תחתונים' },
-  { id: 'p5', name: 'ארון תחתון 60 ס"מ - חזית 2 דלתות', subtitle: 'חזית 2 דלתות', width: 60, price: 1230, category: 'תחתונים' },
-  { id: 'p6', name: 'ארון תחתון 90 ס"מ - חזית 3 דלתות', subtitle: 'חזית 3 דלתות', width: 90, price: 1490, category: 'תחתונים' },
-  { id: 'p7', name: 'ארון תחתון 45 ס"מ - חזית דלת', subtitle: 'חזית דלת', width: 45, price: 980, category: 'תחתונים' },
-  { id: 'p8', name: 'ארון עליון 60 ס"מ - חזית 2 דלתות', subtitle: 'חזית 2 דלתות', width: 60, price: 980, category: 'עליונים' },
-  { id: 'p9', name: 'ארון עליון 90 ס"מ - חזית 2 דלתות', subtitle: 'חזית 2 דלתות', width: 90, price: 1150, category: 'עליונים' },
-  { id: 'p10', name: 'ארון עליון 30 ס"מ - חזית דלת', subtitle: 'חזית דלת', width: 30, price: 720, category: 'עליונים' },
-  { id: 'p11', name: 'ארון גבוה 60 ס"מ - חזית 2 דלתות', subtitle: 'חזית 2 דלתות', width: 60, price: 1650, category: 'גבוהים' },
-  { id: 'p12', name: 'ארון גבוה 60 ס"מ - חזית 4 דלתות', subtitle: 'חזית 4 דלתות', width: 60, price: 1850, category: 'גבוהים' },
-  { id: 'p13', name: 'ארון כיור 60 ס"מ - חזית 2 דלתות', subtitle: 'חזית 2 דלתות', width: 60, price: 1350, category: 'כיור' },
-  { id: 'p14', name: 'ארון כיור 80 ס"מ - חזית 2 דלתות', subtitle: 'חזית 2 דלתות', width: 80, price: 1550, category: 'כיור' },
+  { id: 'p1', name: 'ארון תנור 60 ס"מ', subtitle: 'יחידת תנור', width: 60, price: 670, category: 'תחתונים', modelSlug: 'oven-60' },
+  { id: 'p2', name: 'ארון תחתון 30 ס"מ - מדף ומגירה', subtitle: 'מדף ומגירה', width: 30, price: 660, category: 'תחתונים', modelSlug: 'shelf-drawer-30' },
+  { id: 'p3', name: 'ארון תחתון 60 ס"מ - מדף ומגירה', subtitle: 'מדף ומגירה', width: 60, price: 770, category: 'תחתונים', modelSlug: 'shelf-drawer-60' },
+  { id: 'p4', name: 'ארון תחתון 60 ס"מ - חזית 2 דלתות', subtitle: 'חזית 2 דלתות', width: 60, price: 600, category: 'תחתונים', modelSlug: 'base-60-2door' },
+  { id: 'p5', name: 'ארון תחתון 60 ס"מ - חזית דלת', subtitle: 'חזית דלת', width: 60, price: 640, category: 'תחתונים', modelSlug: 'base-60-1door' },
+  { id: 'p6', name: 'ארון תחתון 80 ס"מ - חזית 2 דלתות', subtitle: 'חזית 2 דלתות', width: 80, price: 740, category: 'תחתונים', modelSlug: 'base-80-2door' },
+  { id: 'p7', name: 'ארון תחתון 60 ס"מ - שלוש מגירות', subtitle: 'שלוש מגירות', width: 60, price: 900, category: 'תחתונים', modelSlug: 'three-drawers-60' },
+  { id: 'p8', name: 'ארון עליון 100 ס"מ - קלאפה', subtitle: 'דלת קלאפה', width: 100, price: 550, category: 'עליונים', modelSlug: 'klappa-100' },
+  { id: 'p9', name: 'ארון עליון 60 ס"מ - חזית 2 דלתות', subtitle: 'חזית 2 דלתות', width: 60, price: 470, category: 'עליונים', modelSlug: 'upper-60' },
+  { id: 'p10', name: 'ארון גבוה 60 ס"מ - מזווה', subtitle: 'חזית דלת', width: 60, price: 1540, category: 'גבוהים', modelSlug: 'pantry-60-v1' },
+  { id: 'p11', name: 'ארון גבוה 60 ס"מ - מזווה פרימיום', subtitle: 'חזית מעוצבת', width: 60, price: 2000, category: 'גבוהים', modelSlug: 'pantry-60-v2' },
+  { id: 'p12', name: 'ארון כיור 60 ס"מ - חזית 2 דלתות', subtitle: 'חזית 2 דלתות', width: 60, price: 1350, category: 'כיור' },
+  { id: 'p13', name: 'ארון כיור 80 ס"מ - חזית 2 דלתות', subtitle: 'חזית 2 דלתות', width: 80, price: 1550, category: 'כיור' },
 ]
 
 const HOW_STEPS = [
@@ -126,6 +126,7 @@ const ContactPopup: FC<{ open: boolean; onClose: () => void }> = ({ open, onClos
 
 export default function Configurator() {
   const [wallLength, setWallLength] = useState('')
+  const [appliedWallLength, setAppliedWallLength] = useState<number | null>(null)
   const [selectedColor, setSelectedColor] = useState('cream')
   const [selectedCategories, setSelectedCategories] = useState<CabinetCategory[]>(['תחתונים'])
   const [cartItems, setCartItems] = useState<CartItem[]>(INITIAL_CART)
@@ -138,6 +139,10 @@ export default function Configurator() {
 
   const filteredProducts = PRODUCTS.filter(p => selectedCategories.includes(p.category))
   const colorHex = COLORS.find(c => c.id === selectedColor)?.hex ?? '#C8AE8A'
+  const totalCabinetWidth = cartItems
+    .filter(item => item.category !== 'עליונים')
+    .reduce((sum, item) => sum + item.width * item.qty, 0)
+  const exceedsWall = appliedWallLength != null && totalCabinetWidth > appliedWallLength
 
   function toggleCategory(cat: CabinetCategory) {
     setSelectedCategories(prev => {
@@ -176,6 +181,14 @@ export default function Configurator() {
   function resetAll() {
     setCartItems([])
     setWallLength('')
+    setAppliedWallLength(null)
+  }
+
+  function applyWallLength() {
+    const parsed = Number(wallLength)
+    if (Number.isFinite(parsed) && parsed > 0) {
+      setAppliedWallLength(parsed)
+    }
   }
 
   return (
@@ -206,9 +219,15 @@ export default function Configurator() {
                 placeholder="לדוגמה: 150"
                 value={wallLength}
                 onChange={e => setWallLength(e.target.value)}
+                onKeyDown={e => e.key === 'Enter' && applyWallLength()}
               />
-              <button className="cfg__wall-update">עדכן</button>
+              <button className="cfg__wall-update" onClick={applyWallLength}>עדכן</button>
             </div>
+            {exceedsWall && (
+              <p className="cfg__wall-warning">
+                ⚠ סך רוחב הארונות שבחרתם ({totalCabinetWidth} ס"מ) חורג מאורך הקיר שהזנתם ({appliedWallLength} ס"מ)
+              </p>
+            )}
           </div>
         </div>
 
@@ -359,7 +378,7 @@ export default function Configurator() {
         <div className="cfg__canvas">
           {viewMode === '3D' ? (
             <div className="cfg__canvas-area">
-              <KitchenModelViewer cartItems={cartItems} colorHex={colorHex} />
+              <KitchenModelViewer cartItems={cartItems} colorHex={colorHex} colorId={selectedColor} wallLengthCm={appliedWallLength} />
             </div>
           ) : (
             <div

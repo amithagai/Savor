@@ -1,0 +1,138 @@
+.admin-prices__title {
+  font-size: 22px;
+  font-weight: 700;
+  color: var(--text);
+  margin-bottom: 20px;
+}
+
+.admin-prices__state {
+  color: var(--text-muted);
+  font-size: 14px;
+  padding: 24px 0;
+}
+
+.admin-prices__table {
+  background: var(--white);
+  border-radius: 16px;
+  border: 1px solid var(--border);
+  overflow: hidden;
+}
+
+.admin-prices__row {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  padding: 14px 20px;
+  border-bottom: 1px solid var(--border);
+}
+
+.admin-prices__row:last-child {
+  border-bottom: none;
+}
+
+.admin-prices__row--head {
+  background: var(--footer-bg);
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--text-muted);
+}
+
+.admin-prices__col-name {
+  flex: 1;
+  min-width: 0;
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--text);
+}
+
+.admin-prices__col-type {
+  width: 110px;
+  font-size: 12px;
+  color: var(--text-muted);
+}
+
+.admin-prices__badge {
+  display: inline-block;
+  padding: 3px 10px;
+  border-radius: 999px;
+  background: var(--sage);
+  color: var(--signup-button);
+  font-size: 11px;
+  font-weight: 700;
+}
+
+.admin-prices__badge--inactive {
+  background: var(--footer-bg);
+  color: var(--text-muted);
+}
+
+.admin-prices__col-price {
+  width: 160px;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.admin-prices__col-price input {
+  width: 100px;
+  padding: 8px 12px;
+  border: 1.5px solid var(--border);
+  border-radius: 999px;
+  text-align: center;
+  font-size: 14px;
+  color: var(--text);
+}
+
+.admin-prices__col-price input:focus {
+  border-color: var(--green);
+}
+
+.admin-prices__currency {
+  font-size: 13px;
+  color: var(--text-muted);
+}
+
+.admin-prices__col-action {
+  width: 90px;
+}
+
+.admin-prices__save {
+  width: 100%;
+  padding: 8px 0;
+  border-radius: 999px;
+  background: var(--sage);
+  color: var(--signup-button);
+  font-size: 13px;
+  font-weight: 600;
+  transition: background 0.18s, opacity 0.18s;
+}
+
+.admin-prices__save:hover {
+  background: var(--sage-hover);
+}
+
+.admin-prices__save:disabled {
+  opacity: 0.6;
+  cursor: default;
+}
+
+.admin-prices__save--saved {
+  background: var(--green);
+  color: var(--white);
+}
+
+@media (max-width: 700px) {
+  .admin-prices__row--head {
+    display: none;
+  }
+
+  .admin-prices__row {
+    flex-wrap: wrap;
+  }
+
+  .admin-prices__col-type,
+  .admin-prices__col-price,
+  .admin-prices__col-action {
+    width: auto;
+  }
+}

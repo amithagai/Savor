@@ -52,6 +52,14 @@
   font-size: 13px;
   color: var(--text);
   line-height: 1.6;
+  display: block;
+  white-space: normal;
+  overflow-wrap: break-word;
+}
+
+.footer__hours-days,
+.footer__hours-time {
+  white-space: nowrap;
 }
 
 /* Social column */
@@ -101,7 +109,23 @@
   padding-top: 20px;
   font-size: 13px;
   color: var(--text);
-  
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.footer__admin-link {
+  font-size: 12px;
+  color: var(--text-muted);
+  opacity: 0.7;
+  transition: opacity 0.18s, color 0.18s;
+}
+
+.footer__admin-link:hover {
+  opacity: 1;
+  color: var(--green);
 }
 
 /* WhatsApp floating button */
