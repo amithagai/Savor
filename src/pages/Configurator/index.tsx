@@ -1,12 +1,13 @@
 import { useState, type FC } from 'react'
 import { useNavigate } from 'react-router-dom'
 import './Configurator.css'
-import { sketch } from '../../assets/cloudinaryImages'
 import HeartIcon from '../../components/HeartIcon'
 import { useWishlist } from '../../context/useWishlist'
 import KitchenModelViewer from './KitchenModelViewer'
+import Configurator2DView from './Configurator2DView'
+import { COLORS, COLOR_PAIRS, colorHexOf, colorLabelOf } from './colors'
+import { isColorAvailable } from './modelCatalog'
 
-type ColorOption = { id: string; label: string; hex: string }
 type CabinetCategory = 'תחתונים' | 'כיור' | 'גבוהים' | 'עליונים'
 
 type CabinetProduct = {
@@ -19,14 +20,7 @@ type CabinetProduct = {
   modelSlug?: string
 }
 
-type CartItem = CabinetProduct & { qty: number }
-
-const COLORS: ColorOption[] = [
-  { id: 'cream', label: 'CREAM', hex: '#C8AE8A' },
-  { id: 'timber', label: 'TIMBER', hex: '#9B7B3E' },
-  { id: 'cloud', label: 'CLOUD', hex: '#B4B0AB' },
-  { id: 'latte', label: 'LATTE', hex: '#DDD9D4' },
-]
+type CartItem = CabinetProduct & { qty: number; colorId: string }
 
 const CATEGORIES: CabinetCategory[] = ['עליונים', 'גבוהים', 'תחתונים', 'כיור']
 
@@ -53,9 +47,9 @@ const HOW_STEPS = [
 ]
 
 const INITIAL_CART: CartItem[] = [
-  { ...PRODUCTS[0], qty: 1 },
-  { ...PRODUCTS[1], qty: 1 },
-  { ...PRODUCTS[2], qty: 1 },
+  { ...PRODUCTS[0], qty: 1, colorId: 'cream' },
+  { ...PRODUCTS[1], qty: 1, colorId: 'cream' },
+  { ...PRODUCTS[2], qty: 1, colorId: 'cream' },
 ]
 interface ActionButtonProps {
   resetAll: () => void
@@ -127,7 +121,7 @@ const ContactPopup: FC<{ open: boolean; onClose: () => void }> = ({ open, onClos
 export default function Configurator() {
   const [wallLength, setWallLength] = useState('')
   const [appliedWallLength, setAppliedWallLength] = useState<number | null>(null)
-  const [selectedColor, setSelectedColor] = useState('cream')
+  const [selectedColors, setSelectedColors] = useState<string[]>(['cream'])
   const [selectedCategories, setSelectedCategories] = useState<CabinetCategory[]>(['תחתונים'])
   const [cartItems, setCartItems] = useState<CartItem[]>(INITIAL_CART)
   const [viewMode, setViewMode] = useState<'2D' | '3D'>('3D')
@@ -138,11 +132,24 @@ export default function Configurator() {
   const { isInWishlist, toggleWishlist } = useWishlist()
 
   const filteredProducts = PRODUCTS.filter(p => selectedCategories.includes(p.category))
-  const colorHex = COLORS.find(c => c.id === selectedColor)?.hex ?? '#C8AE8A'
   const totalCabinetWidth = cartItems
     .filter(item => item.category !== 'עליונים')
     .reduce((sum, item) => sum + item.width * item.qty, 0)
   const exceedsWall = appliedWallLength != null && totalCabinetWidth > appliedWallLength
+
+  function toggleColor(id: string) {
+    setSelectedColors(prev => {
+      if (prev.includes(id)) {
+        // Keep at least one color selected
+        return prev.length > 1 ? prev.filter(c => c !== id) : prev
+      }
+      const pair = COLOR_PAIRS[id]
+      if (pair && pair !== id) return [id, pair]
+      // Max two colors — a third pick replaces the oldest selection
+      if (prev.length >= 2) return [prev[1], id]
+      return [...prev, id]
+    })
+  }
 
   function toggleCategory(cat: CabinetCategory) {
     setSelectedCategories(prev => {
@@ -154,28 +161,28 @@ export default function Configurator() {
     })
   }
 
-  function addToCart(product: CabinetProduct) {
+  function addToCart(product: CabinetProduct, colorId: string) {
     setCartItems(prev => {
-      const existing = prev.find(item => item.id === product.id)
+      const existing = prev.find(item => item.id === product.id && item.colorId === colorId)
       if (existing) {
         return prev.map(item =>
-          item.id === product.id ? { ...item, qty: item.qty + 1 } : item
+          item.id === product.id && item.colorId === colorId ? { ...item, qty: item.qty + 1 } : item
         )
       }
-      return [...prev, { ...product, qty: 1 }]
+      return [...prev, { ...product, qty: 1, colorId }]
     })
   }
 
-  function setQty(id: string, qty: number) {
+  function setQty(id: string, colorId: string, qty: number) {
     if (qty <= 0) {
-      setCartItems(prev => prev.filter(item => item.id !== id))
+      setCartItems(prev => prev.filter(item => !(item.id === id && item.colorId === colorId)))
     } else {
-      setCartItems(prev => prev.map(item => item.id === id ? { ...item, qty } : item))
+      setCartItems(prev => prev.map(item => item.id === id && item.colorId === colorId ? { ...item, qty } : item))
     }
   }
 
-  function removeItem(id: string) {
-    setCartItems(prev => prev.filter(item => item.id !== id))
+  function removeItem(id: string, colorId: string) {
+    setCartItems(prev => prev.filter(item => !(item.id === id && item.colorId === colorId)))
   }
 
   function resetAll() {
@@ -309,10 +316,11 @@ export default function Configurator() {
                 onMouseLeave={() => setHoverColor(null)}
               >
                 <button
-                  className={`cfg__color-dot${selectedColor === c.id ? ' cfg__color-dot--on' : ''}`}
+                  className={`cfg__color-dot${selectedColors.includes(c.id) ? ' cfg__color-dot--on' : ''}`}
                   style={{ background: c.hex }}
-                  onClick={() => setSelectedColor(c.id)}
+                  onClick={() => toggleColor(c.id)}
                   aria-label={c.label}
+                  aria-pressed={selectedColors.includes(c.id)}
                   data-label={c.label}
                 />
                 {hoverColor === c.id && (
@@ -336,14 +344,16 @@ export default function Configurator() {
         {/* RIGHT panel: product catalog (RTL start — first in DOM) */}
         <div className="cfg__catalog">
           <div className="cfg__product-list">
-            {filteredProducts.map(product => (
+            {filteredProducts.flatMap(product => selectedColors
+              .filter(colorId => isColorAvailable(product.modelSlug, colorId))
+              .map(colorId => (
               <div
-                key={product.id}
+                key={`${product.id}-${colorId}`}
                 className="cfg__product"
-                onClick={() => addToCart(product)}
+                onClick={() => addToCart(product, colorId)}
                 role="button"
                 tabIndex={0}
-                onKeyDown={e => e.key === 'Enter' && addToCart(product)}
+                onKeyDown={e => e.key === 'Enter' && addToCart(product, colorId)}
               >
                 <div className="cfg__product-img" />
                 <div className="cfg__product-info">
@@ -368,9 +378,13 @@ export default function Configurator() {
                 >
                   <HeartIcon filled={isInWishlist(product.id)} />
                 </button>
-                <div className="cfg__product-swatch" style={{ background: colorHex }} />
+                <div
+                  className="cfg__product-swatch"
+                  style={{ background: colorHexOf(colorId) }}
+                  title={`צבע ${colorLabelOf(colorId)}`}
+                />
               </div>
-            ))}
+            )))}
           </div>
         </div>
 
@@ -378,13 +392,12 @@ export default function Configurator() {
         <div className="cfg__canvas">
           {viewMode === '3D' ? (
             <div className="cfg__canvas-area">
-              <KitchenModelViewer cartItems={cartItems} colorHex={colorHex} colorId={selectedColor} wallLengthCm={appliedWallLength} />
+              <KitchenModelViewer cartItems={cartItems} wallLengthCm={appliedWallLength} />
             </div>
           ) : (
-            <div
-              className="cfg__canvas-area"
-              style={{ backgroundImage: `url(${sketch})`, backgroundSize: 'contain', backgroundRepeat: 'no-repeat', backgroundPosition: 'center' }}
-            />
+            <div className="cfg__canvas-area">
+              <Configurator2DView cartItems={cartItems} />
+            </div>
           )}
           <div className="cfg__view-btns">
             {(['3D', '2D'] as const).map(mode => (
@@ -408,10 +421,10 @@ export default function Configurator() {
               <p className="cfg__cart-empty">לחצו על מוצר כדי להוסיף</p>
             )}
             {cartItems.map(item => (
-              <div key={item.id} className="cfg__cart-item">
+              <div key={`${item.id}-${item.colorId}`} className="cfg__cart-item">
                 <div className="cfg__ci-info">
                   <span className="cfg__ci-name">{item.name}</span>
-                  <span className="cfg__ci-sub">{item.subtitle}</span>
+                  <span className="cfg__ci-sub">{item.subtitle} · {colorLabelOf(item.colorId)}</span>
                 </div>
                 <div className="cfg__ci-row">
                   <span className="cfg__ci-price">₪ {item.price.toLocaleString()}</span>
@@ -419,7 +432,7 @@ export default function Configurator() {
                     <select
                       className="cfg__qty-select"
                       value={item.qty}
-                      onChange={e => setQty(item.id, Number(e.target.value))}
+                      onChange={e => setQty(item.id, item.colorId, Number(e.target.value))}
                     >
                       {[1, 2, 3, 4, 5, 6, 7, 8, 9, 10].map(n => (
                         <option key={n} value={n}>{n}</option>
@@ -428,8 +441,8 @@ export default function Configurator() {
                   </div>
                   <button
                     className="cfg__ci-remove"
-                    style={{ background: colorHex }}
-                    onClick={() => removeItem(item.id)}
+                    style={{ background: colorHexOf(item.colorId) }}
+                    onClick={() => removeItem(item.id, item.colorId)}
                     aria-label="הסר פריט"
                   />
                 </div>
