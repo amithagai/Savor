@@ -14,6 +14,13 @@ const AVAILABLE_MODELS: Record<string, string[]> = {
   'pantry-60-v2': ['cream', 'latte', 'cloud'],
 }
 
+export function isColorAvailable(slug: string | undefined, color: string): boolean {
+  // Products without a model slug have no per-color GLBs; they render
+  // procedurally and are treated as available in every color.
+  if (!slug) return true
+  return AVAILABLE_MODELS[slug]?.includes(color) ?? false
+}
+
 export function getModelUrl(slug: string | undefined, color: string): string | undefined {
   if (!slug) return undefined
   if (!AVAILABLE_MODELS[slug]?.includes(color)) return undefined
