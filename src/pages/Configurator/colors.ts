@@ -1,10 +1,10 @@
 export type ColorOption = { id: string; label: string; hex: string }
 
 export const COLORS: ColorOption[] = [
-  { id: 'cream', label: 'CREAM', hex: '#C8AE8A' },
-  { id: 'timber', label: 'TIMBER', hex: '#9B7B3E' },
-  { id: 'cloud', label: 'CLOUD', hex: '#B4B0AB' },
-  { id: 'latte', label: 'LATTE', hex: '#DDD9D4' },
+  { id: 'cloud', label: 'CLOUD', hex: '#D7D8DA' },
+  { id: 'cream', label: 'CREAM', hex: '#F2EEE5' },
+  { id: 'latte', label: 'LATTE', hex: '#D7CEC1' },
+  { id: 'timber', label: 'TIMBER', hex: '#D3A968' },
 ]
 
 // Optional pre-assigned pairs: picking a key auto-selects its partner as the
@@ -12,7 +12,7 @@ export const COLORS: ColorOption[] = [
 // chosen — leave empty for free two-color selection.
 export const COLOR_PAIRS: Partial<Record<string, string>> = {}
 
-const DEFAULT_HEX = '#C8AE8A'
+const DEFAULT_HEX = '#F2EEE5'
 
 export function colorHexOf(id: string): string {
   return COLORS.find(c => c.id === id)?.hex ?? DEFAULT_HEX
