@@ -16,6 +16,15 @@ type Kitchen = {
   image?: string;
 };
 
+const sizeFilters = [
+  "הכל",
+  "1.5 מטר",
+  "2 מטר",
+  "2.1 מטר",
+  "2.6 מטר",
+  "3.2 מטר",
+];
+
 const kitchens: Kitchen[] = [
   { id: 1, name: "CREAM", size: "1.5 מטר", price: 1230, image: creamImage },
   { id: 2, name: "CLOUD", size: "1.5 מטר", price: 1450 },
@@ -23,8 +32,9 @@ const kitchens: Kitchen[] = [
 ];
 
 export default function Catalog() {
-  const [searchParams] = useSearchParams();
+  const [searchParams, setSearchParams] = useSearchParams();
   const selectedSize = searchParams.get("size") ?? "הכל";
+
   const { addToCart } = useCart();
 
   const filteredKitchens = useMemo(() => {
@@ -52,6 +62,32 @@ export default function Catalog() {
         {selectedSize === "הכל" && (
           <p>בחרו מטבח מוכן מתוך קטלוג הדגמים של Savor.</p>
         )}
+      </section>
+
+      <section
+        className="catalog-page__mobile-filters"
+        aria-label="סינון מטבחים לפי גודל"
+      >
+        {sizeFilters.map((size) => (
+          <button
+            key={size}
+            type="button"
+            className={
+              selectedSize === size
+                ? "catalog-page__filter catalog-page__filter--active"
+                : "catalog-page__filter"
+            }
+            onClick={() => {
+              if (size === "הכל") {
+                setSearchParams({});
+              } else {
+                setSearchParams({ size });
+              }
+            }}
+          >
+            {size}
+          </button>
+        ))}
       </section>
 
       <section className="catalog-page__grid">
