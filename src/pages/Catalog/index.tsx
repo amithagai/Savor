@@ -1,4 +1,5 @@
-import { useMemo, useState } from 'react'
+import { useMemo } from 'react'
+import { useSearchParams } from 'react-router-dom'
 import ProductCard from '../../components/ProductCard'
 import './Catalog.css'
 import { useCart } from '../../context/useCart'
@@ -18,11 +19,10 @@ const kitchens: Kitchen[] = [
   { id: 3, name: 'LATTE', size: '2 מטר', price: 1690, image: latteImage },
 ]
 
-const sizeFilters = ['הכל', '1.5 מטר', '2 מטר']
 
 export default function Catalog() {
-  const [selectedSize, setSelectedSize] = useState('הכל')
-
+const [searchParams] = useSearchParams()
+const selectedSize = searchParams.get('size') ?? 'הכל'
   const { addToCart } = useCart()
 
   const filteredKitchens = useMemo(() => {
@@ -46,21 +46,11 @@ const handleAddToCart = (kitchen: Kitchen) => {
   return (
     <main className="catalog-page">
       <section className="catalog-page__header">
-        <h1>מטבחים</h1>
-        <p>בחרו מטבח מוכן מתוך קטלוג הדגמים של Savor.</p>
+<h1>מטבחים</h1>
+<p>בחרו מטבח מוכן מתוך קטלוג הדגמים של Savor.</p>
       </section>
 
-      <section className="catalog-page__filters" aria-label="סינון לפי גודל">
-        {sizeFilters.map((size) => (
-          <button
-            key={size}
-            className={selectedSize === size ? 'catalog-page__filter catalog-page__filter--active' : 'catalog-page__filter'}
-            onClick={() => setSelectedSize(size)}
-          >
-            {size}
-          </button>
-        ))}
-      </section>
+
 
       <section className="catalog-page__grid">
         {filteredKitchens.map((kitchen) => (

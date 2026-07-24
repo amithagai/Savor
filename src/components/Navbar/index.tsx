@@ -76,13 +76,28 @@ export default function Navbar() {
         <img src={savorLogo} alt="savorLogo" />
       </Link>
 
-      <ul className="navbar__nav">
-        {navLinks.map((link) => (
-          <li key={link.label}>
-            <Link to={link.to}>{link.label}</Link>
-          </li>
-        ))}
-      </ul>
+<ul className="navbar__nav">
+  <li className="navbar__nav-item">
+    <Link to="/catalog">מטבחים</Link>
+
+    <div className="navbar__dropdown">
+      {kitchenGroups.map((group) => (
+        <Link
+          key={group.label}
+          to={`/catalog?size=${group.label.replace('מטבחים ', '')}`}
+        >
+          {group.label}
+        </Link>
+      ))}
+    </div>
+  </li>
+
+  {mobileFlatLinks.map((link) => (
+    <li key={link.label}>
+      <Link to={link.to}>{link.label}</Link>
+    </li>
+  ))}
+</ul>
       {/* Left side — hamburger (mobile) + cart + wishlist */}
       <div className="navbar__icons">
         <button

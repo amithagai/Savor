@@ -61,6 +61,37 @@
   opacity: 0.6;
 }
 
+.navbar__nav-item {
+  position: relative;
+}
+
+.navbar__dropdown {
+  position: absolute;
+  top: 100%;
+  right: 0;
+  width: 180px;
+  background: var(--white);
+  border-radius: 14px;
+  box-shadow: 0 10px 25px rgba(0,0,0,.12);
+  padding: 8px;
+  display: none;
+}
+
+.navbar__nav-item:hover .navbar__dropdown {
+  display: block;
+}
+
+.navbar__dropdown a {
+  display: block;
+  padding: 10px 12px;
+  border-radius: 8px;
+  color: var(--text);
+}
+
+.navbar__dropdown a:hover {
+  background: #f3f3f3;
+}
+
 /* Left icons in RTL */
 .navbar__icons {
   display: flex;
