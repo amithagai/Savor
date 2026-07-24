@@ -1,27 +1,27 @@
-import { Link } from 'react-router-dom'
-import { useEffect, useState } from 'react'
-import './Navbar.css'
-import savorLogo from '../../assets/savor-logo.svg'
-import { useCart } from '../../context/useCart'
-import { useWishlist } from '../../context/useWishlist'
-import HeartIcon from '../HeartIcon'
+import { Link } from "react-router-dom";
+import { useEffect, useState } from "react";
+import "./Navbar.css";
+import savorLogo from "../../assets/savor-logo.svg";
+import { useCart } from "../../context/useCart";
+import { useWishlist } from "../../context/useWishlist";
+import HeartIcon from "../HeartIcon";
 const navLinks = [
-  { label: 'מטבחים', to: '/catalog' },
-  { label: 'כלי תכנון', to: '/configurator' },
-  { label: 'מוצרים בודדים', to: '/accessories' },
-  { label: 'מוצרים משלמים', to: '/accessories' },
-  { label: 'צור קשר', to: '/contact' },
-]
+  { label: "מטבחים", to: "/catalog" },
+  { label: "כלי תכנון", to: "/configurator" },
+  { label: "מוצרים בודדים", to: "/individual-products" },
+  { label: "מוצרים משלמים", to: "/accessories" },
+  { label: "צור קשר", to: "/contact" },
+];
 
 const kitchenGroups = [
-  { label: 'מטבחים 1.5 מטר' },
-  { label: 'מטבחים 2 מטר' },
-  { label: 'מטבחים 2.1 מטר' },
-  { label: 'מטבחים 2.6 מטר' },
-  { label: 'מטבחים 3.2 מטר' },
-]
+  { label: "מטבחים 1.5 מטר" },
+  { label: "מטבחים 2 מטר" },
+  { label: "מטבחים 2.1 מטר" },
+  { label: "מטבחים 2.6 מטר" },
+  { label: "מטבחים 3.2 מטר" },
+];
 
-const mobileFlatLinks = navLinks.filter((link) => link.label !== 'מטבחים')
+const mobileFlatLinks = navLinks.filter((link) => link.label !== "מטבחים");
 
 function Chevron({ open }: { open: boolean }) {
   return (
@@ -32,43 +32,45 @@ function Chevron({ open }: { open: boolean }) {
       strokeWidth="1.7"
       strokeLinecap="round"
       strokeLinejoin="round"
-      className={open ? 'navbar__chevron navbar__chevron--open' : 'navbar__chevron'}
+      className={
+        open ? "navbar__chevron navbar__chevron--open" : "navbar__chevron"
+      }
     >
       <polyline points="6 9 12 15 18 9" />
     </svg>
-  )
+  );
 }
 
 export default function Navbar() {
-  const { cartItems } = useCart()
-  const cartCount = cartItems.length
-  const { wishlistItems, removeFromWishlist } = useWishlist()
-  const [menuOpen, setMenuOpen] = useState(false)
-  const [wishlistOpen, setWishlistOpen] = useState(false)
+  const { cartItems } = useCart();
+  const cartCount = cartItems.length;
+  const { wishlistItems, removeFromWishlist } = useWishlist();
+  const [menuOpen, setMenuOpen] = useState(false);
+  const [wishlistOpen, setWishlistOpen] = useState(false);
   const [openGroups, setOpenGroups] = useState<Set<string>>(
-    () => new Set(['מטבחים']),
-  )
+    () => new Set(["מטבחים"]),
+  );
 
   useEffect(() => {
-    document.body.style.overflow = menuOpen ? 'hidden' : ''
+    document.body.style.overflow = menuOpen ? "hidden" : "";
     return () => {
-      document.body.style.overflow = ''
-    }
-  }, [menuOpen])
+      document.body.style.overflow = "";
+    };
+  }, [menuOpen]);
 
-  const closeMenu = () => setMenuOpen(false)
+  const closeMenu = () => setMenuOpen(false);
 
   const toggleGroup = (key: string) => {
     setOpenGroups((prev) => {
-      const next = new Set(prev)
+      const next = new Set(prev);
       if (next.has(key)) {
-        next.delete(key)
+        next.delete(key);
       } else {
-        next.add(key)
+        next.add(key);
       }
-      return next
-    })
-  }
+      return next;
+    });
+  };
 
   return (
     <nav className="navbar">
@@ -76,28 +78,28 @@ export default function Navbar() {
         <img src={savorLogo} alt="savorLogo" />
       </Link>
 
-<ul className="navbar__nav">
-  <li className="navbar__nav-item">
-    <Link to="/catalog">מטבחים</Link>
+      <ul className="navbar__nav">
+        <li className="navbar__nav-item">
+          <Link to="/catalog">מטבחים</Link>
 
-    <div className="navbar__dropdown">
-      {kitchenGroups.map((group) => (
-        <Link
-          key={group.label}
-          to={`/catalog?size=${group.label.replace('מטבחים ', '')}`}
-        >
-          {group.label}
-        </Link>
-      ))}
-    </div>
-  </li>
+          <div className="navbar__dropdown">
+            {kitchenGroups.map((group) => (
+              <Link
+                key={group.label}
+                to={`/catalog?size=${group.label.replace("מטבחים ", "")}`}
+              >
+                {group.label}
+              </Link>
+            ))}
+          </div>
+        </li>
 
-  {mobileFlatLinks.map((link) => (
-    <li key={link.label}>
-      <Link to={link.to}>{link.label}</Link>
-    </li>
-  ))}
-</ul>
+        {mobileFlatLinks.map((link) => (
+          <li key={link.label}>
+            <Link to={link.to}>{link.label}</Link>
+          </li>
+        ))}
+      </ul>
       {/* Left side — hamburger (mobile) + cart + wishlist */}
       <div className="navbar__icons">
         <button
@@ -107,7 +109,14 @@ export default function Navbar() {
           aria-expanded={menuOpen}
           onClick={() => setMenuOpen((open) => !open)}
         >
-          <svg viewBox="0 0 24 24" fill="none" stroke="#377E2B" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round">
+          <svg
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="#377E2B"
+            strokeWidth="1.7"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+          >
             {menuOpen ? (
               <>
                 <line x1="5" y1="5" x2="19" y2="19" />
@@ -123,7 +132,13 @@ export default function Navbar() {
           </svg>
         </button>
         <Link to="/cart" className="navbar__icon-btn" aria-label="עגלת קניות">
-          <svg viewBox="0 0 24 24" fill="none" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round">
+          <svg
+            viewBox="0 0 24 24"
+            fill="none"
+            strokeWidth="1.7"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+          >
             <path d="M6 2L3 6v14a2 2 0 002 2h14a2 2 0 002-2V6l-3-4z" />
             <line x1="3" y1="6" x2="21" y2="6" />
             <path d="M16 10a4 4 0 01-8 0" />
@@ -150,12 +165,17 @@ export default function Navbar() {
 
           {wishlistOpen && (
             <>
-              <div className="navbar__wishlist-backdrop" onClick={() => setWishlistOpen(false)} />
+              <div
+                className="navbar__wishlist-backdrop"
+                onClick={() => setWishlistOpen(false)}
+              />
               <div className="navbar__wishlist-panel">
                 <h3 className="navbar__wishlist-title">מוצרים שאהבתי</h3>
 
                 {wishlistItems.length === 0 ? (
-                  <p className="navbar__wishlist-empty">עדיין לא הוספתם מוצרים לרשימת המועדפים</p>
+                  <p className="navbar__wishlist-empty">
+                    עדיין לא הוספתם מוצרים לרשימת המועדפים
+                  </p>
                 ) : (
                   <div className="navbar__wishlist-list">
                     {wishlistItems.map((item) => (
@@ -169,9 +189,13 @@ export default function Navbar() {
                           <HeartIcon filled />
                         </button>
                         <div className="navbar__wishlist-item-info">
-                          <span className="navbar__wishlist-item-name">{item.name}</span>
+                          <span className="navbar__wishlist-item-name">
+                            {item.name}
+                          </span>
                           {item.subtitle && (
-                            <span className="navbar__wishlist-item-sub">{item.subtitle}</span>
+                            <span className="navbar__wishlist-item-sub">
+                              {item.subtitle}
+                            </span>
                           )}
                         </div>
                         <span className="navbar__wishlist-item-price">
@@ -196,7 +220,14 @@ export default function Navbar() {
             aria-label="סגירת תפריט"
             onClick={closeMenu}
           >
-            <svg viewBox="0 0 24 24" fill="none" stroke="#377E2B" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round">
+            <svg
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="#377E2B"
+              strokeWidth="1.7"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+            >
               <line x1="5" y1="5" x2="19" y2="19" />
               <line x1="19" y1="5" x2="5" y2="19" />
             </svg>
@@ -207,13 +238,13 @@ export default function Navbar() {
               <button
                 type="button"
                 className="navbar__mobile-group-toggle"
-                onClick={() => toggleGroup('מטבחים')}
+                onClick={() => toggleGroup("מטבחים")}
               >
                 <span>מטבחים</span>
-                <Chevron open={openGroups.has('מטבחים')} />
+                <Chevron open={openGroups.has("מטבחים")} />
               </button>
 
-              {openGroups.has('מטבחים') && (
+              {openGroups.has("מטבחים") && (
                 <div className="navbar__mobile-subgroup-list">
                   {kitchenGroups.map((group) => (
                     <Link
@@ -247,5 +278,5 @@ export default function Navbar() {
         </div>
       )}
     </nav>
-  )
+  );
 }
