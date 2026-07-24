@@ -46,8 +46,14 @@ const handleAddToCart = (kitchen: Kitchen) => {
   return (
     <main className="catalog-page">
       <section className="catalog-page__header">
-<h1>מטבחים</h1>
-<p>בחרו מטבח מוכן מתוך קטלוג הדגמים של Savor.</p>
+<h1>
+  {selectedSize === 'הכל'
+    ? 'מטבחים'
+    : `מטבח ${selectedSize}`}
+</h1>
+{selectedSize === 'הכל' && (
+  <p>בחרו מטבח מוכן מתוך קטלוג הדגמים של Savor.</p>
+)}
       </section>
 
 
