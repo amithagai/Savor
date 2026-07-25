@@ -21,7 +21,7 @@
 
 .catalog-page__filters {
   display: flex;
-  justify-content: center;
+  justify-content: flex-start;
   gap: 12px;
   margin-bottom: 32px;
   flex-wrap: wrap;
