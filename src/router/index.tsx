@@ -5,7 +5,6 @@ import Configurator from "../pages/Configurator";
 import Catalog from "../pages/Catalog";
 import ProductDetail from "../pages/ProductDetail";
 import Accessories from "../pages/Accessories";
-import IndividualProducts from "../pages/IndividualProducts";
 import AccessoryDetail from "../pages/AccessoryDetail";
 import Wishlist from "../pages/Wishlist";
 import Cart from "../pages/Cart";
@@ -40,8 +39,6 @@ const router = createBrowserRouter([
       // Complementary products (accessories)
       { path: "accessories", element: <Accessories /> },
       { path: "accessories/:productId", element: <AccessoryDetail /> },
-
-      { path: "/individual-products", element: <IndividualProducts /> },
 
       // User flows
       { path: "wishlist", element: <Wishlist /> },
