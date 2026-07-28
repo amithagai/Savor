@@ -1,5 +1,5 @@
 import './Footer.css'
-import savorLogo from '../../assets/savor-logo.svg'
+import savorLogo from '../../assets/savor-logo.png'
 import instagramIcon from '../../assets/instagram.svg'
 import whatsappIcon from '../../assets/whatsapp.svg'
 import { EmnailInput } from '../Input/EmailInput'

@@ -97,7 +97,6 @@
   position: relative;
   z-index: 1;
   /* No margin: RTL flex-start already anchors this to the visual-right */
-  max-width: 560px;
   text-align: right;
 }
 

@@ -1,7 +1,7 @@
 import { Link } from 'react-router-dom'
 import { useEffect, useState } from 'react'
 import './Navbar.css'
-import savorLogo from '../../assets/savor-logo.svg'
+import savorLogo from '../../assets/savor-logo.png'
 import { useCart } from '../../context/useCart'
 import { useWishlist } from '../../context/useWishlist'
 import HeartIcon from '../HeartIcon'
