@@ -1,3 +1,5 @@
+import "../Home.css"
+
 const testimonials = [
   {
     name: 'טיילור סוויפט',

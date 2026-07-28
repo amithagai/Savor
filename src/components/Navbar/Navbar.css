@@ -93,6 +93,7 @@
 
 .navbar__wishlist-wrap {
   position: relative;
+  margin-left: 30px;
 }
 
 .navbar__wishlist-backdrop {

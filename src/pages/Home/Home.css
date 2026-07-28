@@ -3,10 +3,16 @@
   font-size: 34px;
   font-weight: 800;
   color: var(--text);
-  text-align: right;
   margin-bottom: 32px;
+  text-align: center;
 }
 
+.best-sellers .section-title {
+  text-align: center;
+}
+.testimonials > .section-title  { 
+    text-align: right;
+}
 /* ─── Announcement Bar ───────────────────────────── */
 .announcement-bar {
   background: #EEE7E166;
@@ -497,6 +503,8 @@
   .section-title {
     font-size: 24px;
     margin-bottom: 20px;
+    text-align: right !important;
+
   }
 
   /* ─── Hero ─────────────────────────────────────── */
