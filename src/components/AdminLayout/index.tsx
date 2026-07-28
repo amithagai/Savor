@@ -1,7 +1,7 @@
 import { NavLink, Outlet, useNavigate } from 'react-router-dom'
 
 import './AdminLayout.css'
-import savorLogo from '../../assets/savor-logo.svg'
+import savorLogo from '../../assets/savor-logo.png'
 import { useAdminAuth } from '../../context/useAdminAuth'
 
 export default function AdminLayout() {

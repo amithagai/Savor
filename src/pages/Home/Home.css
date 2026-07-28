@@ -3,10 +3,16 @@
   font-size: 34px;
   font-weight: 800;
   color: var(--text);
-  text-align: right;
   margin-bottom: 32px;
+  text-align: center;
 }
 
+.best-sellers .section-title {
+  text-align: center;
+}
+.testimonials > .section-title  { 
+    text-align: right;
+}
 /* ─── Announcement Bar ───────────────────────────── */
 .announcement-bar {
   background: #EEE7E166;
@@ -91,7 +97,6 @@
   position: relative;
   z-index: 1;
   /* No margin: RTL flex-start already anchors this to the visual-right */
-  max-width: 560px;
   text-align: right;
 }
 
@@ -204,7 +209,7 @@
 .product-card {
   border: 1px solid var(--border);
   border-radius: 16px;
-  overflow: hidden;
+  padding: 14px;
   transition: box-shadow 0.2s;
   display: flex;
   flex-direction: column;
@@ -218,6 +223,7 @@
   position: relative;
   aspect-ratio: 4/3;
   overflow: hidden;
+  border-radius: 12px;
 }
 
 .product-card__image,
@@ -235,7 +241,7 @@
 .product-card__badge {
   position: absolute;
   top: 12px;
-  right: 12px;
+  left: 12px;
   background: var(--badge-bg);
   color: var(--badge-text);
   font-size: 11px;
@@ -245,21 +251,21 @@
 }
 
 .product-card__info {
-  padding: 14px 16px 16px;
+  padding: 14px 4px 4px;
   display: flex;
   flex-direction: column;
-  align-items: flex-end;
+  align-items: flex-start;
   gap: 4px;
 }
 
 .product-card__name {
-  font-size: 16px;
+  font-size: 28px;
   font-weight: 600;
   color: var(--text);
 }
 
 .product-card__size {
-  font-size: 13px;
+  font-size: 16px;
   color: var(--text-muted);
 }
 
@@ -304,9 +310,9 @@
 }
 
 .materials__label {
-  font-size: 14px;
+  font-size: 22px;
   font-weight: 500;
-  color: var(--text);
+  color: #1F1D18;
   text-align: right;
   line-height: 1.4;
 }
@@ -497,6 +503,8 @@
   .section-title {
     font-size: 24px;
     margin-bottom: 20px;
+    text-align: right !important;
+
   }
 
   /* ─── Hero ─────────────────────────────────────── */
