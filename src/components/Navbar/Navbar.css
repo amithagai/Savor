@@ -65,7 +65,7 @@
 .navbar__icons {
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: 30px;
 }
 
 .navbar__icon-btn {
@@ -93,7 +93,6 @@
 
 .navbar__wishlist-wrap {
   position: relative;
-  margin-left: 30px;
 }
 
 .navbar__wishlist-backdrop {
@@ -248,7 +247,7 @@
   }
 
   .navbar__icons {
-    gap: 6px;
+    gap: 20px;
   }
 
   .navbar__wishlist-backdrop {
