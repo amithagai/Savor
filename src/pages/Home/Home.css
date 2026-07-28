@@ -210,7 +210,7 @@
 .product-card {
   border: 1px solid var(--border);
   border-radius: 16px;
-  overflow: hidden;
+  padding: 14px;
   transition: box-shadow 0.2s;
   display: flex;
   flex-direction: column;
@@ -224,6 +224,7 @@
   position: relative;
   aspect-ratio: 4/3;
   overflow: hidden;
+  border-radius: 12px;
 }
 
 .product-card__image,
@@ -241,7 +242,7 @@
 .product-card__badge {
   position: absolute;
   top: 12px;
-  right: 12px;
+  left: 12px;
   background: var(--badge-bg);
   color: var(--badge-text);
   font-size: 11px;
@@ -251,7 +252,7 @@
 }
 
 .product-card__info {
-  padding: 14px 16px 16px;
+  padding: 14px 4px 4px;
   display: flex;
   flex-direction: column;
   align-items: flex-end;
