@@ -255,18 +255,18 @@
   padding: 14px 4px 4px;
   display: flex;
   flex-direction: column;
-  align-items: flex-end;
+  align-items: flex-start;
   gap: 4px;
 }
 
 .product-card__name {
-  font-size: 16px;
+  font-size: 28px;
   font-weight: 600;
   color: var(--text);
 }
 
 .product-card__size {
-  font-size: 13px;
+  font-size: 16px;
   color: var(--text-muted);
 }
 
@@ -311,9 +311,9 @@
 }
 
 .materials__label {
-  font-size: 14px;
+  font-size: 22px;
   font-weight: 500;
-  color: var(--text);
+  color: #1F1D18;
   text-align: right;
   line-height: 1.4;
 }
