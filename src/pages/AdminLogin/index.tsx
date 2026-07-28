@@ -3,7 +3,7 @@ import type { FormEvent } from 'react'
 import { Navigate, useNavigate } from 'react-router-dom'
 
 import './AdminLogin.css'
-import savorLogo from '../../assets/savor-logo.svg'
+import savorLogo from '../../assets/savor-logo.png'
 import { ApiError } from '../../lib/api'
 import { useAdminAuth } from '../../context/useAdminAuth'
 

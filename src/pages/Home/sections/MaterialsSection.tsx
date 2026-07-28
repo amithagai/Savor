@@ -7,6 +7,7 @@ import {
   materialHandles as handlesImg,
   materialMarble as marbleImg,
 } from '../../../assets/cloudinaryImages'
+import "../Home.css"
 
 const materials = [
   { label: 'צירים של החברה העולמית DTC', image: hingesImg },
