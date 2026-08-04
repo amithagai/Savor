@@ -1,6 +1,7 @@
 import { useMemo, useState } from "react";
 import ProductCard from "../../components/ProductCard";
 import "../Catalog/Catalog.css";
+import "./Accessories.css";
 import { useCart } from "../../context/useCart";
 import {
   materialHandles,
@@ -97,7 +98,7 @@ export default function Accessories() {
         <h1>מוצרים משלימים</h1>
 
         <section
-          className="catalog-page__filters"
+          className="accessories-page__filters"
           aria-label="סינון לפי קטגוריה"
         >
           {categoryFilters.map((category) => (
@@ -106,8 +107,8 @@ export default function Accessories() {
               type="button"
               className={
                 selectedCategory === category
-                  ? "catalog-page__filter catalog-page__filter--active"
-                  : "catalog-page__filter"
+                  ? "accessories-page__filter accessories-page__filter--active"
+                  : "accessories-page__filter"
               }
               onClick={() => setSelectedCategory(category)}
             >
@@ -116,7 +117,9 @@ export default function Accessories() {
           ))}
         </section>
 
-        <p>מגוון כיורים מעבר לכיור הנירוסטה הסטנדרטי המגיע עם המטבח</p>
+        <p className="accessories-page__subtitle">
+          מגוון כיורים מעבר לכיור הנירוסטה הסטנדרטי המגיע עם המטבח
+        </p>
       </section>
 
       <section className="catalog-page__grid">
