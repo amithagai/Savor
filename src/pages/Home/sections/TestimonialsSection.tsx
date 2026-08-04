@@ -1,22 +1,6 @@
 import "../Home.css"
 
-const testimonials = [
-  {
-    name: 'טיילור סוויפט',
-    rating: 4.5,
-    text: 'תגובה ממש טובה תגובה ממש טובה ממש טובהתגובה ממש טובה ממש טובהתגובה ממש טובה ממש טובה ממש טובה.',
-  },
-  {
-    name: 'טיילור סוויפט',
-    rating: 4.5,
-    text: 'תגובה ממש טובה תגובה ממש טובה ממש טובהתגובה ממש טובה ממש טובהתגובה ממש טובה ממש טובה ממש טובה.',
-  },
-  {
-    name: 'טיילור סוויפט',
-    rating: 4.5,
-    text: 'תגובה ממש טובה תגובה ממש טובה ממש טובהתגובה ממש טובה ממש טובהתגובה ממש טובה ממש טובה ממש טובה.',
-  },
-]
+type Testimonial = { name: string; rating: number; text: string }
 
 function Stars({ rating }: { rating: number }) {
   return (
@@ -42,10 +26,10 @@ function Stars({ rating }: { rating: number }) {
   )
 }
 
-export default function TestimonialsSection() {
+export default function TestimonialsSection({ title, testimonials }: { title: string; testimonials: Testimonial[] }) {
   return (
     <section className="testimonials">
-      <h2 className="section-title">המלצות</h2>
+      <h2 className="section-title">{title}</h2>
       <div className="testimonials__grid">
         {testimonials.map((t, i) => (
           <div key={i} className="testimonial-card">

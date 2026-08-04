@@ -1,0 +1,57 @@
+export type ContentPageData = {
+  id: string
+  slug: string
+  title: string
+  body: string
+  language: string
+  meta_description?: string | null
+  updated_at: string
+}
+
+export type SiteContentResponse<T> = {
+  id: string
+  key: string
+  data: T
+  updated_at: string
+}
+
+export type Hotspot = { top: string; left: string; label: string; detail: string }
+
+export type HomeContent = {
+  hero: {
+    title: string
+    subtitle: string
+    cta_label: string
+    cta_url: string
+    image_url: string
+    tags: Array<{ label: string; to: string }>
+  }
+  announcements: string[]
+  materials_title: string
+  materials: Array<{ label: string; image_url: string }>
+  gallery: {
+    image_url: string
+    top: Array<{ bg_position: string; hotspot: Hotspot }>
+    bottom_hotspot: Hotspot
+  }
+  testimonials_title: string
+  testimonials: Array<{ name: string; rating: number; text: string }>
+  newsletter: { title: string; subtitle: string; consent: string }
+}
+
+export type FooterContent = {
+  service_title: string
+  content_title: string
+  contact_title: string
+  hours: string
+  pickup_address: string
+  whatsapp_url: string
+  instagram_url: string
+  copyright: string
+}
+
+export type ContactContent = {
+  title: string
+  subtitle: string
+  success_message: string
+}

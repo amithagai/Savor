@@ -30,13 +30,13 @@ export function CartProvider({ children }: CartProviderProps) {
     setCartItems((currentItems) => [...currentItems, item])
   }
 
-  const removeFromCart = (id: number) => {
+  const removeFromCart = (id: number | string) => {
     setCartItems((currentItems) =>
       currentItems.filter((item) => item.id !== id)
     )
   }
 
-  const updateQuantity = (id: number, quantity: number) => {
+  const updateQuantity = (id: number | string, quantity: number) => {
     setCartItems((currentItems) =>
       currentItems.map((item) =>
         item.id === id ? { ...item, quantity } : item

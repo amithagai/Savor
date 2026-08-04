@@ -1,5 +1,7 @@
 import { useState } from 'react'
 import './Contact.css'
+import { useSiteContent } from '../../hooks/useSiteContent'
+import type { ContactContent } from '../../types/content'
 
 const WEBHOOK_URL = import.meta.env.VITE_MAKE_WEBHOOK_URL as string
 
@@ -7,6 +9,7 @@ type FormState = { name: string; email: string; phone: string; message: string }
 type Status = 'idle' | 'sending' | 'success' | 'error'
 
 export default function Contact() {
+  const { data: content, loading: contentLoading } = useSiteContent<ContactContent>('contact')
   const [form, setForm] = useState<FormState>({ name: '', email: '', phone: '', message: '' })
   const [status, setStatus] = useState<Status>('idle')
 
@@ -34,12 +37,12 @@ export default function Contact() {
   return (
     <div className="contact">
       <div className="contact__container">
-        <h1 className="contact__title">צרו קשר</h1>
-        <p className="contact__subtitle">נשמח לשמוע מכם. נחזור אליכם תוך 24 שעות.</p>
+        <h1 className="contact__title">{content?.title || (contentLoading ? 'טוען…' : 'צרו קשר')}</h1>
+        {content && <p className="contact__subtitle">{content.subtitle}</p>}
 
         {status === 'success' ? (
           <div className="contact__success">
-            ✓ ההודעה נשלחה בהצלחה — נחזור אליכם בהקדם!
+            {content?.success_message || 'ההודעה נשלחה בהצלחה.'}
           </div>
         ) : (
           <form className="contact__form" onSubmit={handleSubmit}>
