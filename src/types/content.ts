@@ -5,6 +5,7 @@ export type ContentPageData = {
   body: string
   language: string
   meta_description?: string | null
+  is_published: boolean
   updated_at: string
 }
 
@@ -12,6 +13,7 @@ export type SiteContentResponse<T> = {
   id: string
   key: string
   data: T
+  is_published: boolean
   updated_at: string
 }
 

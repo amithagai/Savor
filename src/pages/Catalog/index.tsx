@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useState } from 'react'
 import { useSearchParams } from 'react-router-dom'
 
 import ProductCard from '../../components/ProductCard'
@@ -11,7 +11,7 @@ export default function Catalog() {
   const [products, setProducts] = useState<CatalogProduct[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
-  const [searchParams, setSearchParams] = useSearchParams()
+  const [searchParams] = useSearchParams()
   const { addToCart } = useCart()
 
   useEffect(() => {
@@ -21,18 +21,10 @@ export default function Catalog() {
       .finally(() => setLoading(false))
   }, [])
 
-  const sizes = useMemo(() => Array.from(new Set(products.map((product) => String(product.attributes.size || '')).filter(Boolean))), [products])
   const selectedSize = searchParams.get('size') || 'הכל'
   const visibleProducts = selectedSize === 'הכל'
     ? products
     : products.filter((product) => product.attributes.size === selectedSize)
-
-  const selectSize = (size: string) => {
-    const next = new URLSearchParams(searchParams)
-    if (size === 'הכל') next.delete('size')
-    else next.set('size', size)
-    setSearchParams(next)
-  }
 
   const addProduct = (product: CatalogProduct) => {
     if (product.current_price == null) return

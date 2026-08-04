@@ -36,6 +36,11 @@ export default function AdminLayout() {
             </NavLink>
           </li>
           <li>
+            <NavLink to="/admin/content" className={navLinkClass}>
+              תוכן האתר
+            </NavLink>
+          </li>
+          <li>
             <NavLink to="/admin/prices" className={navLinkClass}>
               מחירים
             </NavLink>
