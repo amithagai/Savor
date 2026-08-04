@@ -1,89 +1,78 @@
-import { useMemo } from "react";
-import { useSearchParams } from "react-router-dom";
-import ProductCard from "../../components/ProductCard";
-import "./Catalog.css";
-import { useCart } from "../../context/useCart";
-import {
-  craem1 as creamImage,
-  latteHome as latteImage,
-} from "../../assets/cloudinaryImages";
+import { useMemo } from 'react'
+import { useSearchParams } from 'react-router-dom'
+import ProductCard from '../../components/ProductCard'
+import './Catalog.css'
+import { useCart } from '../../context/useCart'
+import { craem1 as creamImage, latteHome as latteImage } from '../../assets/cloudinaryImages'
 
 type Kitchen = {
-  id: number;
-  name: string;
-  size: string;
-  price: number;
-  image?: string;
-};
-
-const sizeFilters = [
-  "הכל",
-  "1.5 מטר",
-  "2 מטר",
-  "2.1 מטר",
-  "2.6 מטר",
-  "3.2 מטר",
-];
+  id: number
+  name: string
+  size: string
+  price: number
+  image?: string
+}
 
 const kitchens: Kitchen[] = [
-  { id: 1, name: "CREAM", size: "1.5 מטר", price: 1230, image: creamImage },
-  { id: 2, name: "CLOUD", size: "1.5 מטר", price: 1450 },
-  { id: 3, name: "LATTE", size: "2 מטר", price: 1690, image: latteImage },
-];
+  { id: 1, name: 'CREAM', size: '1.5 מטר', price: 1230, image: creamImage },
+  { id: 2, name: 'CLOUD', size: '1.5 מטר', price: 1450 },
+  { id: 3, name: 'LATTE', size: '2 מטר', price: 1690, image: latteImage },
+]
+
+const sizeFilters = ['הכל', '1.5 מטר', '2 מטר', '2.1 מטר', '2.6 מטר', '3.2 מטר']
 
 export default function Catalog() {
-  const [searchParams, setSearchParams] = useSearchParams();
-  const selectedSize = searchParams.get("size") ?? "הכל";
+  const [searchParams, setSearchParams] = useSearchParams()
+  const sizeFromUrl = searchParams.get('size')
+  const selectedSize = sizeFromUrl && sizeFilters.includes(sizeFromUrl)
+    ? sizeFromUrl
+    : 'הכל'
 
-  const { addToCart } = useCart();
+  const { addToCart } = useCart()
 
   const filteredKitchens = useMemo(() => {
-    if (selectedSize === "הכל") {
-      return kitchens;
+    if (selectedSize === 'הכל') {
+      return kitchens
     }
 
-    return kitchens.filter((kitchen) => kitchen.size === selectedSize);
-  }, [selectedSize]);
+    return kitchens.filter((kitchen) => kitchen.size === selectedSize)
+  }, [selectedSize])
 
-  const handleAddToCart = (kitchen: Kitchen) => {
-    addToCart({
-      id: kitchen.id,
-      name: kitchen.name,
-      size: kitchen.size,
-      price: kitchen.price,
-      quantity: 1,
-    });
-  };
+const handleAddToCart = (kitchen: Kitchen) => {
+  addToCart({
+    id: kitchen.id,
+    name: kitchen.name,
+    size: kitchen.size,
+    price: kitchen.price,
+    quantity: 1,
+  })
+}
+
+  const handleSizeChange = (size: string) => {
+    const nextSearchParams = new URLSearchParams(searchParams)
+
+    if (size === 'הכל') {
+      nextSearchParams.delete('size')
+    } else {
+      nextSearchParams.set('size', size)
+    }
+
+    setSearchParams(nextSearchParams)
+  }
 
   return (
     <main className="catalog-page">
       <section className="catalog-page__header">
-        <h1>{selectedSize === "הכל" ? "מטבחים" : `מטבח ${selectedSize}`}</h1>
-        {selectedSize === "הכל" && (
-          <p>בחרו מטבח מוכן מתוך קטלוג הדגמים של Savor.</p>
-        )}
+        <h1>מטבחים</h1>
+        <p>בחרו מטבח מוכן מתוך קטלוג הדגמים של Savor.</p>
       </section>
 
-      <section
-        className="catalog-page__mobile-filters"
-        aria-label="סינון מטבחים לפי גודל"
-      >
+      <section className="catalog-page__filters" aria-label="סינון לפי גודל">
         {sizeFilters.map((size) => (
           <button
             key={size}
-            type="button"
-            className={
-              selectedSize === size
-                ? "catalog-page__filter catalog-page__filter--active"
-                : "catalog-page__filter"
-            }
-            onClick={() => {
-              if (size === "הכל") {
-                setSearchParams({});
-              } else {
-                setSearchParams({ size });
-              }
-            }}
+            className={selectedSize === size ? 'catalog-page__filter catalog-page__filter--active' : 'catalog-page__filter'}
+            onClick={() => handleSizeChange(size)}
           >
             {size}
           </button>
@@ -91,16 +80,22 @@ export default function Catalog() {
       </section>
 
       <section className="catalog-page__grid">
-        {filteredKitchens.map((kitchen) => (
-          <ProductCard
-            key={kitchen.id}
-            name={kitchen.name}
-            subtitle={kitchen.size}
-            image={kitchen.image}
-            onAddToCart={() => handleAddToCart(kitchen)}
-          />
-        ))}
+        {filteredKitchens.length > 0 ? (
+          filteredKitchens.map((kitchen) => (
+            <ProductCard
+              key={kitchen.id}
+              name={kitchen.name}
+              subtitle={kitchen.size}
+              image={kitchen.image}
+              onAddToCart={() => handleAddToCart(kitchen)}
+            />
+          ))
+        ) : (
+          <p className="catalog-page__empty">
+            עדיין אין מטבחים זמינים במידה {selectedSize}.
+          </p>
+        )}
       </section>
     </main>
-  );
+  )
 }

@@ -5,8 +5,9 @@ import HeartIcon from '../../components/HeartIcon'
 import { useWishlist } from '../../context/useWishlist'
 import KitchenModelViewer from './KitchenModelViewer'
 import Configurator2DView from './Configurator2DView'
-import { COLORS, COLOR_PAIRS, colorHexOf, colorLabelOf } from './colors'
-import { isColorAvailable } from './modelCatalog'
+import { colorHexOf, colorLabelOf } from './colors'
+import { availableColorsFor } from './modelCatalog'
+import type { AccessoryPositions, CabinetPositions, KitchenAccessoryId } from './cabinetLayout'
 
 type CabinetCategory = 'תחתונים' | 'כיור' | 'גבוהים' | 'עליונים'
 
@@ -16,6 +17,7 @@ type CabinetProduct = {
   subtitle: string
   width: number
   price: number
+  pricesByColor?: Partial<Record<string, number>>
   category: CabinetCategory
   modelSlug?: string
 }
@@ -34,8 +36,7 @@ const PRODUCTS: CabinetProduct[] = [
   { id: 'p7', name: 'ארון תחתון 60 ס"מ - שלוש מגירות', subtitle: 'שלוש מגירות', width: 60, price: 900, category: 'תחתונים', modelSlug: 'three-drawers-60' },
   { id: 'p8', name: 'ארון עליון 100 ס"מ - קלאפה', subtitle: 'דלת קלאפה', width: 100, price: 550, category: 'עליונים', modelSlug: 'klappa-100' },
   { id: 'p9', name: 'ארון עליון 60 ס"מ - חזית 2 דלתות', subtitle: 'חזית 2 דלתות', width: 60, price: 470, category: 'עליונים', modelSlug: 'upper-60' },
-  { id: 'p10', name: 'ארון גבוה 60 ס"מ - מזווה', subtitle: 'חזית דלת', width: 60, price: 1540, category: 'גבוהים', modelSlug: 'pantry-60-v1' },
-  { id: 'p11', name: 'ארון גבוה 60 ס"מ - מזווה פרימיום', subtitle: 'חזית מעוצבת', width: 60, price: 2000, category: 'גבוהים', modelSlug: 'pantry-60-v2' },
+  { id: 'p10', name: 'ארון גבוה 60 ס"מ - מזווה', subtitle: 'דלת מזווה מלאה', width: 60, price: 2000, pricesByColor: { latte: 2330 }, category: 'גבוהים', modelSlug: 'pantry-60-v2' },
   { id: 'p12', name: 'ארון כיור 60 ס"מ - חזית 2 דלתות', subtitle: 'חזית 2 דלתות', width: 60, price: 1350, category: 'כיור' },
   { id: 'p13', name: 'ארון כיור 80 ס"מ - חזית 2 דלתות', subtitle: 'חזית 2 דלתות', width: 80, price: 1550, category: 'כיור' },
 ]
@@ -73,6 +74,10 @@ function categoryLabel(cats: CabinetCategory[]) {
   if (cats.length === 0) return 'בחרו ארונות'
   if (cats.length <= 2) return cats.join(', ')
   return `${cats[0]}, ${cats[1]} (+${cats.length - 2})`
+}
+
+function priceFor(product: CabinetProduct, colorId: string) {
+  return product.pricesByColor?.[colorId] ?? product.price
 }
 
 const TotalPrice: FC<{ cartItems: Array<CartItem> }> = ({ cartItems }) => {
@@ -121,11 +126,11 @@ const ContactPopup: FC<{ open: boolean; onClose: () => void }> = ({ open, onClos
 export default function Configurator() {
   const [wallLength, setWallLength] = useState('')
   const [appliedWallLength, setAppliedWallLength] = useState<number | null>(null)
-  const [selectedColors, setSelectedColors] = useState<string[]>(['cream'])
   const [selectedCategories, setSelectedCategories] = useState<CabinetCategory[]>(['תחתונים'])
   const [cartItems, setCartItems] = useState<CartItem[]>(INITIAL_CART)
+  const [cabinetPositions, setCabinetPositions] = useState<CabinetPositions>({})
+  const [accessories, setAccessories] = useState<AccessoryPositions>({})
   const [viewMode, setViewMode] = useState<'2D' | '3D'>('3D')
-  const [hoverColor, setHoverColor] = useState<string | null>(null)
   const [howOpen, setHowOpen] = useState(true)
   const [catMenuOpen, setCatMenuOpen] = useState(false)
   const [contactOpen, setContactOpen] = useState(false)
@@ -135,21 +140,10 @@ export default function Configurator() {
   const totalCabinetWidth = cartItems
     .filter(item => item.category !== 'עליונים')
     .reduce((sum, item) => sum + item.width * item.qty, 0)
+  const counterCabinetWidth = cartItems
+    .filter(item => item.category !== 'עליונים' && item.category !== 'גבוהים')
+    .reduce((sum, item) => sum + item.width * item.qty, 0)
   const exceedsWall = appliedWallLength != null && totalCabinetWidth > appliedWallLength
-
-  function toggleColor(id: string) {
-    setSelectedColors(prev => {
-      if (prev.includes(id)) {
-        // Keep at least one color selected
-        return prev.length > 1 ? prev.filter(c => c !== id) : prev
-      }
-      const pair = COLOR_PAIRS[id]
-      if (pair && pair !== id) return [id, pair]
-      // Max two colors — a third pick replaces the oldest selection
-      if (prev.length >= 2) return [prev[1], id]
-      return [...prev, id]
-    })
-  }
 
   function toggleCategory(cat: CabinetCategory) {
     setSelectedCategories(prev => {
@@ -166,10 +160,12 @@ export default function Configurator() {
       const existing = prev.find(item => item.id === product.id && item.colorId === colorId)
       if (existing) {
         return prev.map(item =>
-          item.id === product.id && item.colorId === colorId ? { ...item, qty: item.qty + 1 } : item
+          item.id === product.id && item.colorId === colorId
+            ? { ...item, price: priceFor(product, colorId), qty: item.qty + 1 }
+            : item
         )
       }
-      return [...prev, { ...product, qty: 1, colorId }]
+      return [...prev, { ...product, price: priceFor(product, colorId), qty: 1, colorId }]
     })
   }
 
@@ -187,8 +183,32 @@ export default function Configurator() {
 
   function resetAll() {
     setCartItems([])
+    setCabinetPositions({})
+    setAccessories({})
     setWallLength('')
     setAppliedWallLength(null)
+  }
+
+  function setCabinetPosition(key: string, xCm: number) {
+    setCabinetPositions(prev => ({ ...prev, [key]: xCm }))
+  }
+
+  function setAccessoryPosition(id: KitchenAccessoryId, xCm: number) {
+    setAccessories(prev => ({ ...prev, [id]: xCm }))
+  }
+
+  function toggleAccessory(id: KitchenAccessoryId) {
+    setAccessories(prev => {
+      if (prev[id] != null) {
+        const next = { ...prev }
+        delete next[id]
+        return next
+      }
+      const availableWidth = appliedWallLength ?? counterCabinetWidth
+      const center = Math.max(30, availableWidth / 2)
+      const x = id === 'sink' ? center : Math.min(Math.max(4, availableWidth - 4), center + 20)
+      return { ...prev, [id]: x }
+    })
   }
 
   function applyWallLength() {
@@ -305,30 +325,31 @@ export default function Configurator() {
           </div>
         </div>
 
-        <div className="cfg__color-row">
-          <h2 className="cfg__field-label">צבעים</h2>
-          <div className="cfg__color-dots">
-            {COLORS.map(c => (
-              <div
-                key={c.id}
-                className="cfg__color-wrap"
-                onMouseEnter={() => setHoverColor(c.id)}
-                onMouseLeave={() => setHoverColor(null)}
-              >
-                <button
-                  className={`cfg__color-dot${selectedColors.includes(c.id) ? ' cfg__color-dot--on' : ''}`}
-                  style={{ background: c.hex }}
-                  onClick={() => toggleColor(c.id)}
-                  aria-label={c.label}
-                  aria-pressed={selectedColors.includes(c.id)}
-                  data-label={c.label}
-                />
-                {hoverColor === c.id && (
-                  <span className="cfg__color-tip">{c.label}</span>
-                )}
-              </div>
-            ))}
+        <div className="cfg__extras-row">
+          <h2 className="cfg__field-label">תוספות להדמיה</h2>
+          <div className="cfg__extra-buttons">
+            <button
+              type="button"
+              className={`cfg__extra-btn${accessories.sink != null ? ' cfg__extra-btn--on' : ''}`}
+              onClick={() => toggleAccessory('sink')}
+              disabled={counterCabinetWidth === 0}
+              aria-pressed={accessories.sink != null}
+            >
+              <span className="cfg__extra-icon cfg__extra-icon--sink" aria-hidden="true" />
+              כיור
+            </button>
+            <button
+              type="button"
+              className={`cfg__extra-btn${accessories.faucet != null ? ' cfg__extra-btn--on' : ''}`}
+              onClick={() => toggleAccessory('faucet')}
+              disabled={counterCabinetWidth === 0}
+              aria-pressed={accessories.faucet != null}
+            >
+              <span className="cfg__extra-icon cfg__extra-icon--faucet" aria-hidden="true" />
+              ברז
+            </button>
           </div>
+          <span className="cfg__extras-help">מוסיפים ואז גוררים למיקום הרצוי</span>
         </div>
 
 
@@ -344,9 +365,7 @@ export default function Configurator() {
         {/* RIGHT panel: product catalog (RTL start — first in DOM) */}
         <div className="cfg__catalog">
           <div className="cfg__product-list">
-            {filteredProducts.flatMap(product => selectedColors
-              .filter(colorId => isColorAvailable(product.modelSlug, colorId))
-              .map(colorId => (
+            {filteredProducts.flatMap(product => availableColorsFor(product.modelSlug).map(colorId => (
               <div
                 key={`${product.id}-${colorId}`}
                 className="cfg__product"
@@ -355,12 +374,15 @@ export default function Configurator() {
                 tabIndex={0}
                 onKeyDown={e => e.key === 'Enter' && addToCart(product, colorId)}
               >
-                <div className="cfg__product-img" />
+                <div className="cfg__product-img" style={{ backgroundColor: colorHexOf(colorId) }} aria-hidden="true">
+                  <span className="cfg__product-img-handle" />
+                </div>
                 <div className="cfg__product-info">
                   <span className="cfg__product-name">{product.name}</span>
                   <span className="cfg__product-price">
-                    {product.width} ס"מ מ- {product.price.toLocaleString()} ₪
+                    {product.width} ס"מ מ- {priceFor(product, colorId).toLocaleString()} ₪
                   </span>
+                  <span className="cfg__product-color-name">{colorLabelOf(colorId)}</span>
                 </div>
                 <button
                   type="button"
@@ -372,7 +394,7 @@ export default function Configurator() {
                       id: product.id,
                       name: product.name,
                       subtitle: product.subtitle,
-                      price: product.price,
+                      price: priceFor(product, colorId),
                     })
                   }}
                 >
@@ -392,11 +414,25 @@ export default function Configurator() {
         <div className="cfg__canvas">
           {viewMode === '3D' ? (
             <div className="cfg__canvas-area">
-              <KitchenModelViewer cartItems={cartItems} wallLengthCm={appliedWallLength} />
+              <KitchenModelViewer
+                cartItems={cartItems}
+                wallLengthCm={appliedWallLength}
+                positions={cabinetPositions}
+                onPositionChange={setCabinetPosition}
+                accessories={accessories}
+                onAccessoryPositionChange={setAccessoryPosition}
+              />
             </div>
           ) : (
             <div className="cfg__canvas-area">
-              <Configurator2DView cartItems={cartItems} />
+              <Configurator2DView
+                cartItems={cartItems}
+                wallLengthCm={appliedWallLength}
+                positions={cabinetPositions}
+                onPositionChange={setCabinetPosition}
+                accessories={accessories}
+                onAccessoryPositionChange={setAccessoryPosition}
+              />
             </div>
           )}
           <div className="cfg__view-btns">
@@ -410,6 +446,7 @@ export default function Configurator() {
               </button>
             ))}
           </div>
+          <div className="cfg__drag-hint">גררו ארונות, כיור וברז למיקום הרצוי</div>
         </div>
 
         {/* LEFT panel: shopping list (RTL end — last in DOM) */}
