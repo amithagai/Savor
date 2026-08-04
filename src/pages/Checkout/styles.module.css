@@ -4,7 +4,29 @@
     align-items: center;
     justify-content: center;
 
-    height: 100vh;
+    min-height: 65vh;
+    padding: 48px 20px;
+    text-align: center;
+    gap: 12px;
+}
+
+.wrapper p {
+    max-width: 620px;
+}
+
+.reference {
+    direction: ltr;
+    color: var(--text-muted);
+    font-size: 14px;
+}
+
+.link {
+    margin-top: 8px;
+    padding: 11px 22px;
+    border-radius: 999px;
+    background: var(--signup-button);
+    color: white;
+    font-weight: 700;
 }
 
 .giff { 

@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useCallback, useEffect, useState } from 'react'
 import type { ReactNode } from 'react'
 
 import { CartContext } from './CartContext'
@@ -44,9 +44,9 @@ export function CartProvider({ children }: CartProviderProps) {
     )
   }
 
-  const clearCart = () => {
-    setCartItems([])
-  }
+  const clearCart = useCallback(() => {
+    setCartItems((currentItems) => currentItems.length ? [] : currentItems)
+  }, [])
 
   return (
     <CartContext.Provider

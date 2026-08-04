@@ -1,7 +1,8 @@
 import { useMemo, useState } from 'react'
 import type { ChangeEvent, FormEvent } from 'react'
-import { useNavigate } from 'react-router-dom'
+import { useNavigate, useSearchParams } from 'react-router-dom'
 import { useCart } from '../../context/useCart'
+import { api, ApiError } from '../../lib/api'
 import './Cart.css'
 
 const QUANTITY_OPTIONS = Array.from({ length: 10 }, (_, index) => index + 1)
@@ -46,10 +47,15 @@ function formatPrice(value: number) {
 export default function Cart() {
   const { cartItems, removeFromCart, updateQuantity } = useCart()
   const navigate = useNavigate()
+  const [searchParams] = useSearchParams()
 
   const [form, setForm] = useState<FormState>(initialForm)
   const [deliveryMethod, setDeliveryMethod] = useState<DeliveryMethod>('pickup')
   const [wantsInstallation, setWantsInstallation] = useState(false)
+  const [isSubmitting, setIsSubmitting] = useState(false)
+  const [paymentError, setPaymentError] = useState(
+    searchParams.get('payment') === 'cancelled' ? 'התשלום בוטל. העגלה נשמרה ואפשר לנסות שוב.' : ''
+  )
 
   const itemsTotal = useMemo(
     () => cartItems.reduce((sum, item) => sum + item.price * item.quantity, 0),
@@ -62,12 +68,12 @@ export default function Cart() {
 
   const isFormValid =
     cartItems.length > 0 &&
-    form.fullName.trim() !== '' &&
+    form.fullName.trim().split(/\s+/).length >= 2 &&
     form.city.trim() !== '' &&
     form.region.trim() !== '' &&
     form.streetAddress.trim() !== '' &&
     form.email.trim() !== '' &&
-    form.phone.trim() !== '' &&
+    /^05\d{8}$/.test(form.phone.replace(/[\s-]/g, '')) &&
     form.agreedToTerms
 
   const handleTextChange =
@@ -79,10 +85,44 @@ export default function Cart() {
     setForm((current) => ({ ...current, agreedToTerms: event.target.checked }))
   }
 
-  const handleSubmit = (event: FormEvent) => {
+  const handleSubmit = async (event: FormEvent) => {
     event.preventDefault()
-    if (!isFormValid) return
-    navigate('/checkout')
+    if (!isFormValid || isSubmitting) return
+
+    setIsSubmitting(true)
+    setPaymentError('')
+    try {
+      // Rebuild the server cart from product identifiers. The backend resolves
+      // and locks prices, so browser-side prices can never control the charge.
+      await api.delete<void>('/cart')
+      for (const item of cartItems) {
+        await api.post<unknown>('/cart/items', {
+          product_id: item.id,
+          quantity: item.quantity,
+        })
+      }
+
+      const order = await api.post<{ id: string }>('/orders', {
+        shipping_address: {
+          full_name: form.fullName,
+          phone: form.phone,
+          email: form.email,
+          street: form.streetAddress,
+          city: form.city,
+          region: form.region,
+          apartment: form.apartment || null,
+          id_number: form.idNumber || null,
+        },
+        delivery_method: deliveryMethod,
+        wants_installation: wantsInstallation,
+      })
+      const payment = await api.post<{ checkout_url: string }>(`/payments/checkout/${order.id}`, {})
+      window.location.assign(payment.checkout_url)
+    } catch (error) {
+      const detail = error instanceof ApiError ? error.message : ''
+      setPaymentError(detail || 'לא הצלחנו לפתוח את התשלום. נסו שוב בעוד רגע.')
+      setIsSubmitting(false)
+    }
   }
 
   return (
@@ -266,8 +306,10 @@ export default function Cart() {
 
           <p className="cart-page__total">סך הכל לתשלום: {formatPrice(total)} ₪</p>
 
-          <button type="submit" className="cart-page__submit" disabled={!isFormValid}>
-            מעבר לתשלום
+          {paymentError && <p className="cart-page__payment-error" role="alert">{paymentError}</p>}
+
+          <button type="submit" className="cart-page__submit" disabled={!isFormValid || isSubmitting}>
+            {isSubmitting ? 'פותחים תשלום מאובטח…' : 'מעבר לתשלום מאובטח'}
           </button>
         </div>
       </form>
