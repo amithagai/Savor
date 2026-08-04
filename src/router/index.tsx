@@ -23,6 +23,7 @@ import AdminPrices from "../pages/AdminPrices";
 import AdminOrders from "../pages/AdminOrders";
 import AdminProducts from "../pages/AdminProducts";
 import AdminProductEditor from "../pages/AdminProductEditor";
+import AdminContent from "../pages/AdminContent";
 
 const router = createBrowserRouter([
   {
@@ -79,6 +80,7 @@ const router = createBrowserRouter([
               { path: "products/:productId", element: <AdminProductEditor /> },
               { path: "prices", element: <AdminPrices /> },
               { path: "orders", element: <AdminOrders /> },
+              { path: "content", element: <AdminContent /> },
             ],
           },
         ],

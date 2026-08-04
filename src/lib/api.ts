@@ -37,6 +37,8 @@ export const api = {
     request<T>(path, { method: 'POST', body: JSON.stringify(data) }, token),
   patch: <T,>(path: string, data: unknown, token?: string | null) =>
     request<T>(path, { method: 'PATCH', body: JSON.stringify(data) }, token),
+  put: <T,>(path: string, data: unknown, token?: string | null) =>
+    request<T>(path, { method: 'PUT', body: JSON.stringify(data) }, token),
   upload: async <T,>(path: string, file: File, token?: string | null): Promise<T> => {
     const form = new FormData()
     form.append('file', file)
