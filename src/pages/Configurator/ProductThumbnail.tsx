@@ -4,6 +4,7 @@ type Props = {
   modelSlug?: string
   productId: string
   colorId: string
+  colorHex?: string
   widthCm: number
 }
 
@@ -36,9 +37,9 @@ function Handle({ x, y, width = 13 }: { x: number; y: number; width?: number }) 
   )
 }
 
-export default function ProductThumbnail({ modelSlug, productId, colorId, widthCm }: Props) {
+export default function ProductThumbnail({ modelSlug, productId, colorId, colorHex, widthCm }: Props) {
   const face = faceFor(modelSlug, widthCm)
-  const color = colorHexOf(colorId)
+  const color = colorHex || colorHexOf(colorId)
   const depth = 5
   const isUpper = modelSlug === 'klappa-100' || modelSlug === 'upper-60'
   const isTall = modelSlug === 'pantry-60-v2'

@@ -447,6 +447,11 @@
   display: block;
 }
 
+.cfg__product-thumbnail--photo {
+  object-fit: contain;
+  padding: 3px;
+}
+
 .cfg__product-info {
   flex: 1;
   display: flex;

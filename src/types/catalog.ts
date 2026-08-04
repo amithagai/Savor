@@ -1,5 +1,19 @@
 export type ProductType = 'KITCHEN' | 'ACCESSORY' | 'COMPONENT'
 
+export type ProductVariant = {
+  id: string
+  product_id: string
+  color_id: string
+  color_label: string
+  sku: string
+  price: number
+  model_url: string
+  thumbnail_url?: string | null
+  attributes: Record<string, unknown>
+  is_active: boolean
+  sort_order: number
+}
+
 export type Category = {
   id: string
   slug: string
@@ -35,4 +49,15 @@ export type AdminProduct = {
 
 export type AdminProductDetail = CatalogProduct & {
   category_id: string | null
+  variants: ProductVariant[]
+}
+
+export type ConfiguratorProduct = {
+  id: string
+  slug: string
+  name: string
+  description?: string | null
+  attributes: Record<string, unknown>
+  category?: Category | null
+  variants: ProductVariant[]
 }

@@ -1,7 +1,7 @@
 import { Suspense, useMemo, useState } from 'react'
 import { Canvas, type ThreeEvent } from '@react-three/fiber'
-import { Edges, Environment, Html, Line, OrbitControls, Text, useGLTF, useProgress } from '@react-three/drei'
-import { ACESFilmicToneMapping, Box3, Color, Plane, Vector3, type Material } from 'three'
+import { Edges, Environment, Html, Line, OrbitControls, Text, useGLTF } from '@react-three/drei'
+import { ACESFilmicToneMapping, Box3, Color, Plane, Vector3 } from 'three'
 import { getModelUrl } from './modelCatalog'
 import { colorHexOf } from './colors'
 import {
@@ -36,12 +36,11 @@ const GAP_M = 0.01
 const HANDLE_TOP_OFFSET_M = HANDLE_TOP_OFFSET_CM * CM
 
 function ModelLoadingFallback() {
-  const { progress } = useProgress()
   return (
     <Html center>
       <div className="cfg3d__loader" role="status" aria-live="polite">
         <span className="cfg3d__loader-spinner" aria-hidden="true" />
-        <span>טוען את דגמי המטבח… {Math.round(progress)}%</span>
+        <span>טוען את דגמי המטבח…</span>
       </div>
     </Html>
   )
@@ -172,7 +171,7 @@ function TallCabinetFront({ width, height, depth }: { width: number; height: num
   )
 }
 
-function RealCabinetModel({ url, width, color }: { url: string; width: number; color: string }) {
+function RealCabinetModel({ url, width }: { url: string; width: number }) {
   const { scene } = useGLTF(url)
   const cloned = useMemo(() => {
     const clone = scene.clone(true)
@@ -191,41 +190,19 @@ function RealCabinetModel({ url, width, color }: { url: string; width: number; c
     clone.position.z -= aligned.min.z
 
     clone.updateMatrixWorld(true)
-    const facadeColor = new Color(color).offsetHSL(0, 0, -0.07)
-    const detailColor = new Color('#4b4b47')
-
     clone.traverse(node => {
       const mesh = node as unknown as {
         isMesh?: boolean
         castShadow?: boolean
         receiveShadow?: boolean
-        material?: Material | Material[]
       }
       if (mesh.isMesh) {
         mesh.castShadow = true
         mesh.receiveShadow = true
-
-        const meshBounds = new Box3().setFromObject(node)
-        const meshSize = new Vector3()
-        meshBounds.getSize(meshSize)
-        const faceArea = meshSize.x * meshSize.y
-        const longestFaceSide = Math.max(meshSize.x, meshSize.y)
-        const shortestFaceSide = Math.min(meshSize.x, meshSize.y)
-        const isHandle = longestFaceSide > 0.035 && longestFaceSide < 0.55 && shortestFaceSide < 0.08
-
-        const recolor = (source: Material) => {
-          const material = source.clone() as Material & { color?: Color }
-          if (!material.color) return material
-          material.color.copy(isHandle && faceArea < 0.035 ? detailColor : facadeColor)
-          return material
-        }
-
-        if (Array.isArray(mesh.material)) mesh.material = mesh.material.map(recolor)
-        else if (mesh.material) mesh.material = recolor(mesh.material)
       }
     })
     return clone
-  }, [color, scene, width])
+  }, [scene, width])
 
   return <primitive object={cloned} />
 }
@@ -256,7 +233,7 @@ function Cabinet({ x, width, spec, color, subtitle, modelUrl, active, dragHandle
     <group position={[x, elevation, 0]} {...dragHandlers}>
       {modelUrl ? (
         <>
-          <RealCabinetModel url={modelUrl} width={width} color={color} />
+          <RealCabinetModel url={modelUrl} width={width} />
           {isOven(subtitle) && <OvenFront width={width} height={height} depth={depth} />}
           {spec.elevation > 0 && (
             <UpperCabinetFront width={width} height={height} depth={depth} subtitle={subtitle} />
@@ -479,9 +456,9 @@ function ConfiguratorScene({ cartItems, wallLengthCm, positions, onPositionChang
             x={xM}
             width={widthM}
             spec={spec}
-            color={colorHexOf(item.colorId)}
+            color={item.colorHex ?? colorHexOf(item.colorId)}
             subtitle={item.subtitle}
-            modelUrl={getModelUrl(item.modelSlug, item.colorId)}
+            modelUrl={item.modelUrl ?? getModelUrl(item.modelSlug, item.colorId)}
             active={activeKey === `cabinet-${key}`}
             dragHandlers={handlers('cabinet', key, x, width)}
           />
@@ -494,9 +471,9 @@ function ConfiguratorScene({ cartItems, wallLengthCm, positions, onPositionChang
             x={xM}
             width={widthM}
             spec={spec}
-            color={colorHexOf(item.colorId)}
+            color={item.colorHex ?? colorHexOf(item.colorId)}
             subtitle={item.subtitle}
-            modelUrl={getModelUrl(item.modelSlug, item.colorId)}
+            modelUrl={item.modelUrl ?? getModelUrl(item.modelSlug, item.colorId)}
             active={activeKey === `cabinet-${key}`}
             dragHandlers={handlers('cabinet', key, x, width)}
           />

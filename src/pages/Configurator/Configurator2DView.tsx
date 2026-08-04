@@ -38,7 +38,7 @@ type StartDrag = (event: ReactPointerEvent<SVGGElement>, type: 'cabinet' | 'acce
 function CabinetShape({ placed, active, onStartDrag }: { placed: PlacedCabinet; active: boolean; onStartDrag: StartDrag }) {
   const { item, x, width, spec, key } = placed
   const { height, elevation } = spec
-  const color = colorHexOf(item.colorId)
+  const color = item.colorHex ?? colorHexOf(item.colorId)
   const left = x - width / 2
   const doors = doorCount(item.subtitle)
   const lines = Array.from({ length: Math.max(0, doors - 1) }, (_, index) => left + (width / doors) * (index + 1))

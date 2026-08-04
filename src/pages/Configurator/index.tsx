@@ -1,4 +1,4 @@
-import { useState, type FC } from 'react'
+import { useEffect, useState, type FC } from 'react'
 import { useNavigate } from 'react-router-dom'
 import './Configurator.css'
 import HeartIcon from '../../components/HeartIcon'
@@ -9,6 +9,8 @@ import ProductThumbnail from './ProductThumbnail'
 import { colorHexOf, colorLabelOf } from './colors'
 import { availableColorsFor } from './modelCatalog'
 import type { AccessoryPositions, CabinetPositions, KitchenAccessoryId } from './cabinetLayout'
+import { api } from '../../lib/api'
+import type { ConfiguratorProduct } from '../../types/catalog'
 
 type CabinetCategory = 'תחתונים' | 'כיור' | 'גבוהים' | 'עליונים'
 
@@ -21,13 +23,24 @@ type CabinetProduct = {
   pricesByColor?: Partial<Record<string, number>>
   category: CabinetCategory
   modelSlug?: string
+  variants?: CabinetProductVariant[]
 }
 
-type CartItem = CabinetProduct & { qty: number; colorId: string }
+type CabinetProductVariant = {
+  colorId: string
+  colorLabel: string
+  price: number
+  sku?: string
+  modelUrl?: string
+  thumbnailUrl?: string
+  colorHex?: string
+}
+
+type CartItem = CabinetProduct & CabinetProductVariant & { qty: number }
 
 const CATEGORIES: CabinetCategory[] = ['עליונים', 'גבוהים', 'תחתונים', 'כיור']
 
-const PRODUCTS: CabinetProduct[] = [
+const FALLBACK_PRODUCTS: CabinetProduct[] = [
   { id: 'p1', name: 'ארון תנור 60 ס"מ', subtitle: 'יחידת תנור', width: 60, price: 670, category: 'תחתונים', modelSlug: 'oven-60' },
   { id: 'p2', name: 'ארון תחתון 30 ס"מ - מדף ומגירה', subtitle: 'מדף ומגירה', width: 30, price: 660, category: 'תחתונים', modelSlug: 'shelf-drawer-30' },
   { id: 'p3', name: 'ארון תחתון 60 ס"מ - מדף ומגירה', subtitle: 'מדף ומגירה', width: 60, price: 770, category: 'תחתונים', modelSlug: 'shelf-drawer-60' },
@@ -49,9 +62,9 @@ const HOW_STEPS = [
 ]
 
 const INITIAL_CART: CartItem[] = [
-  { ...PRODUCTS[0], qty: 1, colorId: 'cream' },
-  { ...PRODUCTS[1], qty: 1, colorId: 'cream' },
-  { ...PRODUCTS[2], qty: 1, colorId: 'cream' },
+  { ...FALLBACK_PRODUCTS[0], qty: 1, colorId: 'cream', colorLabel: 'CREAM', price: FALLBACK_PRODUCTS[0].price },
+  { ...FALLBACK_PRODUCTS[1], qty: 1, colorId: 'cream', colorLabel: 'CREAM', price: FALLBACK_PRODUCTS[1].price },
+  { ...FALLBACK_PRODUCTS[2], qty: 1, colorId: 'cream', colorLabel: 'CREAM', price: FALLBACK_PRODUCTS[2].price },
 ]
 interface ActionButtonProps {
   resetAll: () => void
@@ -78,7 +91,43 @@ function categoryLabel(cats: CabinetCategory[]) {
 }
 
 function priceFor(product: CabinetProduct, colorId: string) {
+  const variant = product.variants?.find((item) => item.colorId === colorId)
+  if (variant) return variant.price
   return product.pricesByColor?.[colorId] ?? product.price
+}
+
+function variantsFor(product: CabinetProduct): CabinetProductVariant[] {
+  if (product.variants?.length) return product.variants
+  return availableColorsFor(product.modelSlug).map((colorId) => ({
+    colorId,
+    colorLabel: colorLabelOf(colorId),
+    price: priceFor(product, colorId),
+  }))
+}
+
+function configuratorProductFromApi(product: ConfiguratorProduct): CabinetProduct | null {
+  const attributes = product.attributes || {}
+  const category = String(attributes.configurator_category || '') as CabinetCategory
+  const width = Number(attributes.width_cm)
+  if (!CATEGORIES.includes(category) || !Number.isFinite(width) || width <= 0 || product.variants.length === 0) return null
+  const variants = product.variants.map((variant) => ({
+    colorId: variant.color_id,
+    colorLabel: variant.color_label,
+    price: variant.price,
+    sku: variant.sku,
+    modelUrl: variant.model_url,
+    thumbnailUrl: variant.thumbnail_url || undefined,
+    colorHex: typeof variant.attributes?.color_hex === 'string' ? variant.attributes.color_hex : undefined,
+  }))
+  return {
+    id: product.id,
+    name: product.name,
+    subtitle: String(attributes.configurator_subtitle || product.name),
+    width,
+    price: Math.min(...variants.map((variant) => variant.price)),
+    category,
+    variants,
+  }
 }
 
 const TotalPrice: FC<{ cartItems: Array<CartItem> }> = ({ cartItems }) => {
@@ -128,6 +177,7 @@ export default function Configurator() {
   const [wallLength, setWallLength] = useState('')
   const [appliedWallLength, setAppliedWallLength] = useState<number | null>(null)
   const [selectedCategories, setSelectedCategories] = useState<CabinetCategory[]>(['תחתונים'])
+  const [products, setProducts] = useState<CabinetProduct[]>(FALLBACK_PRODUCTS)
   const [cartItems, setCartItems] = useState<CartItem[]>(INITIAL_CART)
   const [cabinetPositions, setCabinetPositions] = useState<CabinetPositions>({})
   const [accessories, setAccessories] = useState<AccessoryPositions>({})
@@ -137,7 +187,24 @@ export default function Configurator() {
   const [contactOpen, setContactOpen] = useState(false)
   const { isInWishlist, toggleWishlist } = useWishlist()
 
-  const filteredProducts = PRODUCTS.filter(p => selectedCategories.includes(p.category))
+  useEffect(() => {
+    let cancelled = false
+    api.get<ConfiguratorProduct[]>('/catalog/configurator-products')
+      .then((response) => response.map(configuratorProductFromApi).filter((product): product is CabinetProduct => product !== null))
+      .then((adminProducts) => {
+        if (cancelled || adminProducts.length === 0) return
+        setProducts(adminProducts)
+        const ids = new Set(adminProducts.map((product) => product.id))
+        setCartItems((current) => current.filter((item) => ids.has(item.id)))
+      })
+      .catch(() => {
+        // The hard-coded catalog remains a safe development/legacy fallback
+        // until the admin has published its first configurator products.
+      })
+    return () => { cancelled = true }
+  }, [])
+
+  const filteredProducts = products.filter(p => selectedCategories.includes(p.category))
   const totalCabinetWidth = cartItems
     .filter(item => item.category !== 'עליונים')
     .reduce((sum, item) => sum + item.width * item.qty, 0)
@@ -156,17 +223,17 @@ export default function Configurator() {
     })
   }
 
-  function addToCart(product: CabinetProduct, colorId: string) {
+  function addToCart(product: CabinetProduct, variant: CabinetProductVariant) {
     setCartItems(prev => {
-      const existing = prev.find(item => item.id === product.id && item.colorId === colorId)
+      const existing = prev.find(item => item.id === product.id && item.colorId === variant.colorId)
       if (existing) {
         return prev.map(item =>
-          item.id === product.id && item.colorId === colorId
-            ? { ...item, price: priceFor(product, colorId), qty: item.qty + 1 }
+          item.id === product.id && item.colorId === variant.colorId
+            ? { ...item, ...variant, qty: item.qty + 1 }
             : item
         )
       }
-      return [...prev, { ...product, price: priceFor(product, colorId), qty: 1, colorId }]
+      return [...prev, { ...product, ...variant, qty: 1 }]
     })
   }
 
@@ -366,53 +433,59 @@ export default function Configurator() {
         {/* RIGHT panel: product catalog (RTL start — first in DOM) */}
         <div className="cfg__catalog">
           <div className="cfg__product-list">
-            {filteredProducts.flatMap(product => availableColorsFor(product.modelSlug).map(colorId => (
-              <div
-                key={`${product.id}-${colorId}`}
-                className="cfg__product"
-                onClick={() => addToCart(product, colorId)}
-                role="button"
-                tabIndex={0}
-                onKeyDown={e => e.key === 'Enter' && addToCart(product, colorId)}
-              >
-                <div className="cfg__product-img">
-                  <ProductThumbnail
-                    modelSlug={product.modelSlug}
-                    productId={product.id}
-                    colorId={colorId}
-                    widthCm={product.width}
+            {filteredProducts.flatMap(product => variantsFor(product).map(variant => {
+              const wishlistId = `${product.id}-${variant.colorId}`
+              return (
+                <div
+                  key={wishlistId}
+                  className="cfg__product"
+                  onClick={() => addToCart(product, variant)}
+                  role="button"
+                  tabIndex={0}
+                  onKeyDown={e => e.key === 'Enter' && addToCart(product, variant)}
+                >
+                  <div className="cfg__product-img">
+                    {variant.thumbnailUrl
+                      ? <img className="cfg__product-thumbnail cfg__product-thumbnail--photo" src={variant.thumbnailUrl} alt="" />
+                      : <ProductThumbnail
+                          modelSlug={product.modelSlug}
+                          productId={product.id}
+                          colorId={variant.colorId}
+                          colorHex={variant.colorHex}
+                          widthCm={product.width}
+                        />}
+                  </div>
+                  <div className="cfg__product-info">
+                    <span className="cfg__product-name">{product.name}</span>
+                    <span className="cfg__product-price">
+                      {product.width} ס"מ מ- {variant.price.toLocaleString()} ₪
+                    </span>
+                    <span className="cfg__product-color-name">{variant.colorLabel}</span>
+                  </div>
+                  <button
+                    type="button"
+                    className={`cfg__product-heart${isInWishlist(wishlistId) ? ' cfg__product-heart--on' : ''}`}
+                    aria-label={isInWishlist(wishlistId) ? 'הסרה מהמועדפים' : 'הוספה למועדפים'}
+                    onClick={e => {
+                      e.stopPropagation()
+                      toggleWishlist({
+                        id: wishlistId,
+                        name: product.name,
+                        subtitle: product.subtitle,
+                        price: variant.price,
+                      })
+                    }}
+                  >
+                    <HeartIcon filled={isInWishlist(wishlistId)} />
+                  </button>
+                  <div
+                    className="cfg__product-swatch"
+                    style={{ background: variant.colorHex || colorHexOf(variant.colorId) }}
+                    title={`צבע ${variant.colorLabel}`}
                   />
                 </div>
-                <div className="cfg__product-info">
-                  <span className="cfg__product-name">{product.name}</span>
-                  <span className="cfg__product-price">
-                    {product.width} ס"מ מ- {priceFor(product, colorId).toLocaleString()} ₪
-                  </span>
-                  <span className="cfg__product-color-name">{colorLabelOf(colorId)}</span>
-                </div>
-                <button
-                  type="button"
-                  className={`cfg__product-heart${isInWishlist(product.id) ? ' cfg__product-heart--on' : ''}`}
-                  aria-label={isInWishlist(product.id) ? 'הסרה מהמועדפים' : 'הוספה למועדפים'}
-                  onClick={e => {
-                    e.stopPropagation()
-                    toggleWishlist({
-                      id: product.id,
-                      name: product.name,
-                      subtitle: product.subtitle,
-                      price: priceFor(product, colorId),
-                    })
-                  }}
-                >
-                  <HeartIcon filled={isInWishlist(product.id)} />
-                </button>
-                <div
-                  className="cfg__product-swatch"
-                  style={{ background: colorHexOf(colorId) }}
-                  title={`צבע ${colorLabelOf(colorId)}`}
-                />
-              </div>
-            )))}
+              )
+            }))}
           </div>
         </div>
 
@@ -467,7 +540,7 @@ export default function Configurator() {
               <div key={`${item.id}-${item.colorId}`} className="cfg__cart-item">
                 <div className="cfg__ci-info">
                   <span className="cfg__ci-name">{item.name}</span>
-                  <span className="cfg__ci-sub">{item.subtitle} · {colorLabelOf(item.colorId)}</span>
+                  <span className="cfg__ci-sub">{item.subtitle} · {item.colorLabel}</span>
                 </div>
                 <div className="cfg__ci-row">
                   <span className="cfg__ci-price">₪ {item.price.toLocaleString()}</span>
@@ -484,7 +557,7 @@ export default function Configurator() {
                   </div>
                   <button
                     className="cfg__ci-remove"
-                    style={{ background: colorHexOf(item.colorId) }}
+                    style={{ background: item.colorHex || colorHexOf(item.colorId) }}
                     onClick={() => removeItem(item.id, item.colorId)}
                     aria-label="הסר פריט"
                   />
