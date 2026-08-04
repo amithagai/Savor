@@ -10,8 +10,14 @@ const AVAILABLE_MODELS: Record<string, string[]> = {
   'three-drawers-60': ['cream', 'latte', 'cloud'],
   'klappa-100': ['cream', 'latte', 'timber', 'cloud'],
   'upper-60': ['cream', 'latte', 'timber', 'cloud'],
-  'pantry-60-v1': ['cream', 'latte', 'cloud'],
   'pantry-60-v2': ['cream', 'latte', 'cloud'],
+}
+
+export function availableColorsFor(slug: string | undefined): string[] {
+  // A procedural fallback is one complete cream model; real GLBs are already
+  // authored with their final color and handles and are shown as fixed variants.
+  if (!slug) return ['cream']
+  return AVAILABLE_MODELS[slug] ?? ['cream']
 }
 
 export function isColorAvailable(slug: string | undefined, color: string): boolean {
