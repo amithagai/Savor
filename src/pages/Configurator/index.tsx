@@ -5,6 +5,7 @@ import HeartIcon from '../../components/HeartIcon'
 import { useWishlist } from '../../context/useWishlist'
 import KitchenModelViewer from './KitchenModelViewer'
 import Configurator2DView from './Configurator2DView'
+import ProductThumbnail from './ProductThumbnail'
 import { colorHexOf, colorLabelOf } from './colors'
 import { availableColorsFor } from './modelCatalog'
 import type { AccessoryPositions, CabinetPositions, KitchenAccessoryId } from './cabinetLayout'
@@ -374,8 +375,13 @@ export default function Configurator() {
                 tabIndex={0}
                 onKeyDown={e => e.key === 'Enter' && addToCart(product, colorId)}
               >
-                <div className="cfg__product-img" style={{ backgroundColor: colorHexOf(colorId) }} aria-hidden="true">
-                  <span className="cfg__product-img-handle" />
+                <div className="cfg__product-img">
+                  <ProductThumbnail
+                    modelSlug={product.modelSlug}
+                    productId={product.id}
+                    colorId={colorId}
+                    widthCm={product.width}
+                  />
                 </div>
                 <div className="cfg__product-info">
                   <span className="cfg__product-name">{product.name}</span>
