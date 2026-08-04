@@ -1,6 +1,6 @@
 import { Suspense, useMemo, useState } from 'react'
 import { Canvas, type ThreeEvent } from '@react-three/fiber'
-import { Edges, Environment, Html, Line, OrbitControls, Text, useGLTF, useProgress } from '@react-three/drei'
+import { Edges, Environment, Html, Line, OrbitControls, Text, useGLTF } from '@react-three/drei'
 import { ACESFilmicToneMapping, Box3, Color, Plane, Vector3, type Material } from 'three'
 import { getModelUrl } from './modelCatalog'
 import { colorHexOf } from './colors'
@@ -36,12 +36,11 @@ const GAP_M = 0.01
 const HANDLE_TOP_OFFSET_M = HANDLE_TOP_OFFSET_CM * CM
 
 function ModelLoadingFallback() {
-  const { progress } = useProgress()
   return (
     <Html center>
       <div className="cfg3d__loader" role="status" aria-live="polite">
         <span className="cfg3d__loader-spinner" aria-hidden="true" />
-        <span>טוען את דגמי המטבח… {Math.round(progress)}%</span>
+        <span>טוען את דגמי המטבח…</span>
       </div>
     </Html>
   )
@@ -172,7 +171,12 @@ function TallCabinetFront({ width, height, depth }: { width: number; height: num
   )
 }
 
-function RealCabinetModel({ url, width, color }: { url: string; width: number; color: string }) {
+function RealCabinetModel({ url, width, color, applyLegacyAppearance }: {
+  url: string
+  width: number
+  color: string
+  applyLegacyAppearance: boolean
+}) {
   const { scene } = useGLTF(url)
   const cloned = useMemo(() => {
     const clone = scene.clone(true)
@@ -205,27 +209,29 @@ function RealCabinetModel({ url, width, color }: { url: string; width: number; c
         mesh.castShadow = true
         mesh.receiveShadow = true
 
-        const meshBounds = new Box3().setFromObject(node)
-        const meshSize = new Vector3()
-        meshBounds.getSize(meshSize)
-        const faceArea = meshSize.x * meshSize.y
-        const longestFaceSide = Math.max(meshSize.x, meshSize.y)
-        const shortestFaceSide = Math.min(meshSize.x, meshSize.y)
-        const isHandle = longestFaceSide > 0.035 && longestFaceSide < 0.55 && shortestFaceSide < 0.08
+        if (applyLegacyAppearance) {
+          const meshBounds = new Box3().setFromObject(node)
+          const meshSize = new Vector3()
+          meshBounds.getSize(meshSize)
+          const faceArea = meshSize.x * meshSize.y
+          const longestFaceSide = Math.max(meshSize.x, meshSize.y)
+          const shortestFaceSide = Math.min(meshSize.x, meshSize.y)
+          const isHandle = longestFaceSide > 0.035 && longestFaceSide < 0.55 && shortestFaceSide < 0.08
 
-        const recolor = (source: Material) => {
-          const material = source.clone() as Material & { color?: Color }
-          if (!material.color) return material
-          material.color.copy(isHandle && faceArea < 0.035 ? detailColor : facadeColor)
-          return material
+          const recolor = (source: Material) => {
+            const material = source.clone() as Material & { color?: Color }
+            if (!material.color) return material
+            material.color.copy(isHandle && faceArea < 0.035 ? detailColor : facadeColor)
+            return material
+          }
+
+          if (Array.isArray(mesh.material)) mesh.material = mesh.material.map(recolor)
+          else if (mesh.material) mesh.material = recolor(mesh.material)
         }
-
-        if (Array.isArray(mesh.material)) mesh.material = mesh.material.map(recolor)
-        else if (mesh.material) mesh.material = recolor(mesh.material)
       }
     })
     return clone
-  }, [color, scene, width])
+  }, [applyLegacyAppearance, color, scene, width])
 
   return <primitive object={cloned} />
 }
@@ -237,13 +243,14 @@ type DragHandlers = {
   onPointerCancel: (event: ThreeEvent<PointerEvent>) => void
 }
 
-function Cabinet({ x, width, spec, color, subtitle, modelUrl, active, dragHandlers }: {
+function Cabinet({ x, width, spec, color, subtitle, modelUrl, managedModel, active, dragHandlers }: {
   x: number
   width: number
   spec: CategorySpec
   color: string
   subtitle: string
   modelUrl?: string
+  managedModel: boolean
   active: boolean
   dragHandlers: DragHandlers
 }) {
@@ -256,12 +263,12 @@ function Cabinet({ x, width, spec, color, subtitle, modelUrl, active, dragHandle
     <group position={[x, elevation, 0]} {...dragHandlers}>
       {modelUrl ? (
         <>
-          <RealCabinetModel url={modelUrl} width={width} color={color} />
-          {isOven(subtitle) && <OvenFront width={width} height={height} depth={depth} />}
-          {spec.elevation > 0 && (
+          <RealCabinetModel url={modelUrl} width={width} color={color} applyLegacyAppearance={!managedModel} />
+          {!managedModel && isOven(subtitle) && <OvenFront width={width} height={height} depth={depth} />}
+          {!managedModel && spec.elevation > 0 && (
             <UpperCabinetFront width={width} height={height} depth={depth} subtitle={subtitle} />
           )}
-          {spec.elevation === 0 && spec.height > 200 && (
+          {!managedModel && spec.elevation === 0 && spec.height > 200 && (
             <TallCabinetFront width={width} height={height} depth={depth} />
           )}
         </>
@@ -479,9 +486,10 @@ function ConfiguratorScene({ cartItems, wallLengthCm, positions, onPositionChang
             x={xM}
             width={widthM}
             spec={spec}
-            color={colorHexOf(item.colorId)}
+            color={item.colorHex ?? colorHexOf(item.colorId)}
             subtitle={item.subtitle}
-            modelUrl={getModelUrl(item.modelSlug, item.colorId)}
+            modelUrl={item.modelUrl ?? getModelUrl(item.modelSlug, item.colorId)}
+            managedModel={Boolean(item.modelUrl)}
             active={activeKey === `cabinet-${key}`}
             dragHandlers={handlers('cabinet', key, x, width)}
           />
@@ -494,9 +502,10 @@ function ConfiguratorScene({ cartItems, wallLengthCm, positions, onPositionChang
             x={xM}
             width={widthM}
             spec={spec}
-            color={colorHexOf(item.colorId)}
+            color={item.colorHex ?? colorHexOf(item.colorId)}
             subtitle={item.subtitle}
-            modelUrl={getModelUrl(item.modelSlug, item.colorId)}
+            modelUrl={item.modelUrl ?? getModelUrl(item.modelSlug, item.colorId)}
+            managedModel={Boolean(item.modelUrl)}
             active={activeKey === `cabinet-${key}`}
             dragHandlers={handlers('cabinet', key, x, width)}
           />

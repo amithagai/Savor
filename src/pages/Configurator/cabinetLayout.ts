@@ -7,7 +7,9 @@ export type CabinetLayoutItem = {
   category: CabinetCategory
   subtitle: string
   colorId: string
+  colorHex?: string
   modelSlug?: string
+  modelUrl?: string
 }
 
 export type CabinetPositions = Record<string, number>

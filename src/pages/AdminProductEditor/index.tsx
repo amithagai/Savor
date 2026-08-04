@@ -4,7 +4,8 @@ import { Link, useNavigate, useParams } from 'react-router-dom'
 import './AdminProductEditor.css'
 import { ApiError, api } from '../../lib/api'
 import { useAdminAuth } from '../../context/useAdminAuth'
-import type { AdminProductDetail, Category, ProductType } from '../../types/catalog'
+import type { AdminProductDetail, Category, ProductType, ProductVariant } from '../../types/catalog'
+import AdminProductVariants from './AdminProductVariants'
 
 type FormState = {
   name: string
@@ -19,6 +20,12 @@ type FormState = {
   material: string
   delivery_days: string
   sku: string
+  configurator_enabled: boolean
+  configurator_category: string
+  configurator_subtitle: string
+  width_cm: string
+  height_cm: string
+  depth_cm: string
   images: string[]
   installation_pdf_url: string
   is_active: boolean
@@ -27,7 +34,8 @@ type FormState = {
 const emptyForm: FormState = {
   name: '', slug: '', description: '', product_type: 'KITCHEN', category_id: '', price: '',
   size: '', model: '', color: '', material: '', delivery_days: '14', sku: '', images: [],
-  installation_pdf_url: '', is_active: false,
+  configurator_enabled: false, configurator_category: 'תחתונים', configurator_subtitle: '',
+  width_cm: '', height_cm: '', depth_cm: '', installation_pdf_url: '', is_active: false,
 }
 
 function toSlug(value: string) {
@@ -50,6 +58,12 @@ function detailToForm(product: AdminProductDetail): FormState {
     material: String(attr.material ?? ''),
     delivery_days: String(attr.delivery_days ?? ''),
     sku: String(attr.sku ?? ''),
+    configurator_enabled: Boolean(attr.configurator_enabled),
+    configurator_category: String(attr.configurator_category ?? 'תחתונים'),
+    configurator_subtitle: String(attr.configurator_subtitle ?? ''),
+    width_cm: String(attr.width_cm ?? ''),
+    height_cm: String(attr.height_cm ?? ''),
+    depth_cm: String(attr.depth_cm ?? ''),
     images: product.images || [],
     installation_pdf_url: product.installation_pdf_url || '',
     is_active: product.is_active,
@@ -63,6 +77,7 @@ export default function AdminProductEditor() {
   const navigate = useNavigate()
   const [form, setForm] = useState<FormState>(emptyForm)
   const [categories, setCategories] = useState<Category[]>([])
+  const [variants, setVariants] = useState<ProductVariant[]>([])
   const [loading, setLoading] = useState(!isNew)
   const [saving, setSaving] = useState(false)
   const [uploading, setUploading] = useState(false)
@@ -75,7 +90,10 @@ export default function AdminProductEditor() {
     api.get<Category[]>('/admin/categories', token).then(setCategories).catch(() => setError('טעינת הקטגוריות נכשלה'))
     if (!isNew && productId) {
       api.get<AdminProductDetail>(`/admin/products/${productId}`, token)
-        .then((product) => setForm(detailToForm(product)))
+        .then((product) => {
+          setForm(detailToForm(product))
+          setVariants(product.variants || [])
+        })
         .catch((err) => {
           if (err instanceof ApiError && err.status === 401) {
             logout()
@@ -148,6 +166,12 @@ export default function AdminProductEditor() {
       attributes: {
         size: form.size.trim(), model: form.model.trim(), color: form.color.trim(),
         material: form.material.trim(), delivery_days: Number(form.delivery_days) || null, sku: form.sku.trim(),
+        configurator_enabled: form.configurator_enabled,
+        configurator_category: form.configurator_category,
+        configurator_subtitle: form.configurator_subtitle.trim(),
+        width_cm: Number(form.width_cm) || null,
+        height_cm: Number(form.height_cm) || null,
+        depth_cm: Number(form.depth_cm) || null,
       },
       images: form.images, installation_pdf_url: form.installation_pdf_url.trim() || null,
       is_active: publish ?? form.is_active,
@@ -157,6 +181,7 @@ export default function AdminProductEditor() {
         ? await api.post<AdminProductDetail>('/admin/products', payload, token)
         : await api.patch<AdminProductDetail>(`/admin/products/${productId}`, payload, token)
       setForm(detailToForm(result))
+      setVariants(result.variants || [])
       setSaved(true)
       if (isNew) navigate(`/admin/products/${result.id}`, { replace: true })
     } catch (err) {
@@ -239,6 +264,45 @@ export default function AdminProductEditor() {
               <label className="admin-product-editor__field">מק״ט<input value={form.sku} onChange={(e) => setField('sku', e.target.value)} /></label>
             </div>
           </section>
+
+          <section className="admin-product-editor__card">
+            <h2>הגדרות קונפיגורטור</h2>
+            <label className="admin-product-editor__toggle admin-product-editor__field--full">
+              <input type="checkbox" checked={form.configurator_enabled} onChange={(e) => setField('configurator_enabled', e.target.checked)} />
+              <span>המוצר זמין לניהול בקונפיגורטור</span>
+            </label>
+            <div className="admin-product-editor__grid">
+              <label className="admin-product-editor__field">סוג ארון
+                <select value={form.configurator_category} onChange={(e) => setField('configurator_category', e.target.value)}>
+                  <option value="תחתונים">תחתונים</option>
+                  <option value="עליונים">עליונים</option>
+                  <option value="גבוהים">גבוהים</option>
+                  <option value="כיור">כיור</option>
+                </select>
+              </label>
+              <label className="admin-product-editor__field">תיאור חזית
+                <input value={form.configurator_subtitle} onChange={(e) => setField('configurator_subtitle', e.target.value)} placeholder="לדוגמה: חזית 2 דלתות" />
+              </label>
+              <label className="admin-product-editor__field">רוחב בס״מ
+                <input type="number" min="1" value={form.width_cm} onChange={(e) => setField('width_cm', e.target.value)} />
+              </label>
+              <label className="admin-product-editor__field">גובה בס״מ
+                <input type="number" min="1" value={form.height_cm} onChange={(e) => setField('height_cm', e.target.value)} />
+              </label>
+              <label className="admin-product-editor__field">עומק בס״מ
+                <input type="number" min="1" value={form.depth_cm} onChange={(e) => setField('depth_cm', e.target.value)} />
+              </label>
+            </div>
+          </section>
+
+          {!isNew && productId && (
+            <AdminProductVariants
+              productId={productId}
+              token={token}
+              variants={variants}
+              onChange={setVariants}
+            />
+          )}
         </div>
 
         <aside className="admin-product-editor__side">
