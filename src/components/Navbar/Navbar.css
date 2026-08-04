@@ -50,15 +50,86 @@
   list-style: none;
 }
 
-.navbar__nav a {
+.navbar__nav-item {
+  position: relative;
+  display: flex;
+  align-items: center;
+  height: 70px;
+}
+
+.navbar__nav-link {
   font-size: 14px;
   font-weight: 500;
   color: var(--text);
   transition: opacity 0.18s;
 }
 
-.navbar__nav a:hover {
+.navbar__nav-link:hover {
   opacity: 0.6;
+}
+
+.navbar__nav-link--kitchens {
+  font-weight: 700;
+}
+
+.navbar__kitchens-menu {
+  position: absolute;
+  top: calc(100% + 6px);
+  right: -18px;
+  width: max-content;
+  min-width: 146px;
+  padding: 7px;
+  border-radius: 13px;
+  background: var(--white);
+  box-shadow: 0 10px 28px rgba(24, 31, 22, 0.14);
+  opacity: 0;
+  visibility: hidden;
+  pointer-events: none;
+  transform: translateY(-5px);
+  transition:
+    opacity 0.16s ease,
+    transform 0.16s ease,
+    visibility 0.16s ease;
+}
+
+/* Keeps the hover target continuous across the small visual gap. */
+.navbar__kitchens-menu::before {
+  content: '';
+  position: absolute;
+  right: 0;
+  bottom: 100%;
+  left: 0;
+  height: 8px;
+}
+
+.navbar__nav-item--kitchens:hover .navbar__kitchens-menu,
+.navbar__nav-item--kitchens:focus-within .navbar__kitchens-menu {
+  opacity: 1;
+  visibility: visible;
+  pointer-events: auto;
+  transform: translateY(0);
+}
+
+.navbar__kitchens-menu-link {
+  display: block;
+  padding: 7px 10px;
+  border-radius: 7px;
+  color: var(--text);
+  font-size: 13px;
+  font-weight: 400;
+  line-height: 1.2;
+  text-align: right;
+  white-space: nowrap;
+  transition:
+    background 0.15s ease,
+    font-weight 0.15s ease;
+}
+
+.navbar__kitchens-menu-link:hover,
+.navbar__kitchens-menu-link:focus-visible {
+  background: #f1f1f1;
+  font-weight: 700;
+  outline: none;
 }
 
 /* Left icons in RTL */

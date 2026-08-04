@@ -1,4 +1,5 @@
-import { useMemo, useState } from 'react'
+import { useMemo } from 'react'
+import { useSearchParams } from 'react-router-dom'
 import ProductCard from '../../components/ProductCard'
 import './Catalog.css'
 import { useCart } from '../../context/useCart'
@@ -18,10 +19,14 @@ const kitchens: Kitchen[] = [
   { id: 3, name: 'LATTE', size: '2 מטר', price: 1690, image: latteImage },
 ]
 
-const sizeFilters = ['הכל', '1.5 מטר', '2 מטר']
+const sizeFilters = ['הכל', '1.5 מטר', '2 מטר', '2.1 מטר', '2.6 מטר', '3.2 מטר']
 
 export default function Catalog() {
-  const [selectedSize, setSelectedSize] = useState('הכל')
+  const [searchParams, setSearchParams] = useSearchParams()
+  const sizeFromUrl = searchParams.get('size')
+  const selectedSize = sizeFromUrl && sizeFilters.includes(sizeFromUrl)
+    ? sizeFromUrl
+    : 'הכל'
 
   const { addToCart } = useCart()
 
@@ -43,6 +48,18 @@ const handleAddToCart = (kitchen: Kitchen) => {
   })
 }
 
+  const handleSizeChange = (size: string) => {
+    const nextSearchParams = new URLSearchParams(searchParams)
+
+    if (size === 'הכל') {
+      nextSearchParams.delete('size')
+    } else {
+      nextSearchParams.set('size', size)
+    }
+
+    setSearchParams(nextSearchParams)
+  }
+
   return (
     <main className="catalog-page">
       <section className="catalog-page__header">
@@ -55,7 +72,7 @@ const handleAddToCart = (kitchen: Kitchen) => {
           <button
             key={size}
             className={selectedSize === size ? 'catalog-page__filter catalog-page__filter--active' : 'catalog-page__filter'}
-            onClick={() => setSelectedSize(size)}
+            onClick={() => handleSizeChange(size)}
           >
             {size}
           </button>
@@ -63,15 +80,21 @@ const handleAddToCart = (kitchen: Kitchen) => {
       </section>
 
       <section className="catalog-page__grid">
-        {filteredKitchens.map((kitchen) => (
-          <ProductCard
-            key={kitchen.id}
-            name={kitchen.name}
-            subtitle={kitchen.size}
-            image={kitchen.image}
-            onAddToCart={() => handleAddToCart(kitchen)}
-          />
-        ))}
+        {filteredKitchens.length > 0 ? (
+          filteredKitchens.map((kitchen) => (
+            <ProductCard
+              key={kitchen.id}
+              name={kitchen.name}
+              subtitle={kitchen.size}
+              image={kitchen.image}
+              onAddToCart={() => handleAddToCart(kitchen)}
+            />
+          ))
+        ) : (
+          <p className="catalog-page__empty">
+            עדיין אין מטבחים זמינים במידה {selectedSize}.
+          </p>
+        )}
       </section>
     </main>
   )

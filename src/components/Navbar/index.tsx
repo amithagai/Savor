@@ -9,16 +9,16 @@ const navLinks = [
   { label: 'מטבחים', to: '/catalog' },
   { label: 'כלי תכנון', to: '/configurator' },
   { label: 'מוצרים בודדים', to: '/accessories' },
-  { label: 'מוצרים משלמים', to: '/accessories' },
+  { label: 'מוצרים משלימים', to: '/accessories' },
   { label: 'צור קשר', to: '/contact' },
 ]
 
 const kitchenGroups = [
-  { label: 'מטבחים 1.5 מטר' },
-  { label: 'מטבחים 2 מטר' },
-  { label: 'מטבחים 2.1 מטר' },
-  { label: 'מטבחים 2.6 מטר' },
-  { label: 'מטבחים 3.2 מטר' },
+  { label: 'מטבחים 1.5 מטר', size: '1.5 מטר' },
+  { label: 'מטבחים 2 מטר', size: '2 מטר' },
+  { label: 'מטבחים 2.1 מטר', size: '2.1 מטר' },
+  { label: 'מטבחים 2.6 מטר', size: '2.6 מטר' },
+  { label: 'מטבחים 3.2 מטר', size: '3.2 מטר' },
 ]
 
 const mobileFlatLinks = navLinks.filter((link) => link.label !== 'מטבחים')
@@ -77,11 +77,46 @@ export default function Navbar() {
       </Link>
 
       <ul className="navbar__nav">
-        {navLinks.map((link) => (
-          <li key={link.label}>
-            <Link to={link.to}>{link.label}</Link>
-          </li>
-        ))}
+        {navLinks.map((link) =>
+          link.label === 'מטבחים' ? (
+            <li
+              key={link.label}
+              className="navbar__nav-item navbar__nav-item--kitchens"
+            >
+              <Link
+                to={link.to}
+                className="navbar__nav-link navbar__nav-link--kitchens"
+                aria-haspopup="menu"
+              >
+                {link.label}
+              </Link>
+
+              <div
+                className="navbar__kitchens-menu"
+                role="menu"
+                aria-label="מטבחים לפי מידה"
+              >
+                {kitchenGroups.map((group) => (
+                  <Link
+                    key={group.label}
+                    to={`/catalog?size=${encodeURIComponent(group.size)}`}
+                    className="navbar__kitchens-menu-link"
+                    role="menuitem"
+                    onClick={(event) => event.currentTarget.blur()}
+                  >
+                    {group.label}
+                  </Link>
+                ))}
+              </div>
+            </li>
+          ) : (
+            <li key={link.label} className="navbar__nav-item">
+              <Link to={link.to} className="navbar__nav-link">
+                {link.label}
+              </Link>
+            </li>
+          ),
+        )}
       </ul>
       {/* Left side — hamburger (mobile) + cart + wishlist */}
       <div className="navbar__icons">
@@ -204,7 +239,7 @@ export default function Navbar() {
                   {kitchenGroups.map((group) => (
                     <Link
                       key={group.label}
-                      to="/catalog"
+                      to={`/catalog?size=${encodeURIComponent(group.size)}`}
                       className="navbar__mobile-subgroup-toggle"
                       onClick={closeMenu}
                     >
