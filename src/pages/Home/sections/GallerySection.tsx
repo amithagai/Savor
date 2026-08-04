@@ -1,82 +1,26 @@
 import { useState } from 'react'
-import { galleryPhoto } from '../../../assets/cloudinaryImages'
 
-type Hotspot = { top: string; left: string; label: string; detail: string }
+import type { HomeContent } from '../../../types/content'
 
-// One shared lifestyle photo, sliced across the tiles via background-position
-// so the top row and bottom band read as facets of the same kitchen.
-const topImages: { bgPosition: string; hotspot: Hotspot }[] = [
-  {
-    bgPosition: '5% 55%',
-    hotspot: { top: '30%', left: '25%', label: 'ארון עליון', detail: 'גימור לבן מט, 60×90 ס״מ' },
-  },
-  {
-    bgPosition: '48% 5%',
-    hotspot: { top: '40%', left: '50%', label: 'ארון תחתון', detail: 'גוף סנדוויץ, 60×85 ס״מ' },
-  },
-  {
-    bgPosition: '100% 40%',
-    hotspot: { top: '35%', left: '60%', label: 'חזית', detail: 'צבע בתנור, גימור עץ' },
-  },
-]
-
-const bottomHotspot: Hotspot = {
-  top: '55%',
-  left: '78%',
-  label: 'מגירה',
-  detail: 'עיצוב של... בגודל... בצבע...',
-}
-
-export default function GallerySection() {
+export default function GallerySection({ gallery }: { gallery: HomeContent['gallery'] }) {
   const [activeHotspot, setActiveHotspot] = useState<string | null>(null)
-
-  const toggle = (key: string) =>
-    setActiveHotspot((prev) => (prev === key ? null : key))
+  const toggle = (key: string) => setActiveHotspot((current) => current === key ? null : key)
 
   return (
     <section className="gallery">
-      {/* Top row — 3 equal images */}
       <div className="gallery__top">
-        {topImages.map((img, i) => (
-          <div key={i} className="gallery__img-wrap">
-            <div
-              className="gallery__img-bg"
-              style={{ backgroundImage: `url(${galleryPhoto})`, backgroundSize: '300% auto', backgroundPosition: img.bgPosition }}
-            />
-            <button
-              className="gallery__hotspot"
-              style={{ top: img.hotspot.top, left: img.hotspot.left }}
-              onClick={() => toggle(`top-${i}`)}
-              aria-label={img.hotspot.label}
-            />
-            {activeHotspot === `top-${i}` && (
-              <div className="gallery__tooltip">
-                <strong>{img.hotspot.label}</strong>
-                <span>{img.hotspot.detail}</span>
-              </div>
-            )}
+        {gallery.top.map((item, index) => (
+          <div key={`${item.hotspot.label}-${index}`} className="gallery__img-wrap">
+            <div className="gallery__img-bg" style={{ backgroundImage: `url(${gallery.image_url})`, backgroundSize: '300% auto', backgroundPosition: item.bg_position }} />
+            <button className="gallery__hotspot" style={{ top: item.hotspot.top, left: item.hotspot.left }} onClick={() => toggle(`top-${index}`)} aria-label={item.hotspot.label} />
+            {activeHotspot === `top-${index}` && <div className="gallery__tooltip"><strong>{item.hotspot.label}</strong><span>{item.hotspot.detail}</span></div>}
           </div>
         ))}
       </div>
-
-      {/* Bottom — single wide image */}
       <div className="gallery__bottom gallery__img-wrap">
-        <div
-          className="gallery__img-bg"
-          style={{ backgroundImage: `url(${galleryPhoto})`, backgroundSize: 'cover', backgroundPosition: 'center 78%' }}
-        />
-        <button
-          className="gallery__hotspot"
-          style={{ top: bottomHotspot.top, left: bottomHotspot.left }}
-          onClick={() => toggle('bottom')}
-          aria-label={bottomHotspot.label}
-        />
-        {activeHotspot === 'bottom' && (
-          <div className="gallery__tooltip gallery__tooltip--left">
-            <strong>{bottomHotspot.label}</strong>
-            <span>{bottomHotspot.detail}</span>
-          </div>
-        )}
+        <div className="gallery__img-bg" style={{ backgroundImage: `url(${gallery.image_url})`, backgroundSize: 'cover', backgroundPosition: 'center 78%' }} />
+        <button className="gallery__hotspot" style={{ top: gallery.bottom_hotspot.top, left: gallery.bottom_hotspot.left }} onClick={() => toggle('bottom')} aria-label={gallery.bottom_hotspot.label} />
+        {activeHotspot === 'bottom' && <div className="gallery__tooltip gallery__tooltip--left"><strong>{gallery.bottom_hotspot.label}</strong><span>{gallery.bottom_hotspot.detail}</span></div>}
       </div>
     </section>
   )

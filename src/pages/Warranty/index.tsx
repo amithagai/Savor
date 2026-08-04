@@ -1,40 +1,14 @@
 import './Warranty.css'
+import { useContentPage } from '../../hooks/useContentPage'
 
 export default function Warranty() {
-  return (
-    <div className="warranty">
-      <div className="warranty__container">
-        <h1 className="warranty__title">מדיניות אחריות והחזרה</h1>
+  const { page, loading, error } = useContentPage('warranty')
+  if (loading) return <div className="warranty"><div className="warranty__container">טוען…</div></div>
+  if (error || !page) return <div className="warranty"><div className="warranty__container">לא הצלחנו לטעון את העמוד.</div></div>
 
-        <p className="warranty__paragraph">
-          נעים מאוד, אני עמית אור חגי. כבעלים של סטודיו לאדריכלות ועיצוב פנים, זכיתי במהלך שנותיי
-          במקצוע לתכנן ולעצב מגוון רחב של פרויקטים – מחללים מסחריים שוקקי חיים ועד לבתים פרטיים
-          ואינטימיים. העבודה הזו חשפה אותי לאינספור חללים, אבל מעבר לכך – היא חשפה אותי לאנשים
-          ולחלומות שלהם על הבית המושלם.
-        </p>
-
-        <p className="warranty__paragraph">
-          מתוך האהבה העמוקה שלי לעולם התכנון והעיצוב, זיהיתי צורך אמיתי שחזר על עצמו שוב ושוב. במשך
-          תקופה ארוכה חיפשתי פתרון למטבח שמשלב את שני העולמות: כזה שעומד בסטנדרטים הגבוהים ביותר של
-          איכות ועיצוב, אבל במקביל נשאר נגיש לכל כיס.
-        </p>
-
-        <p className="warranty__paragraph">
-          ככה נולד הרעיון מאחורי Savor. הבנתי שאין סיבה ששדרוג של דירה שכורה או משרד יסתכם רק
-          בהדבקת פרקט. היום, אפשר לשדרג גם את המטבח – הלב הפועם של הבית – במהלך שמרים את החלל כולו
-          כמה רמות למעלה, מבלי לשבור תוכניות חיסכון.
-        </p>
-
-        <p className="warranty__paragraph">
-          תכננו מטבחים שמעוצבים אדריכלית ברמה הכי גבוהה שיש. ירדנו לפרטים הקטנים ובחרנו בקפידה
-          פלטת גוונים מדויקת ועל-זמנית, כזו שמשתלבת בהרמוניה ומתאימה לכל חלל ולכל סגנון עיצוב.
-        </p>
-
-        <p className="warranty__paragraph warranty__paragraph--closing">
-          החלום שלי הוא להוכיח שהשאיפה למטבח יפהפה, איכותי ופרקטי היא לא פריבילגיה, אלא חלום שכל
-          אחד יכול להגשים – עם מוצר ברמה הגבוהה ביותר ובמחיר נגיש והוגן.
-        </p>
-      </div>
-    </div>
-  )
+  const paragraphs = page.body.split(/\n\s*\n/)
+  return <div className="warranty"><div className="warranty__container">
+    <h1 className="warranty__title">{page.title}</h1>
+    {paragraphs.map((paragraph, index) => <p key={`${paragraph.slice(0, 20)}-${index}`} className={`warranty__paragraph${index === paragraphs.length - 1 ? ' warranty__paragraph--closing' : ''}`}>{paragraph}</p>)}
+  </div></div>
 }

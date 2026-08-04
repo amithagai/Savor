@@ -1,52 +1,50 @@
-import { useMemo } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { useSearchParams } from 'react-router-dom'
+
 import ProductCard from '../../components/ProductCard'
 import './Catalog.css'
 import { useCart } from '../../context/useCart'
-import { craem1 as creamImage, latteHome as latteImage } from '../../assets/cloudinaryImages'
-
-type Kitchen = {
-  id: number
-  name: string
-  size: string
-  price: number
-  image?: string
-}
-
-const kitchens: Kitchen[] = [
-  { id: 1, name: 'CREAM', size: '1.5 מטר', price: 1230, image: creamImage },
-  { id: 2, name: 'CLOUD', size: '1.5 מטר', price: 1450 },
-  { id: 3, name: 'LATTE', size: '2 מטר', price: 1690, image: latteImage },
-]
-
-const sizeFilters = ['הכל', '1.5 מטר', '2 מטר', '2.1 מטר', '2.6 מטר', '3.2 מטר']
+import { api } from '../../lib/api'
+import type { CatalogProduct } from '../../types/catalog'
 
 export default function Catalog() {
-  const [searchParams] = useSearchParams()
-  const sizeFromUrl = searchParams.get('size')
-  const selectedSize = sizeFromUrl && sizeFilters.includes(sizeFromUrl)
-    ? sizeFromUrl
-    : 'הכל'
-
+  const [products, setProducts] = useState<CatalogProduct[]>([])
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState('')
+  const [searchParams, setSearchParams] = useSearchParams()
   const { addToCart } = useCart()
 
-  const filteredKitchens = useMemo(() => {
-    if (selectedSize === 'הכל') {
-      return kitchens
-    }
+  useEffect(() => {
+    api.get<CatalogProduct[]>('/catalog/kitchens')
+      .then(setProducts)
+      .catch(() => setError('לא הצלחנו לטעון את הקטלוג. נסו שוב בעוד רגע.'))
+      .finally(() => setLoading(false))
+  }, [])
 
-    return kitchens.filter((kitchen) => kitchen.size === selectedSize)
-  }, [selectedSize])
+  const sizes = useMemo(() => Array.from(new Set(products.map((product) => String(product.attributes.size || '')).filter(Boolean))), [products])
+  const selectedSize = searchParams.get('size') || 'הכל'
+  const visibleProducts = selectedSize === 'הכל'
+    ? products
+    : products.filter((product) => product.attributes.size === selectedSize)
 
-const handleAddToCart = (kitchen: Kitchen) => {
-  addToCart({
-    id: kitchen.id,
-    name: kitchen.name,
-    size: kitchen.size,
-    price: kitchen.price,
-    quantity: 1,
-  })
-}
+  const selectSize = (size: string) => {
+    const next = new URLSearchParams(searchParams)
+    if (size === 'הכל') next.delete('size')
+    else next.set('size', size)
+    setSearchParams(next)
+  }
+
+  const addProduct = (product: CatalogProduct) => {
+    if (product.current_price == null) return
+    addToCart({
+      id: product.id,
+      name: product.name,
+      size: String(product.attributes.size || ''),
+      price: product.current_price,
+      image: product.images[0],
+      quantity: 1,
+    })
+  }
 
   return (
     <main className="catalog-page">
@@ -54,23 +52,21 @@ const handleAddToCart = (kitchen: Kitchen) => {
         <h1>{selectedSize === 'הכל' ? 'מטבחים' : `מטבח ${selectedSize}`}</h1>
       </section>
 
-      <section className="catalog-page__grid">
-        {filteredKitchens.length > 0 ? (
-          filteredKitchens.map((kitchen) => (
-            <ProductCard
-              key={kitchen.id}
-              name={kitchen.name}
-              subtitle={kitchen.size}
-              image={kitchen.image}
-              onAddToCart={() => handleAddToCart(kitchen)}
-            />
-          ))
-        ) : (
-          <p className="catalog-page__empty">
-            עדיין אין מטבחים זמינים במידה {selectedSize}.
-          </p>
-        )}
-      </section>
+      {loading && <p className="catalog-page__empty">טוען מטבחים…</p>}
+      {!loading && error && <p className="catalog-page__empty">{error}</p>}
+      {!loading && !error && <section className="catalog-page__grid">
+        {visibleProducts.length > 0 ? visibleProducts.map((product) => (
+          <ProductCard
+            key={product.id}
+            name={product.name}
+            subtitle={String(product.attributes.size || product.category?.name || 'מטבח')}
+            image={product.images[0]}
+            price={product.current_price}
+            productHref={`/catalog/${product.slug}`}
+            onAddToCart={() => addProduct(product)}
+          />
+        )) : <p className="catalog-page__empty">עדיין אין מטבחים זמינים{selectedSize !== 'הכל' ? ` במידה ${selectedSize}` : ''}.</p>}
+      </section>}
     </main>
   )
 }

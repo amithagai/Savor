@@ -670,3 +670,9 @@
     max-width: none;
   }
 }
+.home__state {
+  min-height: 55vh;
+  display: grid;
+  place-items: center;
+  color: var(--text-muted);
+}

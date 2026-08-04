@@ -1,11 +1,4 @@
-const items = [
-  'אספקה תוך 14 ימי עסקים',
-  'הנחות מיוחדות לרוכשים חוזרים',
-  'התאמה אישית מלאה',
-  'משלוח והרכבה עד הבית',
-]
-
-export default function AnnouncementBar() {
+export default function AnnouncementBar({ items }: { items: string[] }) {
   const repeated = [...items, ...items, ...items]
 
   return (

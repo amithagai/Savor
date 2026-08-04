@@ -21,6 +21,8 @@ import AdminLayout from "../components/AdminLayout";
 import AdminLogin from "../pages/AdminLogin";
 import AdminPrices from "../pages/AdminPrices";
 import AdminOrders from "../pages/AdminOrders";
+import AdminProducts from "../pages/AdminProducts";
+import AdminProductEditor from "../pages/AdminProductEditor";
 
 const router = createBrowserRouter([
   {
@@ -72,7 +74,9 @@ const router = createBrowserRouter([
           {
             element: <AdminLayout />,
             children: [
-              { index: true, element: <Navigate to="orders" replace /> },
+              { index: true, element: <Navigate to="products" replace /> },
+              { path: "products", element: <AdminProducts /> },
+              { path: "products/:productId", element: <AdminProductEditor /> },
               { path: "prices", element: <AdminPrices /> },
               { path: "orders", element: <AdminOrders /> },
             ],
