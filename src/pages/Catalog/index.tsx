@@ -22,7 +22,7 @@ const kitchens: Kitchen[] = [
 const sizeFilters = ['הכל', '1.5 מטר', '2 מטר', '2.1 מטר', '2.6 מטר', '3.2 מטר']
 
 export default function Catalog() {
-  const [searchParams, setSearchParams] = useSearchParams()
+  const [searchParams] = useSearchParams()
   const sizeFromUrl = searchParams.get('size')
   const selectedSize = sizeFromUrl && sizeFilters.includes(sizeFromUrl)
     ? sizeFromUrl
@@ -48,35 +48,10 @@ const handleAddToCart = (kitchen: Kitchen) => {
   })
 }
 
-  const handleSizeChange = (size: string) => {
-    const nextSearchParams = new URLSearchParams(searchParams)
-
-    if (size === 'הכל') {
-      nextSearchParams.delete('size')
-    } else {
-      nextSearchParams.set('size', size)
-    }
-
-    setSearchParams(nextSearchParams)
-  }
-
   return (
     <main className="catalog-page">
       <section className="catalog-page__header">
-        <h1>מטבחים</h1>
-        <p>בחרו מטבח מוכן מתוך קטלוג הדגמים של Savor.</p>
-      </section>
-
-      <section className="catalog-page__filters" aria-label="סינון לפי גודל">
-        {sizeFilters.map((size) => (
-          <button
-            key={size}
-            className={selectedSize === size ? 'catalog-page__filter catalog-page__filter--active' : 'catalog-page__filter'}
-            onClick={() => handleSizeChange(size)}
-          >
-            {size}
-          </button>
-        ))}
+        <h1>{selectedSize === 'הכל' ? 'מטבחים' : `מטבח ${selectedSize}`}</h1>
       </section>
 
       <section className="catalog-page__grid">
