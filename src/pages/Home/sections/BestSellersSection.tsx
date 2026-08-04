@@ -1,26 +1,36 @@
+import { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
-import { craem1 as craem, craem4, craem5 } from '../../../assets/cloudinaryImages'
 
-const products = [
-  { id: '1', name: 'מטבח', size: '1.5m', badge: 'קל לבנייה', image: craem4 },
-  { id: '2', name: 'מטבח', size: '1.5m', badge: 'להיט', image: craem },
-  { id: '3', name: 'מטבח', size: '1.5m', badge: 'פופולרי', image: craem5 },
-]
+import { api } from '../../../lib/api'
+import type { CatalogProduct } from '../../../types/catalog'
 
 export default function BestSellersSection() {
+  const [products, setProducts] = useState<CatalogProduct[]>([])
+
+  useEffect(() => {
+    api.get<CatalogProduct[]>('/catalog/kitchens')
+      .then((items) => {
+        const featured = items.filter((item) => item.attributes.featured)
+        setProducts((featured.length ? featured : items).slice(0, 3))
+      })
+      .catch(() => setProducts([]))
+  }, [])
+
+  if (!products.length) return null
+
   return (
     <section className="best-sellers">
       <h2 className="section-title">הנמכרים ביותר</h2>
       <div className="best-sellers__grid">
-        {products.map((p) => (
-          <Link to={`/catalog/${p.id}`} key={p.id} className="product-card">
+        {products.map((product) => (
+          <Link to={`/catalog/${product.slug}`} key={product.id} className="product-card">
             <div className="product-card__image-wrap">
-              <img src={p.image} alt={p.name} className="product-card__image" loading="lazy" />
-              <span className="product-card__badge">{p.badge}</span>
+              {product.images[0] && <img src={product.images[0]} alt={product.name} className="product-card__image" loading="lazy" />}
+              {typeof product.attributes.badge === 'string' && <span className="product-card__badge">{product.attributes.badge}</span>}
             </div>
             <div className="product-card__info">
-              <span className="product-card__name">{p.name}</span>
-              <span className="product-card__size">{p.size}</span>
+              <span className="product-card__name">{product.name}</span>
+              <span className="product-card__size">{String(product.attributes.size || '')}</span>
             </div>
           </Link>
         ))}

@@ -1,0 +1,262 @@
+import { useEffect, useState } from 'react'
+import { Link, useNavigate, useParams } from 'react-router-dom'
+
+import './AdminProductEditor.css'
+import { ApiError, api } from '../../lib/api'
+import { useAdminAuth } from '../../context/useAdminAuth'
+import type { AdminProductDetail, Category, ProductType } from '../../types/catalog'
+
+type FormState = {
+  name: string
+  slug: string
+  description: string
+  product_type: ProductType
+  category_id: string
+  price: string
+  size: string
+  model: string
+  color: string
+  material: string
+  delivery_days: string
+  sku: string
+  images: string[]
+  installation_pdf_url: string
+  is_active: boolean
+}
+
+const emptyForm: FormState = {
+  name: '', slug: '', description: '', product_type: 'KITCHEN', category_id: '', price: '',
+  size: '', model: '', color: '', material: '', delivery_days: '14', sku: '', images: [],
+  installation_pdf_url: '', is_active: false,
+}
+
+function toSlug(value: string) {
+  const slug = value.toLowerCase().trim().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '')
+  return slug || `product-${Date.now().toString().slice(-6)}`
+}
+
+function detailToForm(product: AdminProductDetail): FormState {
+  const attr = product.attributes || {}
+  return {
+    name: product.name,
+    slug: product.slug,
+    description: product.description || '',
+    product_type: product.product_type,
+    category_id: product.category_id || '',
+    price: String(product.current_price ?? ''),
+    size: String(attr.size ?? ''),
+    model: String(attr.model ?? ''),
+    color: String(attr.color ?? ''),
+    material: String(attr.material ?? ''),
+    delivery_days: String(attr.delivery_days ?? ''),
+    sku: String(attr.sku ?? ''),
+    images: product.images || [],
+    installation_pdf_url: product.installation_pdf_url || '',
+    is_active: product.is_active,
+  }
+}
+
+export default function AdminProductEditor() {
+  const { productId } = useParams()
+  const isNew = productId === 'new'
+  const { token, logout } = useAdminAuth()
+  const navigate = useNavigate()
+  const [form, setForm] = useState<FormState>(emptyForm)
+  const [categories, setCategories] = useState<Category[]>([])
+  const [loading, setLoading] = useState(!isNew)
+  const [saving, setSaving] = useState(false)
+  const [uploading, setUploading] = useState(false)
+  const [error, setError] = useState('')
+  const [saved, setSaved] = useState(false)
+  const [showCategoryForm, setShowCategoryForm] = useState(false)
+  const [categoryName, setCategoryName] = useState('')
+
+  useEffect(() => {
+    api.get<Category[]>('/admin/categories', token).then(setCategories).catch(() => setError('טעינת הקטגוריות נכשלה'))
+    if (!isNew && productId) {
+      api.get<AdminProductDetail>(`/admin/products/${productId}`, token)
+        .then((product) => setForm(detailToForm(product)))
+        .catch((err) => {
+          if (err instanceof ApiError && err.status === 401) {
+            logout()
+            navigate('/admin/login')
+            return
+          }
+          setError('טעינת המוצר נכשלה')
+        })
+        .finally(() => setLoading(false))
+    }
+  }, [isNew, productId, token, logout, navigate])
+
+  const setField = <K extends keyof FormState>(key: K, value: FormState[K]) => {
+    setForm((current) => ({ ...current, [key]: value }))
+    setSaved(false)
+  }
+
+  const uploadFiles = async (files: FileList | null) => {
+    if (!files?.length) return
+    setUploading(true)
+    setError('')
+    try {
+      const urls: string[] = []
+      for (const file of Array.from(files)) {
+        const result = await api.upload<{ url: string }>('/admin/media', file, token)
+        urls.push(result.url)
+      }
+      setField('images', [...form.images, ...urls].slice(0, 20))
+    } catch (err) {
+      setError(err instanceof ApiError ? err.message : 'העלאת התמונות נכשלה')
+    } finally {
+      setUploading(false)
+    }
+  }
+
+  const moveImage = (index: number, direction: -1 | 1) => {
+    const target = index + direction
+    if (target < 0 || target >= form.images.length) return
+    const next = [...form.images]
+    ;[next[index], next[target]] = [next[target], next[index]]
+    setField('images', next)
+  }
+
+  const createCategory = async () => {
+    if (categoryName.trim().length < 2) return
+    try {
+      const category = await api.post<Category>('/admin/categories', {
+        name: categoryName.trim(), slug: toSlug(categoryName), parent_id: null, sort_order: categories.length,
+      }, token)
+      setCategories((current) => [...current, category])
+      setField('category_id', category.id)
+      setCategoryName('')
+      setShowCategoryForm(false)
+    } catch (err) {
+      setError(err instanceof ApiError ? err.message : 'יצירת הקטגוריה נכשלה')
+    }
+  }
+
+  const handleSave = async (publish?: boolean) => {
+    setError('')
+    const price = Number(form.price)
+    if (!form.name.trim() || !form.slug.trim() || !Number.isFinite(price) || price <= 0) {
+      setError('יש למלא שם, כתובת מוצר ומחיר תקין')
+      return
+    }
+    setSaving(true)
+    const payload = {
+      name: form.name.trim(), slug: form.slug.trim(), description: form.description.trim() || null,
+      product_type: form.product_type, category_id: form.category_id || null, price,
+      attributes: {
+        size: form.size.trim(), model: form.model.trim(), color: form.color.trim(),
+        material: form.material.trim(), delivery_days: Number(form.delivery_days) || null, sku: form.sku.trim(),
+      },
+      images: form.images, installation_pdf_url: form.installation_pdf_url.trim() || null,
+      is_active: publish ?? form.is_active,
+    }
+    try {
+      const result = isNew
+        ? await api.post<AdminProductDetail>('/admin/products', payload, token)
+        : await api.patch<AdminProductDetail>(`/admin/products/${productId}`, payload, token)
+      setForm(detailToForm(result))
+      setSaved(true)
+      if (isNew) navigate(`/admin/products/${result.id}`, { replace: true })
+    } catch (err) {
+      setError(err instanceof ApiError ? err.message : 'שמירת המוצר נכשלה')
+    } finally {
+      setSaving(false)
+    }
+  }
+
+  if (loading) return <p className="admin-product-editor__state">טוען מוצר…</p>
+
+  return (
+    <div className="admin-product-editor">
+      <div className="admin-product-editor__top">
+        <div>
+          <Link to="/admin/products" className="admin-product-editor__back">→ חזרה למוצרים</Link>
+          <h1>{isNew ? 'מוצר חדש' : `עריכת ${form.name}`}</h1>
+        </div>
+        <div className="admin-product-editor__actions">
+          {saved && <span className="admin-product-editor__saved">נשמר ✓</span>}
+          <button type="button" className="admin-product-editor__secondary" disabled={saving} onClick={() => handleSave(false)}>שמירת טיוטה</button>
+          <button type="button" className="admin-product-editor__primary" disabled={saving} onClick={() => handleSave(true)}>{saving ? 'שומר…' : 'שמירה ופרסום'}</button>
+        </div>
+      </div>
+
+      {error && <div className="admin-product-editor__error" role="alert">{error}</div>}
+
+      <div className="admin-product-editor__layout">
+        <div className="admin-product-editor__main">
+          <section className="admin-product-editor__card">
+            <h2>פרטי המוצר</h2>
+            <label className="admin-product-editor__field admin-product-editor__field--full">שם המוצר
+              <input value={form.name} onChange={(e) => { setField('name', e.target.value); if (isNew) setField('slug', toSlug(e.target.value)) }} placeholder="לדוגמה: מטבח CREAM ‏1.5 מטר" />
+            </label>
+            <label className="admin-product-editor__field admin-product-editor__field--full">תיאור
+              <textarea rows={6} value={form.description} onChange={(e) => setField('description', e.target.value)} placeholder="תיאור שיופיע בעמוד המוצר" />
+            </label>
+            <div className="admin-product-editor__grid">
+              <label className="admin-product-editor__field">סוג
+                <select value={form.product_type} onChange={(e) => setField('product_type', e.target.value as ProductType)}>
+                  <option value="KITCHEN">מטבח</option><option value="ACCESSORY">מוצר משלים</option><option value="COMPONENT">רכיב לקונפיגורטור</option>
+                </select>
+              </label>
+              <label className="admin-product-editor__field">מחיר
+                <div className="admin-product-editor__price-input"><input type="number" min="1" value={form.price} onChange={(e) => setField('price', e.target.value)} /><span>₪</span></div>
+              </label>
+              <label className="admin-product-editor__field">קטגוריה
+                <select value={form.category_id} onChange={(e) => setField('category_id', e.target.value)}>
+                  <option value="">ללא קטגוריה</option>{categories.map((category) => <option key={category.id} value={category.id}>{category.name}</option>)}
+                </select>
+              </label>
+              <button type="button" className="admin-product-editor__inline-action" onClick={() => setShowCategoryForm((value) => !value)}>+ קטגוריה חדשה</button>
+            </div>
+            {showCategoryForm && <div className="admin-product-editor__category-form"><input value={categoryName} onChange={(e) => setCategoryName(e.target.value)} placeholder="שם הקטגוריה" /><button type="button" onClick={createCategory}>הוספה</button></div>}
+          </section>
+
+          <section className="admin-product-editor__card">
+            <h2>תמונות</h2>
+            <p className="admin-product-editor__hint">התמונה הראשונה משמשת כתמונה הראשית. ניתן להעלות עד 20 תמונות.</p>
+            <label className={`admin-product-editor__dropzone ${uploading ? 'admin-product-editor__dropzone--busy' : ''}`}>
+              <input type="file" accept="image/jpeg,image/png,image/webp,image/avif" multiple disabled={uploading} onChange={(e) => uploadFiles(e.target.files)} />
+              <strong>{uploading ? 'מעלה תמונות…' : 'לחצו לבחירת תמונות'}</strong><span>JPG, PNG, WebP או AVIF · עד 12MB</span>
+            </label>
+            {form.images.length > 0 && <div className="admin-product-editor__images">
+              {form.images.map((image, index) => <div className="admin-product-editor__image" key={`${image}-${index}`}>
+                <img src={image} alt="" />{index === 0 && <span>ראשית</span>}
+                <div><button type="button" disabled={index === 0} onClick={() => moveImage(index, -1)} aria-label="הזזת תמונה ימינה">→</button><button type="button" disabled={index === form.images.length - 1} onClick={() => moveImage(index, 1)} aria-label="הזזת תמונה שמאלה">←</button><button type="button" onClick={() => setField('images', form.images.filter((_, imageIndex) => imageIndex !== index))} aria-label="מחיקת תמונה">×</button></div>
+              </div>)}
+            </div>}
+          </section>
+
+          <section className="admin-product-editor__card">
+            <h2>מידע טכני</h2>
+            <div className="admin-product-editor__grid">
+              <label className="admin-product-editor__field">מידה<input value={form.size} onChange={(e) => setField('size', e.target.value)} placeholder="1.5 מטר" /></label>
+              <label className="admin-product-editor__field">דגם<input value={form.model} onChange={(e) => setField('model', e.target.value)} placeholder="CREAM" /></label>
+              <label className="admin-product-editor__field">צבע<input value={form.color} onChange={(e) => setField('color', e.target.value)} /></label>
+              <label className="admin-product-editor__field">חומר / גימור<input value={form.material} onChange={(e) => setField('material', e.target.value)} /></label>
+              <label className="admin-product-editor__field">זמן אספקה בימים<input type="number" min="0" value={form.delivery_days} onChange={(e) => setField('delivery_days', e.target.value)} /></label>
+              <label className="admin-product-editor__field">מק״ט<input value={form.sku} onChange={(e) => setField('sku', e.target.value)} /></label>
+            </div>
+          </section>
+        </div>
+
+        <aside className="admin-product-editor__side">
+          <section className="admin-product-editor__card">
+            <h2>פרסום</h2>
+            <label className="admin-product-editor__toggle"><input type="checkbox" checked={form.is_active} onChange={(e) => setField('is_active', e.target.checked)} /><span>{form.is_active ? 'המוצר מפורסם באתר' : 'המוצר נשמר כטיוטה'}</span></label>
+          </section>
+          <section className="admin-product-editor__card">
+            <h2>כתובת המוצר</h2>
+            <label className="admin-product-editor__field"><span className="admin-product-editor__ltr">/catalog/</span><input dir="ltr" value={form.slug} onChange={(e) => setField('slug', toSlug(e.target.value))} /></label>
+            <p className="admin-product-editor__hint">אותיות אנגליות, מספרים ומקפים בלבד.</p>
+          </section>
+          <section className="admin-product-editor__card">
+            <h2>מסמך התקנה</h2>
+            <label className="admin-product-editor__field">קישור ל-PDF<input dir="ltr" value={form.installation_pdf_url} onChange={(e) => setField('installation_pdf_url', e.target.value)} placeholder="https://…" /></label>
+          </section>
+        </aside>
+      </div>
+    </div>
+  )
+}

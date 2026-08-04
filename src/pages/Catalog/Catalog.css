@@ -14,6 +14,10 @@
   font-size: 32px;
 }
 
+.catalog-page__filters { display: flex; gap: 9px; flex-wrap: wrap; margin-top: 18px; }
+.catalog-page__filter { border: 1px solid var(--border); border-radius: 999px; padding: 8px 16px; background: white; }
+.catalog-page__filter--active { background: var(--sage); border-color: var(--sage); color: var(--signup-button); font-weight: 700; }
+
 .catalog-page__grid {
   display: grid;
   grid-template-columns: repeat(3, minmax(300px, 1fr));

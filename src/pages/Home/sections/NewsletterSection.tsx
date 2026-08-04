@@ -1,8 +1,9 @@
 import React, { useState } from 'react'
 import { EmnailInput } from '../../../components/Input/EmailInput'
+import type { HomeContent } from '../../../types/content'
 
 
-export default function NewsletterSection() {
+export default function NewsletterSection({ content }: { content: HomeContent['newsletter'] }) {
   const [email, setEmail] = useState('')
   const [agreed, setAgreed] = useState(false)
 
@@ -18,8 +19,8 @@ export default function NewsletterSection() {
 
   return (
     <section className="newsletter">
-      <p className="newsletter__subtitle">בואו להשאר מעודכנים.</p>
-      <h2 className="newsletter__title">ניוזלטר סאבור</h2>
+      <p className="newsletter__subtitle">{content.subtitle}</p>
+      <h2 className="newsletter__title">{content.title}</h2>
 
       <form className="newsletter__form" onSubmit={handleSubmit}>
         <EmnailInput handleChange={handleChange} email={email} /> 
@@ -30,8 +31,7 @@ export default function NewsletterSection() {
             onChange={(e) => setAgreed(e.target.checked)}
           />
           <span>
-            אני מסכים/ה לקבל דיוור ישיר, הודעות, דברי פרסום <br />ומסרים שיווקים 
-            מהאתר באמצעות הדוא״ל
+            {content.consent}
           </span>
         </label>
       </form>

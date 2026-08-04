@@ -107,3 +107,9 @@
     min-height: 44px;
   }
 }
+
+.savor-product-card__price {
+  display: block;
+  font-size: 21px;
+  margin: -12px 0 18px;
+}

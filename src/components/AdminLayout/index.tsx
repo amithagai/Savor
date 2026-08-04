@@ -26,6 +26,11 @@ export default function AdminLayout() {
 
         <ul className="admin__nav">
           <li>
+            <NavLink to="/admin/products" className={navLinkClass}>
+              מוצרים
+            </NavLink>
+          </li>
+          <li>
             <NavLink to="/admin/orders" className={navLinkClass}>
               הזמנות
             </NavLink>

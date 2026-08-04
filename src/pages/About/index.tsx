@@ -1,42 +1,23 @@
 import './About.css'
 import clientPhoto from '../../assets/תמונת לקוחה.png'
+import { useContentPage } from '../../hooks/useContentPage'
 
 export default function About() {
+  const { page, loading, error } = useContentPage('about')
+
+  if (loading) return <div className="about"><div className="about__container">טוען…</div></div>
+  if (error || !page) return <div className="about"><div className="about__container">לא הצלחנו לטעון את העמוד.</div></div>
+
   return (
     <div className="about">
       <div className="about__container">
-        <h1 className="about__title">אודות</h1>
-
+        <h1 className="about__title">{page.title}</h1>
         <div className="about__content">
-          <div className="about__image">
-            <img src={clientPhoto} alt="אודות Savor" />
-          </div>
-
+          <div className="about__image"><img src={clientPhoto} alt="אודות Savor" /></div>
           <div className="about__text">
-            <p className="about__paragraph">
-              נעים מאוד, אני עמית אור חגי. כבעלים של סטודיו לאדריכלות ועיצוב פנים, זכיתי במהלך
-              שנותיי במקצוע לתכנן ולעצב מגוון רחב של פרויקטים, מחללים מסחריים שוקקי חיים ועד לבתים
-              פרטיים ואינטימיים. העבודה הזו חשפה אותי לאינספור חללים, אבל מעבר לכך, היא חשפה אותי
-              לאנשים ולחלומות שלהם על הבית המושלם.
-            </p>
-            <p className="about__paragraph">
-              מתוך האהבה העמוקה שלי לעולם התכנון והעיצוב, זיהיתי צורך אמיתי שחזר על עצמו שוב ושוב.
-              במשך תקופה ארוכה חיפשתי פתרון למטבח שמשלב את שני העולמות: כזה שעומד בסטנדרטים הגבוהים
-              ביותר של איכות ועיצוב, אבל במקביל נשאר נגיש לכל כיס.
-            </p>
-            <p className="about__paragraph">
-              ככה נולד הרעיון מאחורי Savor. הבנתי שאין סיבה ששדרוג הדירה או המשרד יסתכם רק בהדבקת
-              פרקט. היום, אפשר לשדרג גם את המטבח, הלב הפועם של הבית, במהלך שמרים את החלל כולו כמה
-              רמות למעלה, מבלי לשבור תוכניות חיסכון.
-            </p>
-            <p className="about__paragraph">
-              תכננו מטבחים שמעוצבים אדריכלית ברמה הכי גבוהה שיש. ירדנו לפרטים הקטנים ובחרנו בקפידה
-              פלטת גוונים מדויקת ועל-זמנית, כזו שמשתלבת בהרמוניה ומתאימה לכל חלל ולכל סגנון עיצוב.
-            </p>
-            <p className="about__paragraph about__paragraph--closing">
-              החלום שלי הוא להוכיח שהשאיפה למטבח יפהפה, איכותי ופרקטי היא לא פריבילגיה, אלא חלום
-              שכל אחד יכול להגשים, עם מוצר ברמה הגבוהה ביותר ובמחיר נגיש והוגן.
-            </p>
+            {page.body.split(/\n\s*\n/).map((paragraph, index, paragraphs) => (
+              <p key={`${paragraph.slice(0, 20)}-${index}`} className={`about__paragraph${index === paragraphs.length - 1 ? ' about__paragraph--closing' : ''}`}>{paragraph}</p>
+            ))}
           </div>
         </div>
       </div>

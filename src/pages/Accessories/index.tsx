@@ -1,138 +1,57 @@
-import { useMemo, useState } from "react";
-import ProductCard from "../../components/ProductCard";
-import "../Catalog/Catalog.css";
-import "./Accessories.css";
-import { useCart } from "../../context/useCart";
-import {
-  materialHandles,
-  materialHinges,
-  materialSoftClose,
-  materialMarble,
-  materialPaintDoors,
-  materialPlywood,
-} from "../../assets/cloudinaryImages";
+import { useEffect, useMemo, useState } from 'react'
 
-type Accessory = {
-  id: number;
-  name: string;
-  category: string;
-  price: number;
-  image?: string;
-};
-
-const accessories: Accessory[] = [
-  {
-    id: 101,
-    name: "כיור שחור",
-    category: "כיורים",
-    price: 1230,
-    image: materialHandles,
-  },
-  {
-    id: 102,
-    name: "כיור לבן",
-    category: "כיורים",
-    price: 990,
-    image: materialHinges,
-  },
-  {
-    id: 103,
-    name: "משטח שיש גרניט",
-    category: "קטלוג שיש",
-    price: 1850,
-    image: materialMarble,
-  },
-  {
-    id: 104,
-    name: "ידית שחורה",
-    category: "ידיות",
-    price: 120,
-    image: materialSoftClose,
-  },
-  {
-    id: 105,
-    name: "ידית זהב",
-    category: "ידיות",
-    price: 140,
-    image: materialPaintDoors,
-  },
-  {
-    id: 106,
-    name: "ידית אפורה",
-    category: "ידיות",
-    price: 1430,
-    image: materialPlywood,
-  },
-];
-
-const categoryFilters = ["הכל", "כיורים", "קטלוג שיש", "ידיות"];
+import ProductCard from '../../components/ProductCard'
+import '../Catalog/Catalog.css'
+import './Accessories.css'
+import { useCart } from '../../context/useCart'
+import { api } from '../../lib/api'
+import type { CatalogProduct } from '../../types/catalog'
 
 export default function Accessories() {
-  const [selectedCategory, setSelectedCategory] = useState("הכל");
+  const [products, setProducts] = useState<CatalogProduct[]>([])
+  const [selectedCategory, setSelectedCategory] = useState('הכל')
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState('')
+  const { addToCart } = useCart()
 
-  const { addToCart } = useCart();
+  useEffect(() => {
+    api.get<CatalogProduct[]>('/catalog/accessories')
+      .then(setProducts)
+      .catch(() => setError('לא הצלחנו לטעון את המוצרים המשלימים.'))
+      .finally(() => setLoading(false))
+  }, [])
 
-  const filteredAccessories = useMemo(() => {
-    if (selectedCategory === "הכל") {
-      return accessories;
-    }
+  const categories = useMemo(() => Array.from(new Set(products.map((product) => product.category?.name).filter((name): name is string => !!name))), [products])
+  const visibleProducts = selectedCategory === 'הכל' ? products : products.filter((product) => product.category?.name === selectedCategory)
 
-    return accessories.filter(
-      (accessory) => accessory.category === selectedCategory,
-    );
-  }, [selectedCategory]);
-
-  const handleAddToCart = (accessory: Accessory) => {
-    addToCart({
-      id: accessory.id,
-      name: accessory.name,
-      category: accessory.category,
-      price: accessory.price,
-      quantity: 1,
-    });
-  };
+  const addProduct = (product: CatalogProduct) => {
+    if (product.current_price == null) return
+    addToCart({ id: product.id, name: product.name, category: product.category?.name, price: product.current_price, image: product.images[0], quantity: 1 })
+  }
 
   return (
     <main className="catalog-page">
       <section className="catalog-page__header">
         <h1>מוצרים משלימים</h1>
-
-        <section
-          className="accessories-page__filters"
-          aria-label="סינון לפי קטגוריה"
-        >
-          {categoryFilters.map((category) => (
-            <button
-              key={category}
-              type="button"
-              className={
-                selectedCategory === category
-                  ? "accessories-page__filter accessories-page__filter--active"
-                  : "accessories-page__filter"
-              }
-              onClick={() => setSelectedCategory(category)}
-            >
-              {category}
-            </button>
-          ))}
-        </section>
-
-        <p className="accessories-page__subtitle">
-          מגוון כיורים מעבר לכיור הנירוסטה הסטנדרטי המגיע עם המטבח
-        </p>
+        {categories.length > 0 && <section className="accessories-page__filters" aria-label="סינון לפי קטגוריה">
+          {['הכל', ...categories].map((category) => <button key={category} type="button" className={selectedCategory === category ? 'accessories-page__filter accessories-page__filter--active' : 'accessories-page__filter'} onClick={() => setSelectedCategory(category)}>{category}</button>)}
+        </section>}
+        <p className="accessories-page__subtitle">מוצרים משלימים שנבחרו להתאים למטבח שלכם</p>
       </section>
 
-      <section className="catalog-page__grid">
-        {filteredAccessories.map((accessory) => (
-          <ProductCard
-            key={accessory.id}
-            name={accessory.name}
-            subtitle={accessory.category}
-            image={accessory.image}
-            onAddToCart={() => handleAddToCart(accessory)}
-          />
-        ))}
-      </section>
+      {loading && <p className="catalog-page__empty">טוען מוצרים…</p>}
+      {!loading && error && <p className="catalog-page__empty">{error}</p>}
+      {!loading && !error && <section className="catalog-page__grid">
+        {visibleProducts.length > 0 ? visibleProducts.map((product) => <ProductCard
+          key={product.id}
+          name={product.name}
+          subtitle={product.category?.name || 'מוצר משלים'}
+          image={product.images[0]}
+          price={product.current_price}
+          productHref={`/accessories/${product.slug}`}
+          onAddToCart={() => addProduct(product)}
+        />) : <p className="catalog-page__empty">עדיין אין מוצרים בקטגוריה הזאת.</p>}
+      </section>}
     </main>
-  );
+  )
 }

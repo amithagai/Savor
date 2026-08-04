@@ -37,4 +37,18 @@ export const api = {
     request<T>(path, { method: 'POST', body: JSON.stringify(data) }, token),
   patch: <T,>(path: string, data: unknown, token?: string | null) =>
     request<T>(path, { method: 'PATCH', body: JSON.stringify(data) }, token),
+  upload: async <T,>(path: string, file: File, token?: string | null): Promise<T> => {
+    const form = new FormData()
+    form.append('file', file)
+    const res = await fetch(`${API_URL}${path}`, {
+      method: 'POST',
+      headers: token ? { Authorization: `Bearer ${token}` } : {},
+      body: form,
+    })
+    if (!res.ok) {
+      const body = await res.json().catch(() => null)
+      throw new ApiError(res.status, body?.detail || res.statusText)
+    }
+    return res.json()
+  },
 }
