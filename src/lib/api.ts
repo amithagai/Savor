@@ -1,4 +1,14 @@
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000'
+const SESSION_STORAGE_KEY = 'savor:session-id'
+
+function getSessionId() {
+  let sessionId = localStorage.getItem(SESSION_STORAGE_KEY)
+  if (!sessionId) {
+    sessionId = crypto.randomUUID()
+    localStorage.setItem(SESSION_STORAGE_KEY, sessionId)
+  }
+  return sessionId
+}
 
 export class ApiError extends Error {
   status: number
@@ -14,6 +24,7 @@ async function request<T>(path: string, options: RequestInit = {}, token?: strin
     ...options,
     headers: {
       'Content-Type': 'application/json',
+      'X-Session-Id': getSessionId(),
       ...(token ? { Authorization: `Bearer ${token}` } : {}),
       ...options.headers,
     },
@@ -37,6 +48,8 @@ export const api = {
     request<T>(path, { method: 'POST', body: JSON.stringify(data) }, token),
   patch: <T,>(path: string, data: unknown, token?: string | null) =>
     request<T>(path, { method: 'PATCH', body: JSON.stringify(data) }, token),
+  delete: <T,>(path: string, token?: string | null) =>
+    request<T>(path, { method: 'DELETE' }, token),
   put: <T,>(path: string, data: unknown, token?: string | null) =>
     request<T>(path, { method: 'PUT', body: JSON.stringify(data) }, token),
   upload: async <T,>(path: string, file: File, token?: string | null): Promise<T> => {
@@ -44,7 +57,10 @@ export const api = {
     form.append('file', file)
     const res = await fetch(`${API_URL}${path}`, {
       method: 'POST',
-      headers: token ? { Authorization: `Bearer ${token}` } : {},
+      headers: {
+        'X-Session-Id': getSessionId(),
+        ...(token ? { Authorization: `Bearer ${token}` } : {}),
+      },
       body: form,
     })
     if (!res.ok) {

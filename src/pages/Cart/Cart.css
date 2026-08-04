@@ -242,6 +242,15 @@
   font-weight: 700;
 }
 
+.cart-page__payment-error {
+  color: #8d2525;
+  background: #fff0f0;
+  border: 1px solid #f0caca;
+  border-radius: 10px;
+  padding: 10px 12px;
+  font-size: 14px;
+}
+
 .cart-page__submit {
   background: var(--signup-button);
   color: var(--white);
