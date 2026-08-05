@@ -7,6 +7,8 @@ import { useAdminAuth } from '../../context/useAdminAuth'
 import { ApiError, api } from '../../lib/api'
 
 type OrderStatus = 'CREATED' | 'PAID' | 'PROCESSING' | 'SHIPPED' | 'DELIVERED' | 'CANCELLED'
+type PaymentOutcome = 'expired' | 'failed'
+type OrderFilter = OrderStatus | 'PAYMENT_EXPIRED' | 'PAYMENT_FAILED' | 'ALL'
 type DateFilter = 'ALL' | 'TODAY' | 'WEEK'
 
 type ShippingAddress = {
@@ -49,6 +51,7 @@ type Order = {
   total_snapshot: number
   payment_provider?: string | null
   payment_reference?: string | null
+  payment_outcome?: PaymentOutcome | null
   items: OrderItem[]
   created_at: string
 }
@@ -71,6 +74,24 @@ const STATUS_TONES: Record<OrderStatus, string> = {
   SHIPPED: 'shipped',
   DELIVERED: 'delivered',
   CANCELLED: 'cancelled',
+}
+
+const PAYMENT_OUTCOME_LABELS: Record<PaymentOutcome, string> = {
+  expired: 'התשלום לא הושלם',
+  failed: 'התשלום נכשל',
+}
+
+function orderStatusLabel(order: Order) {
+  if (order.status === 'CANCELLED' && order.payment_outcome) {
+    return PAYMENT_OUTCOME_LABELS[order.payment_outcome]
+  }
+  return STATUS_LABELS[order.status]
+}
+
+function orderStatusTone(order: Order) {
+  if (order.status === 'CANCELLED' && order.payment_outcome === 'expired') return 'expired'
+  if (order.status === 'CANCELLED' && order.payment_outcome === 'failed') return 'failed'
+  return STATUS_TONES[order.status]
 }
 
 function formatMoney(value: number) {
@@ -102,7 +123,7 @@ export default function AdminOrders() {
   const [error, setError] = useState('')
   const [notice, setNotice] = useState('')
   const [query, setQuery] = useState('')
-  const [filter, setFilter] = useState<OrderStatus | 'ALL'>('ALL')
+  const [filter, setFilter] = useState<OrderFilter>('ALL')
   const [dateFilter, setDateFilter] = useState<DateFilter>('ALL')
   const [expandedId, setExpandedId] = useState<string | null>(null)
   const [statusSaving, setStatusSaving] = useState<string | null>(null)
@@ -110,24 +131,44 @@ export default function AdminOrders() {
 
   useEffect(() => {
     let cancelled = false
-    api.get<Order[]>('/admin/orders', token)
-      .then((data) => { if (!cancelled) setOrders(data) })
-      .catch((err) => {
+    const loadOrders = async (showLoading = false) => {
+      if (showLoading) setLoading(true)
+      try {
+        const data = await api.get<Order[]>('/admin/orders', token)
+        if (!cancelled) setOrders(data)
+      } catch (err) {
         if (err instanceof ApiError && err.status === 401) {
           logout()
           navigate('/admin/login')
           return
         }
         if (!cancelled) setError('טעינת ההזמנות נכשלה')
-      })
-      .finally(() => { if (!cancelled) setLoading(false) })
-    return () => { cancelled = true }
+      } finally {
+        if (!cancelled) setLoading(false)
+      }
+    }
+    void loadOrders(true)
+    const refreshId = window.setInterval(() => { void loadOrders() }, 60_000)
+    return () => {
+      cancelled = true
+      window.clearInterval(refreshId)
+    }
   }, [token, logout, navigate])
 
   const statusCounts = useMemo(() => STATUS_ORDER.reduce<Record<OrderStatus, number>>(
-    (counts, status) => ({ ...counts, [status]: orders.filter((order) => order.status === status).length }),
+    (counts, status) => ({
+      ...counts,
+      [status]: orders.filter((order) => (
+        order.status === status && (status !== 'CANCELLED' || !order.payment_outcome)
+      )).length,
+    }),
     { CREATED: 0, PAID: 0, PROCESSING: 0, SHIPPED: 0, DELIVERED: 0, CANCELLED: 0 },
   ), [orders])
+
+  const paymentOutcomeCounts = useMemo(() => ({
+    expired: orders.filter((order) => order.status === 'CANCELLED' && order.payment_outcome === 'expired').length,
+    failed: orders.filter((order) => order.status === 'CANCELLED' && order.payment_outcome === 'failed').length,
+  }), [orders])
 
   const visibleOrders = useMemo(() => {
     const normalized = query.trim().toLocaleLowerCase('he')
@@ -138,7 +179,14 @@ export default function AdminOrders() {
     return orders.filter((order) => {
       const address = order.shipping_address || {}
       const createdAt = new Date(order.created_at).getTime()
-      const matchesStatus = filter === 'ALL' || order.status === filter
+      const matchesStatus = filter === 'ALL'
+        || (filter === 'PAYMENT_EXPIRED'
+          ? order.status === 'CANCELLED' && order.payment_outcome === 'expired'
+          : filter === 'PAYMENT_FAILED'
+            ? order.status === 'CANCELLED' && order.payment_outcome === 'failed'
+            : filter === 'CANCELLED'
+              ? order.status === 'CANCELLED' && !order.payment_outcome
+              : order.status === filter)
       const matchesDate = dateFilter === 'ALL'
         || (dateFilter === 'TODAY' ? createdAt >= todayStart : createdAt >= weekStart)
       const haystack = [order.id, address.full_name, address.phone, address.email, address.city]
@@ -195,7 +243,7 @@ export default function AdminOrders() {
       order.shipping_address?.phone,
       order.shipping_address?.email,
       order.shipping_address?.city,
-      STATUS_LABELS[order.status],
+      orderStatusLabel(order),
       order.total_snapshot,
     ])
     const content = `\uFEFF${[header, ...rows].map((row) => row.map(csvCell).join(',')).join('\n')}`
@@ -221,6 +269,19 @@ export default function AdminOrders() {
         <SummaryCard label="הכנסות מהזמנות פעילות" value={formatMoney(activeRevenue)} />
       </section>
 
+      <section className="admin-orders__payment-policy" aria-label="מדיניות תשלומים שלא הושלמו">
+        <span className="admin-orders__payment-policy-icon" aria-hidden="true">i</span>
+        <div>
+          <strong>טיפול אוטומטי בתשלומים</strong>
+          <p>הזמנה שלא מתקבל עבורה אישור תשלום בתוך 30 דקות מסומנת אוטומטית כ״התשלום לא הושלם״. אישור מאוחר מ־HYP תמיד יעדכן אותה ל״שולמה״.</p>
+        </div>
+        {(paymentOutcomeCounts.expired + paymentOutcomeCounts.failed) > 0 && (
+          <span className="admin-orders__payment-policy-count">
+            {paymentOutcomeCounts.expired + paymentOutcomeCounts.failed} הזמנות
+          </span>
+        )}
+      </section>
+
       <section className="admin-orders__toolbar">
         <label className="admin-orders__search">
           <span>חיפוש</span>
@@ -243,6 +304,12 @@ export default function AdminOrders() {
             {STATUS_LABELS[status]} <span>{statusCounts[status]}</span>
           </button>
         ))}
+        <button type="button" className={filter === 'PAYMENT_EXPIRED' ? 'is-active' : ''} onClick={() => setFilter('PAYMENT_EXPIRED')}>
+          התשלום לא הושלם <span>{paymentOutcomeCounts.expired}</span>
+        </button>
+        <button type="button" className={filter === 'PAYMENT_FAILED' ? 'is-active' : ''} onClick={() => setFilter('PAYMENT_FAILED')}>
+          התשלום נכשל <span>{paymentOutcomeCounts.failed}</span>
+        </button>
       </div>
 
       {notice && <p className="admin-orders__notice admin-orders__notice--success">{notice}</p>}
@@ -261,7 +328,7 @@ export default function AdminOrders() {
                   <span className="admin-orders__chevron" aria-hidden="true">⌄</span>
                   <span className="admin-orders__identity"><strong>{address.full_name || 'ללא שם'}</strong><small>#{order.id.slice(0, 8)} · {address.phone || 'ללא טלפון'}</small></span>
                   <span className="admin-orders__row-date">{formatDate(order.created_at)}</span>
-                  <span className={`admin-orders__badge admin-orders__badge--${STATUS_TONES[order.status]}`}>{STATUS_LABELS[order.status]}</span>
+                  <span className={`admin-orders__badge admin-orders__badge--${orderStatusTone(order)}`}>{orderStatusLabel(order)}</span>
                   <strong className="admin-orders__row-total">{formatMoney(order.total_snapshot)}</strong>
                 </button>
 
@@ -282,7 +349,7 @@ export default function AdminOrders() {
                       </DetailSection>
                       <DetailSection title="תשלום">
                         <DetailLine label="ספק" value={order.payment_provider || (order.status === 'CREATED' ? 'טרם נבחר' : 'לא ידוע')} />
-                        <DetailLine label="סטטוס" value={STATUS_LABELS[order.status]} />
+                        <DetailLine label="סטטוס" value={orderStatusLabel(order)} />
                         <DetailLine label="סכום מוצרים" value={formatMoney(order.subtotal_snapshot)} />
                         <DetailLine label="משלוח והתקנה" value={formatMoney((address.delivery_fee || 0) + (address.installation_fee || 0))} />
                       </DetailSection>
@@ -304,7 +371,7 @@ export default function AdminOrders() {
                     </section>
 
                     <footer className="admin-orders__actions">
-                      <label><span>עדכון סטטוס</span><select value={order.status} disabled={statusSaving === order.id} onChange={(event) => handleStatusChange(order, event.target.value as OrderStatus)}>{STATUS_ORDER.map((status) => <option key={status} value={status}>{STATUS_LABELS[status]}</option>)}</select></label>
+                      <label><span>עדכון סטטוס</span><select value={order.status} disabled={statusSaving === order.id} onChange={(event) => handleStatusChange(order, event.target.value as OrderStatus)}>{STATUS_ORDER.map((status) => <option key={status} value={status}>{status === 'CANCELLED' && order.payment_outcome ? orderStatusLabel(order) : STATUS_LABELS[status]}</option>)}</select></label>
                       {statusSaving === order.id && <span className="admin-orders__saving">שומר…</span>}
                       <button type="button" className="admin-orders__copy" onClick={() => copyOrderId(order.id)}>{copiedId === order.id ? 'הועתק' : 'העתקת מספר הזמנה'}</button>
                     </footer>

@@ -10,6 +10,11 @@
 .admin-orders__summary-card strong { font-size: 22px; }
 .admin-orders__summary-card--attention { border-color: #ead8ad; background: #fffaf0; }
 .admin-orders__summary-card--positive { border-color: #c7dec9; background: #f4faf4; }
+.admin-orders__payment-policy { display: grid; grid-template-columns: 30px minmax(0, 1fr) auto; gap: 11px; align-items: center; margin-bottom: 16px; padding: 12px 15px; border: 1px solid #d8dfef; border-radius: 13px; background: #f5f7fc; color: #34415f; }
+.admin-orders__payment-policy-icon { width: 25px; height: 25px; display: grid; place-items: center; border-radius: 50%; background: #dce5fb; color: #365a9d; font-size: 13px; font-weight: 900; }
+.admin-orders__payment-policy strong { display: block; margin-bottom: 2px; font-size: 12px; }
+.admin-orders__payment-policy p { margin: 0; color: #65708a; font-size: 11px; line-height: 1.55; }
+.admin-orders__payment-policy-count { padding: 5px 9px; border-radius: 999px; background: white; color: #4f5f83; font-size: 11px; font-weight: 800; white-space: nowrap; }
 .admin-orders__toolbar { display: grid; grid-template-columns: minmax(260px, 1fr) 190px; gap: 12px; margin-bottom: 12px; }
 .admin-orders__search, .admin-orders__date-filter { display: grid; gap: 5px; }
 .admin-orders__search > span, .admin-orders__date-filter > span { color: var(--text-muted); font-size: 11px; font-weight: 700; }
@@ -43,6 +48,8 @@
 .admin-orders__badge--shipped { background: #eee7ff; color: #654b9a; }
 .admin-orders__badge--delivered { background: #dff1df; color: #34713a; }
 .admin-orders__badge--cancelled { background: #fbe4e1; color: #a73b31; }
+.admin-orders__badge--expired { background: #fff0d7; color: #8a5a12; }
+.admin-orders__badge--failed { background: #fde3e1; color: #a32d25; }
 .admin-orders__detail { display: grid; gap: 20px; padding: 20px; border-top: 1px solid var(--border); background: #fafbf9; }
 .admin-orders__detail-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px; }
 .admin-orders__detail-section { padding: 15px; border: 1px solid var(--border); border-radius: 13px; background: white; }
@@ -79,6 +86,8 @@
   .admin-orders__summary { grid-template-columns: 1fr 1fr; }
   .admin-orders__summary-card { padding: 13px; }
   .admin-orders__summary-card strong { font-size: 17px; }
+  .admin-orders__payment-policy { grid-template-columns: 30px minmax(0, 1fr); }
+  .admin-orders__payment-policy-count { grid-column: 2; justify-self: start; }
   .admin-orders__toolbar { grid-template-columns: 1fr; }
   .admin-orders__row { grid-template-columns: 20px minmax(0, 1fr) auto; padding: 13px; }
   .admin-orders__row-total { grid-column: 2; text-align: right; }

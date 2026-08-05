@@ -53,8 +53,13 @@ export default function Cart() {
   const [deliveryMethod, setDeliveryMethod] = useState<DeliveryMethod>('pickup')
   const [wantsInstallation, setWantsInstallation] = useState(false)
   const [isSubmitting, setIsSubmitting] = useState(false)
+  const paymentState = searchParams.get('payment')
   const [paymentError, setPaymentError] = useState(
-    searchParams.get('payment') === 'cancelled' ? 'התשלום בוטל. העגלה נשמרה ואפשר לנסות שוב.' : ''
+    paymentState === 'failed'
+      ? 'התשלום לא אושר על ידי HYP. לא בוצע חיוב ואפשר לנסות שוב.'
+      : paymentState === 'cancelled'
+        ? 'התשלום בוטל. העגלה נשמרה ואפשר לנסות שוב.'
+        : ''
   )
 
   const itemsTotal = useMemo(
