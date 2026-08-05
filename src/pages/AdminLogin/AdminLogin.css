@@ -65,6 +65,17 @@
   margin-bottom: 14px;
 }
 
+.admin-login__success {
+  margin-bottom: 14px;
+  padding: 10px 12px;
+  border-radius: 10px;
+  background: #edf7ef;
+  color: #2f6c3b;
+  font-size: 13px;
+  line-height: 1.45;
+  text-align: center;
+}
+
 .admin-login__submit {
   width: 100%;
   margin-top: 8px;

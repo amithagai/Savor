@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import type { FormEvent } from 'react'
-import { Navigate, useNavigate } from 'react-router-dom'
+import { Navigate, useNavigate, useSearchParams } from 'react-router-dom'
 
 import './AdminLogin.css'
 import savorLogo from '../../assets/savor-logo.png'
@@ -10,6 +10,8 @@ import { useAdminAuth } from '../../context/useAdminAuth'
 export default function AdminLogin() {
   const { login, isAuthenticated } = useAdminAuth()
   const navigate = useNavigate()
+  const [searchParams] = useSearchParams()
+  const passwordChanged = searchParams.get('password_changed') === '1'
 
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
@@ -68,6 +70,9 @@ export default function AdminLogin() {
             />
           </div>
 
+          {passwordChanged && !error && (
+            <p className="admin-login__success">הסיסמה שונתה בהצלחה. אפשר להתחבר מחדש.</p>
+          )}
           {error && <p className="admin-login__error">{error}</p>}
 
           <button type="submit" className="admin-login__submit" disabled={loading}>
