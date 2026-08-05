@@ -57,7 +57,7 @@ export default function OrderConfirmation() {
       {state === 'checking' && (
         <>
           <h1>מאמתים את התשלום…</h1>
-          <p>העמוד יתעדכן מיד כשנקבל אישור מאובטח מ־Grow.</p>
+          <p>העמוד יתעדכן מיד כשנקבל אישור מאובטח מ־HYP.</p>
         </>
       )}
       {state === 'paid' && (
