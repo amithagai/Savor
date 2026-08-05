@@ -7,6 +7,7 @@ export type CartItem = {
   size?: string
   category?: string
   variant?: string
+  variantId?: string
   quantity: number
   price: number
   image?: string

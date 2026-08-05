@@ -39,7 +39,10 @@ type OrderItem = {
     configuration_type?: string
     name?: string
     product_name?: string
-    selected_components?: Record<string, unknown>
+    variant_id?: string
+    variant_sku?: string
+    variant_color_label?: string
+    selected_components?: Array<Record<string, unknown>>
   }
 }
 
@@ -113,6 +116,21 @@ function itemName(item: OrderItem, index: number) {
     || item.product_snapshot.name
     || (item.product_snapshot.configuration_type === 'STANDARD' ? 'מטבח מוכן' : '')
     || `פריט ${index + 1}`
+}
+
+function variantDetails(item: OrderItem) {
+  const snapshot = item.product_snapshot
+  const selectedVariant = snapshot.selected_components?.find(
+    (component) => component.selection_type === 'product_variant',
+  )
+  const selectedColor = selectedVariant?.color_label
+  const selectedSku = selectedVariant?.sku
+  const color = snapshot.variant_color_label
+    || (typeof selectedColor === 'string' ? selectedColor : '')
+  const sku = snapshot.variant_sku
+    || (typeof selectedSku === 'string' ? selectedSku : '')
+
+  return [color && `צבע ${color}`, sku && `מק״ט ${sku}`].filter(Boolean).join(' · ')
 }
 
 export default function AdminOrders() {
@@ -361,7 +379,11 @@ export default function AdminOrders() {
                         {order.items.map((item, index) => (
                           <div className="admin-orders__item" key={item.id}>
                             <span className="admin-orders__item-index">{index + 1}</span>
-                            <span className="admin-orders__item-name"><strong>{itemName(item, index)}</strong><small>{item.product_snapshot.product_id ? `מוצר ${item.product_snapshot.product_id.slice(0, 8)}` : 'מוצר מותאם אישית'}</small></span>
+                            <span className="admin-orders__item-name">
+                              <strong>{itemName(item, index)}</strong>
+                              <small>{item.product_snapshot.product_id ? `מוצר ${item.product_snapshot.product_id.slice(0, 8)}` : 'מוצר מותאם אישית'}</small>
+                              {variantDetails(item) && <small>{variantDetails(item)}</small>}
+                            </span>
                             <span>{item.quantity} × {formatMoney(item.unit_price_snapshot)}</span>
                             <strong>{formatMoney(item.line_total)}</strong>
                           </div>

@@ -28,6 +28,7 @@ type CabinetProduct = {
 }
 
 type CabinetProductVariant = {
+  variantId?: string
   colorId: string
   colorLabel: string
   price: number
@@ -114,6 +115,7 @@ function configuratorProductFromApi(product: ConfiguratorProduct): CabinetProduc
   const width = Number(attributes.width_cm)
   if (!CATEGORIES.includes(category) || !Number.isFinite(width) || width <= 0 || product.variants.length === 0) return null
   const variants = product.variants.map((variant) => ({
+    variantId: variant.id,
     colorId: variant.color_id,
     colorLabel: variant.color_label,
     price: variant.price,
@@ -151,7 +153,14 @@ export const ActionButton: FC<ActionButtonProps> = ({ resetAll, onContact, onBuy
     <div className="cfg__cart-footer">
       <button className="cfg__reset-btn" onClick={resetAll}>איפוס</button>
       <button className="cfg__outline-btn" onClick={onContact}>שמירת תכנון ויצרות קשר</button>
-      <button className="cfg__buy-btn" onClick={onBuy} disabled={buyDisabled}>לרכישת המטבח</button>
+      <button
+        className="cfg__buy-btn"
+        onClick={onBuy}
+        disabled={buyDisabled}
+        title={buyDisabled ? 'הרכישה זמינה לאחר פרסום מוצרי הקונפיגורטור' : undefined}
+      >
+        לרכישת המטבח
+      </button>
     </div>
   )
 }
@@ -217,6 +226,7 @@ export default function Configurator() {
     .filter(item => item.category !== 'עליונים' && item.category !== 'גבוהים')
     .reduce((sum, item) => sum + item.width * item.qty, 0)
   const exceedsWall = appliedWallLength != null && totalCabinetWidth > appliedWallLength
+  const canBuyKitchen = cartItems.length > 0 && cartItems.every((item) => Boolean(item.variantId))
 
   function toggleCategory(cat: CabinetCategory) {
     setSelectedCategories(prev => {
@@ -259,15 +269,16 @@ export default function Configurator() {
   }
 
   function buyKitchen() {
-    if (cartItems.length === 0) return
+    if (!canBuyKitchen) return
 
     addItemsToCart(cartItems.map((item) => ({
       id: item.id,
-      lineId: `${item.id}:${item.colorId}`,
+      lineId: `${item.id}:${item.variantId}`,
       name: item.name,
       category: item.category,
       size: item.subtitle,
       variant: item.colorLabel,
+      variantId: item.variantId,
       quantity: item.qty,
       price: item.price,
       image: item.thumbnailUrl,
@@ -446,7 +457,7 @@ export default function Configurator() {
             resetAll={resetAll}
             onContact={() => setContactOpen(true)}
             onBuy={buyKitchen}
-            buyDisabled={cartItems.length === 0}
+            buyDisabled={!canBuyKitchen}
           />
         </div>
       </div>
@@ -607,7 +618,7 @@ export default function Configurator() {
               resetAll={resetAll}
               onContact={() => setContactOpen(true)}
               onBuy={buyKitchen}
-              buyDisabled={cartItems.length === 0}
+              buyDisabled={!canBuyKitchen}
             />
           </div>
         </div>

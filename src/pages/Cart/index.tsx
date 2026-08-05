@@ -103,6 +103,7 @@ export default function Cart() {
       for (const item of cartItems) {
         await api.post<unknown>('/cart/items', {
           product_id: item.id,
+          variant_id: item.variantId,
           quantity: item.quantity,
         })
       }
