@@ -1,7 +1,7 @@
 import { Suspense, useMemo, useState } from 'react'
 import { Canvas, type ThreeEvent } from '@react-three/fiber'
 import { Edges, Environment, Html, Line, OrbitControls, Text, useGLTF } from '@react-three/drei'
-import { ACESFilmicToneMapping, Box3, Color, Plane, Vector3, type Material } from 'three'
+import { ACESFilmicToneMapping, Box3, Color, Plane, Vector3 } from 'three'
 import { getModelUrl } from './modelCatalog'
 import { colorHexOf } from './colors'
 import {
@@ -98,84 +98,9 @@ function ProceduralCabinet({ width, height, depth, color, subtitle }: { width: n
   )
 }
 
-function UpperCabinetFront({ width, height, depth, subtitle }: {
-  width: number
-  height: number
-  depth: number
-  subtitle: string
-}) {
-  const doors = Math.max(1, doorCount(subtitle))
-  const inset = 0.018
-  const frontZ = depth + 0.008
-  const handleY = height - HANDLE_TOP_OFFSET_M
-  const handleWidth = doors === 1 ? Math.min(width * 0.3, 0.28) : Math.min(width * 0.22, 0.13)
-  const handleXs = Array.from({ length: doors }, (_, index) => (
-    -width / 2 + (width / doors) * (index + 0.5)
-  ))
-
-  return (
-    <>
-      <Line
-        points={[
-          [-width / 2 + inset, inset, frontZ],
-          [width / 2 - inset, inset, frontZ],
-          [width / 2 - inset, height - inset, frontZ],
-          [-width / 2 + inset, height - inset, frontZ],
-          [-width / 2 + inset, inset, frontZ],
-        ]}
-        color="#76654d"
-        lineWidth={1.1}
-      />
-      {Array.from({ length: doors - 1 }, (_, index) => {
-        const lineX = -width / 2 + (width / doors) * (index + 1)
-        return (
-          <Line
-            key={lineX}
-            points={[[lineX, inset, frontZ], [lineX, height - inset, frontZ]]}
-            color="#76654d"
-            lineWidth={1}
-          />
-        )
-      })}
-      {handleXs.map(handleX => (
-        <mesh key={handleX} position={[handleX, handleY, frontZ + 0.012]} castShadow>
-          <boxGeometry args={[handleWidth, 0.018, 0.026]} />
-          <meshStandardMaterial color="#3f4140" metalness={0.72} roughness={0.28} />
-        </mesh>
-      ))}
-    </>
-  )
-}
-
-function TallCabinetFront({ width, height, depth }: { width: number; height: number; depth: number }) {
-  const inset = 0.025
-  const frontZ = depth + 0.008
-  return (
-    <>
-      <Line
-        points={[
-          [-width / 2 + inset, inset, frontZ],
-          [width / 2 - inset, inset, frontZ],
-          [width / 2 - inset, height - inset, frontZ],
-          [-width / 2 + inset, height - inset, frontZ],
-          [-width / 2 + inset, inset, frontZ],
-        ]}
-        color="#766f65"
-        lineWidth={1}
-      />
-      <mesh position={[0, height - HANDLE_TOP_OFFSET_M, frontZ + 0.012]} castShadow>
-        <boxGeometry args={[Math.min(width * 0.46, 0.27), 0.02, 0.028]} />
-        <meshStandardMaterial color="#3f4140" metalness={0.72} roughness={0.28} />
-      </mesh>
-    </>
-  )
-}
-
-function RealCabinetModel({ url, width, color, applyLegacyAppearance }: {
+function RealCabinetModel({ url, width }: {
   url: string
   width: number
-  color: string
-  applyLegacyAppearance: boolean
 }) {
   const { scene } = useGLTF(url)
   const cloned = useMemo(() => {
@@ -194,44 +119,19 @@ function RealCabinetModel({ url, width, color, applyLegacyAppearance }: {
     clone.position.y -= aligned.min.y
     clone.position.z -= aligned.min.z
 
-    clone.updateMatrixWorld(true)
-    const facadeColor = new Color(color).offsetHSL(0, 0, -0.07)
-    const detailColor = new Color('#4b4b47')
-
     clone.traverse(node => {
       const mesh = node as unknown as {
         isMesh?: boolean
         castShadow?: boolean
         receiveShadow?: boolean
-        material?: Material | Material[]
       }
       if (mesh.isMesh) {
         mesh.castShadow = true
         mesh.receiveShadow = true
-
-        if (applyLegacyAppearance) {
-          const meshBounds = new Box3().setFromObject(node)
-          const meshSize = new Vector3()
-          meshBounds.getSize(meshSize)
-          const faceArea = meshSize.x * meshSize.y
-          const longestFaceSide = Math.max(meshSize.x, meshSize.y)
-          const shortestFaceSide = Math.min(meshSize.x, meshSize.y)
-          const isHandle = longestFaceSide > 0.035 && longestFaceSide < 0.55 && shortestFaceSide < 0.08
-
-          const recolor = (source: Material) => {
-            const material = source.clone() as Material & { color?: Color }
-            if (!material.color) return material
-            material.color.copy(isHandle && faceArea < 0.035 ? detailColor : facadeColor)
-            return material
-          }
-
-          if (Array.isArray(mesh.material)) mesh.material = mesh.material.map(recolor)
-          else if (mesh.material) mesh.material = recolor(mesh.material)
-        }
       }
     })
     return clone
-  }, [applyLegacyAppearance, color, scene, width])
+  }, [scene, width])
 
   return <primitive object={cloned} />
 }
@@ -243,14 +143,13 @@ type DragHandlers = {
   onPointerCancel: (event: ThreeEvent<PointerEvent>) => void
 }
 
-function Cabinet({ x, width, spec, color, subtitle, modelUrl, managedModel, active, dragHandlers }: {
+function Cabinet({ x, width, spec, color, subtitle, modelUrl, active, dragHandlers }: {
   x: number
   width: number
   spec: CategorySpec
   color: string
   subtitle: string
   modelUrl?: string
-  managedModel: boolean
   active: boolean
   dragHandlers: DragHandlers
 }) {
@@ -261,18 +160,7 @@ function Cabinet({ x, width, spec, color, subtitle, modelUrl, managedModel, acti
 
   return (
     <group position={[x, elevation, 0]} {...dragHandlers}>
-      {modelUrl ? (
-        <>
-          <RealCabinetModel url={modelUrl} width={width} color={color} applyLegacyAppearance={!managedModel} />
-          {!managedModel && isOven(subtitle) && <OvenFront width={width} height={height} depth={depth} />}
-          {!managedModel && spec.elevation > 0 && (
-            <UpperCabinetFront width={width} height={height} depth={depth} subtitle={subtitle} />
-          )}
-          {!managedModel && spec.elevation === 0 && spec.height > 200 && (
-            <TallCabinetFront width={width} height={height} depth={depth} />
-          )}
-        </>
-      ) : fallback}
+      {modelUrl ? <RealCabinetModel url={modelUrl} width={width} /> : fallback}
       {active && (
         <mesh position={[0, height / 2, depth / 2]}>
           <boxGeometry args={[width + 0.035, height + 0.035, depth + 0.035]} />
@@ -489,7 +377,6 @@ function ConfiguratorScene({ cartItems, wallLengthCm, positions, onPositionChang
             color={item.colorHex ?? colorHexOf(item.colorId)}
             subtitle={item.subtitle}
             modelUrl={item.modelUrl ?? getModelUrl(item.modelSlug, item.colorId)}
-            managedModel={Boolean(item.modelUrl)}
             active={activeKey === `cabinet-${key}`}
             dragHandlers={handlers('cabinet', key, x, width)}
           />
@@ -505,7 +392,6 @@ function ConfiguratorScene({ cartItems, wallLengthCm, positions, onPositionChang
             color={item.colorHex ?? colorHexOf(item.colorId)}
             subtitle={item.subtitle}
             modelUrl={item.modelUrl ?? getModelUrl(item.modelSlug, item.colorId)}
-            managedModel={Boolean(item.modelUrl)}
             active={activeKey === `cabinet-${key}`}
             dragHandlers={handlers('cabinet', key, x, width)}
           />
