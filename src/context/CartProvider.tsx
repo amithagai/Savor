@@ -19,6 +19,34 @@ type CartProviderProps = {
   children: ReactNode
 }
 
+function cartItemKey(item: CartItem) {
+  return item.lineId ?? String(item.id)
+}
+
+function mergeCartItems(currentItems: CartItem[], newItems: CartItem[]) {
+  const mergedItems = [...currentItems]
+
+  for (const newItem of newItems) {
+    const existingIndex = mergedItems.findIndex(
+      (item) => cartItemKey(item) === cartItemKey(newItem)
+    )
+
+    if (existingIndex === -1) {
+      mergedItems.push(newItem)
+      continue
+    }
+
+    const existingItem = mergedItems[existingIndex]
+    mergedItems[existingIndex] = {
+      ...existingItem,
+      ...newItem,
+      quantity: existingItem.quantity + newItem.quantity,
+    }
+  }
+
+  return mergedItems
+}
+
 export function CartProvider({ children }: CartProviderProps) {
   const [cartItems, setCartItems] = useState<CartItem[]>(loadStoredCart)
 
@@ -27,19 +55,23 @@ export function CartProvider({ children }: CartProviderProps) {
   }, [cartItems])
 
   const addToCart = (item: CartItem) => {
-    setCartItems((currentItems) => [...currentItems, item])
+    setCartItems((currentItems) => mergeCartItems(currentItems, [item]))
+  }
+
+  const addItemsToCart = (items: CartItem[]) => {
+    setCartItems((currentItems) => mergeCartItems(currentItems, items))
   }
 
   const removeFromCart = (id: number | string) => {
     setCartItems((currentItems) =>
-      currentItems.filter((item) => item.id !== id)
+      currentItems.filter((item) => cartItemKey(item) !== String(id))
     )
   }
 
   const updateQuantity = (id: number | string, quantity: number) => {
     setCartItems((currentItems) =>
       currentItems.map((item) =>
-        item.id === id ? { ...item, quantity } : item
+        cartItemKey(item) === String(id) ? { ...item, quantity } : item
       )
     )
   }
@@ -53,6 +85,7 @@ export function CartProvider({ children }: CartProviderProps) {
       value={{
         cartItems,
         addToCart,
+        addItemsToCart,
         removeFromCart,
         updateQuantity,
         clearCart,

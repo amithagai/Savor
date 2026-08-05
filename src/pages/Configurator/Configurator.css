@@ -745,19 +745,41 @@
   font-family: var(--font);
 }
 
-.cfg__ci-remove {
+.cfg__ci-decrease {
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  flex-shrink: 0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid #d9e1ea;
+  background: #fff;
+  color: #555f68;
+  font-size: 18px;
+  line-height: 1;
+  cursor: pointer;
+  transition: color 0.15s, border-color 0.15s, background 0.15s, transform 0.15s;
+}
+
+.cfg__ci-decrease:hover {
+  color: #9f2f2f;
+  border-color: #d9a6a6;
+  background: #fff6f6;
+  transform: scale(1.08);
+}
+
+.cfg__ci-decrease:focus-visible {
+  outline: 2px solid var(--sage);
+  outline-offset: 2px;
+}
+
+.cfg__ci-swatch {
   width: 22px;
   height: 22px;
   border-radius: 50%;
   flex-shrink: 0;
-  opacity: 0.7;
-  transition: opacity 0.15s, transform 0.15s;
-  border: none;
-}
-
-.cfg__ci-remove:hover {
-  opacity: 1;
-  transform: scale(1.12);
+  border: 1px solid rgba(0, 0, 0, 0.04);
 }
 
 /* Cart footer */

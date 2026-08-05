@@ -150,15 +150,16 @@ export default function Cart() {
         ) : (
           <ul className="cart-page__items">
             {cartItems.map((item) => {
-              const subtitle = [item.category, item.size].filter(Boolean).join(' · ')
+              const subtitle = [item.category, item.size, item.variant].filter(Boolean).join(' · ')
+              const lineId = item.lineId ?? item.id
 
               return (
-                <li key={item.id} className="cart-page__item">
+                <li key={lineId} className="cart-page__item">
                   <button
                     type="button"
                     className="cart-page__remove"
                     aria-label={`הסר את ${item.name} מהעגלה`}
-                    onClick={() => removeFromCart(item.id)}
+                    onClick={() => removeFromCart(lineId)}
                   >
                     ×
                   </button>
@@ -179,7 +180,7 @@ export default function Cart() {
                       <select
                         aria-label={`כמות עבור ${item.name}`}
                         value={item.quantity}
-                        onChange={(event) => updateQuantity(item.id, Number(event.target.value))}
+                        onChange={(event) => updateQuantity(lineId, Number(event.target.value))}
                       >
                         {QUANTITY_OPTIONS.map((quantity) => (
                           <option key={quantity} value={quantity}>
@@ -187,7 +188,11 @@ export default function Cart() {
                           </option>
                         ))}
                       </select>
-                      <span className="cart-page__item-swatch" aria-hidden="true" />
+                      <span
+                        className="cart-page__item-swatch"
+                        style={item.swatchColor ? { backgroundColor: item.swatchColor } : undefined}
+                        aria-hidden="true"
+                      />
                     </div>
                   </div>
                 </li>

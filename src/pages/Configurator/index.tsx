@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom'
 import './Configurator.css'
 import HeartIcon from '../../components/HeartIcon'
 import { useWishlist } from '../../context/useWishlist'
+import { useCart } from '../../context/useCart'
 import KitchenModelViewer from './KitchenModelViewer'
 import Configurator2DView from './Configurator2DView'
 import ProductThumbnail from './ProductThumbnail'
@@ -69,6 +70,8 @@ const INITIAL_CART: CartItem[] = [
 interface ActionButtonProps {
   resetAll: () => void
   onContact: () => void
+  onBuy: () => void
+  buyDisabled: boolean
 }
 
 const Chevron: FC<{ open: boolean }> = ({ open }) => (
@@ -142,13 +145,13 @@ const TotalPrice: FC<{ cartItems: Array<CartItem> }> = ({ cartItems }) => {
   )
 }
 
-export const ActionButton: FC<ActionButtonProps> = ({ resetAll, onContact }) => {
+export const ActionButton: FC<ActionButtonProps> = ({ resetAll, onContact, onBuy, buyDisabled }) => {
 
   return (
     <div className="cfg__cart-footer">
       <button className="cfg__reset-btn" onClick={resetAll}>איפוס</button>
       <button className="cfg__outline-btn" onClick={onContact}>שמירת תכנון ויצרות קשר</button>
-      <button className="cfg__buy-btn">לרכישת המטבח</button>
+      <button className="cfg__buy-btn" onClick={onBuy} disabled={buyDisabled}>לרכישת המטבח</button>
     </div>
   )
 }
@@ -174,6 +177,7 @@ const ContactPopup: FC<{ open: boolean; onClose: () => void }> = ({ open, onClos
 }
 
 export default function Configurator() {
+  const navigate = useNavigate()
   const [wallLength, setWallLength] = useState('')
   const [appliedWallLength, setAppliedWallLength] = useState<number | null>(null)
   const [selectedCategories, setSelectedCategories] = useState<CabinetCategory[]>(['תחתונים'])
@@ -186,6 +190,7 @@ export default function Configurator() {
   const [catMenuOpen, setCatMenuOpen] = useState(false)
   const [contactOpen, setContactOpen] = useState(false)
   const { isInWishlist, toggleWishlist } = useWishlist()
+  const { addItemsToCart } = useCart()
 
   useEffect(() => {
     let cancelled = false
@@ -245,16 +250,30 @@ export default function Configurator() {
     }
   }
 
-  function removeItem(id: string, colorId: string) {
-    setCartItems(prev => prev.filter(item => !(item.id === id && item.colorId === colorId)))
-  }
-
   function resetAll() {
     setCartItems([])
     setCabinetPositions({})
     setAccessories({})
     setWallLength('')
     setAppliedWallLength(null)
+  }
+
+  function buyKitchen() {
+    if (cartItems.length === 0) return
+
+    addItemsToCart(cartItems.map((item) => ({
+      id: item.id,
+      lineId: `${item.id}:${item.colorId}`,
+      name: item.name,
+      category: item.category,
+      size: item.subtitle,
+      variant: item.colorLabel,
+      quantity: item.qty,
+      price: item.price,
+      image: item.thumbnailUrl,
+      swatchColor: item.colorHex || colorHexOf(item.colorId),
+    })))
+    navigate('/cart')
   }
 
   function setCabinetPosition(key: string, xCm: number) {
@@ -423,7 +442,12 @@ export default function Configurator() {
 
 
         <div className="cfg__actions cfg__actions--desktop">
-          <ActionButton resetAll={resetAll} onContact={() => setContactOpen(true)} />
+          <ActionButton
+            resetAll={resetAll}
+            onContact={() => setContactOpen(true)}
+            onBuy={buyKitchen}
+            buyDisabled={cartItems.length === 0}
+          />
         </div>
       </div>
 
@@ -548,6 +572,7 @@ export default function Configurator() {
                     <select
                       className="cfg__qty-select"
                       value={item.qty}
+                      aria-label={`כמות עבור ${item.name}`}
                       onChange={e => setQty(item.id, item.colorId, Number(e.target.value))}
                     >
                       {[1, 2, 3, 4, 5, 6, 7, 8, 9, 10].map(n => (
@@ -556,10 +581,19 @@ export default function Configurator() {
                     </select>
                   </div>
                   <button
-                    className="cfg__ci-remove"
+                    type="button"
+                    className="cfg__ci-decrease"
+                    onClick={() => setQty(item.id, item.colorId, item.qty - 1)}
+                    aria-label={item.qty === 1 ? `הסרת ${item.name}` : `הפחתת כמות ${item.name}`}
+                    title={item.qty === 1 ? 'הסרת מוצר' : 'הפחתת כמות'}
+                  >
+                    {item.qty === 1 ? '×' : '−'}
+                  </button>
+                  <span
+                    className="cfg__ci-swatch"
                     style={{ background: item.colorHex || colorHexOf(item.colorId) }}
-                    onClick={() => removeItem(item.id, item.colorId)}
-                    aria-label="הסר פריט"
+                    aria-label={`צבע ${item.colorLabel}`}
+                    role="img"
                   />
                 </div>
               </div>
@@ -569,7 +603,12 @@ export default function Configurator() {
           <TotalPrice cartItems={cartItems} />
 
           <div className="cfg__actions cfg__actions--mobile">
-            <ActionButton resetAll={resetAll} onContact={() => setContactOpen(true)} />
+            <ActionButton
+              resetAll={resetAll}
+              onContact={() => setContactOpen(true)}
+              onBuy={buyKitchen}
+              buyDisabled={cartItems.length === 0}
+            />
           </div>
         </div>
 
