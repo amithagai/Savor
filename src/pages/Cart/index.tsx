@@ -71,15 +71,25 @@ export default function Cart() {
   const installationFee = wantsInstallation ? INSTALLATION_FEE : 0
   const total = itemsTotal + deliveryFee + installationFee
 
-  const isFormValid =
-    cartItems.length > 0 &&
-    form.fullName.trim().split(/\s+/).length >= 2 &&
-    form.city.trim() !== '' &&
-    form.region.trim() !== '' &&
-    form.streetAddress.trim() !== '' &&
-    form.email.trim() !== '' &&
-    /^05\d{8}$/.test(form.phone.replace(/[\s-]/g, '')) &&
-    form.agreedToTerms
+  const checkoutIssues = useMemo(() => {
+    const issues: string[] = []
+    const fullNameParts = form.fullName.trim().split(/\s+/).filter(Boolean)
+    const normalizedPhone = form.phone.replace(/[\s-]/g, '')
+    const hasValidEmail = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(form.email.trim())
+
+    if (cartItems.length === 0) issues.push('מוצר אחד לפחות בעגלה')
+    if (fullNameParts.length < 2) issues.push('שם מלא – שם פרטי ומשפחה')
+    if (!form.city.trim()) issues.push('עיר')
+    if (!form.region.trim()) issues.push('מדינה או אזור')
+    if (!form.streetAddress.trim()) issues.push('כתובת רחוב ומספר בית')
+    if (!hasValidEmail) issues.push('כתובת אימייל תקינה')
+    if (!/^05\d{8}$/.test(normalizedPhone)) issues.push('טלפון נייד תקין בן 10 ספרות')
+    if (!form.agreedToTerms) issues.push('אישור תנאי השימוש')
+
+    return issues
+  }, [cartItems.length, form])
+
+  const isFormValid = checkoutIssues.length === 0
 
   const handleTextChange =
     (field: keyof FormState) => (event: ChangeEvent<HTMLInputElement>) => {
@@ -319,7 +329,21 @@ export default function Cart() {
 
           {paymentError && <p className="cart-page__payment-error" role="alert">{paymentError}</p>}
 
-          <button type="submit" className="cart-page__submit" disabled={!isFormValid || isSubmitting}>
+          {!isFormValid && (
+            <div className="cart-page__validation-hint" id="checkout-requirements" role="status" aria-live="polite">
+              <strong>כדי להמשיך לתשלום יש להשלים:</strong>
+              <ul>
+                {checkoutIssues.map((issue) => <li key={issue}>{issue}</li>)}
+              </ul>
+            </div>
+          )}
+
+          <button
+            type="submit"
+            className="cart-page__submit"
+            disabled={!isFormValid || isSubmitting}
+            aria-describedby={!isFormValid ? 'checkout-requirements' : undefined}
+          >
             {isSubmitting ? 'פותחים תשלום מאובטח…' : 'מעבר לתשלום מאובטח'}
           </button>
         </div>
