@@ -116,6 +116,13 @@ export default function AdminLayout() {
         </ul>
 
         <div className="admin__account-actions">
+          <a
+            className="admin__guide-link"
+            href="/docs/Savor_Manager_Guide_HE.docx"
+            download
+          >
+            מדריך למנהלת
+          </a>
           <button
             type="button"
             className="admin__password-button"

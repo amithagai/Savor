@@ -64,7 +64,8 @@
 }
 
 .admin__logout,
-.admin__password-button {
+.admin__password-button,
+.admin__guide-link {
   font-size: 13px;
   font-weight: 600;
   color: var(--signup-button);
@@ -74,14 +75,23 @@
   transition: background 0.18s;
 }
 
-.admin__password-button {
+.admin__password-button,
+.admin__guide-link {
   color: var(--text);
   background: transparent;
   border: 1px solid rgba(30, 45, 35, 0.25);
 }
 
+.admin__guide-link {
+  display: inline-flex;
+  align-items: center;
+  white-space: nowrap;
+  text-decoration: none;
+}
+
 .admin__logout:hover,
-.admin__password-button:hover {
+.admin__password-button:hover,
+.admin__guide-link:hover {
   background: var(--sage-hover);
 }
 
@@ -232,6 +242,7 @@
   }
 
   .admin__password-button,
+  .admin__guide-link,
   .admin__logout {
     padding: 7px 11px;
   }
