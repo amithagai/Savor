@@ -89,7 +89,10 @@ export default function AdminProducts() {
                 {product.is_active ? 'מפורסם' : 'טיוטה'}
               </span>
               <span className="admin-products__price">
-                {product.current_price ? `${product.current_price.toLocaleString('he-IL')} ₪` : 'ללא מחיר'}
+                {product.current_price ? <>
+                  <strong>{product.current_price.toLocaleString('he-IL')} ₪</strong>
+                  {product.original_price != null && <del>{product.original_price.toLocaleString('he-IL')} ₪</del>}
+                </> : 'ללא מחיר'}
               </span>
               <span className="admin-products__edit">עריכה ←</span>
             </Link>

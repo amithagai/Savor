@@ -7,6 +7,7 @@ export type ProductVariant = {
   color_label: string
   sku: string
   price: number
+  sale_price?: number | null
   model_url: string
   thumbnail_url?: string | null
   attributes: Record<string, unknown>
@@ -32,6 +33,7 @@ export type CatalogProduct = {
   images: string[]
   is_active: boolean
   current_price?: number | null
+  original_price?: number | null
   category?: Category | null
   installation_pdf_url?: string | null
 }
@@ -43,12 +45,15 @@ export type AdminProduct = {
   product_type: ProductType
   is_active: boolean
   current_price: number | null
+  regular_price: number | null
+  original_price: number | null
   category_name?: string | null
   primary_image?: string | null
 }
 
 export type AdminProductDetail = CatalogProduct & {
   category_id: string | null
+  regular_price: number | null
   variants: ProductVariant[]
 }
 

@@ -54,6 +54,7 @@ export default function Catalog() {
             subtitle={String(product.attributes.size || product.category?.name || 'מטבח')}
             image={product.images[0]}
             price={product.current_price}
+            originalPrice={product.original_price}
             productHref={`/catalog/${product.slug}`}
             onAddToCart={() => addProduct(product)}
           />

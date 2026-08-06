@@ -32,6 +32,7 @@ type CabinetProductVariant = {
   colorId: string
   colorLabel: string
   price: number
+  originalPrice?: number
   sku?: string
   modelUrl?: string
   thumbnailUrl?: string
@@ -118,7 +119,8 @@ function configuratorProductFromApi(product: ConfiguratorProduct): CabinetProduc
     variantId: variant.id,
     colorId: variant.color_id,
     colorLabel: variant.color_label,
-    price: variant.price,
+    price: variant.sale_price ?? variant.price,
+    originalPrice: variant.sale_price != null ? variant.price : undefined,
     sku: variant.sku,
     modelUrl: variant.model_url,
     thumbnailUrl: variant.thumbnail_url || undefined,
@@ -494,6 +496,7 @@ export default function Configurator() {
                     <span className="cfg__product-name">{product.name}</span>
                     <span className="cfg__product-price">
                       {product.width} ס"מ מ- {variant.price.toLocaleString()} ₪
+                      {variant.originalPrice != null && <del>{variant.originalPrice.toLocaleString()} ₪</del>}
                     </span>
                     <span className="cfg__product-color-name">{variant.colorLabel}</span>
                   </div>

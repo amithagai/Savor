@@ -111,5 +111,18 @@
 .savor-product-card__price {
   display: block;
   font-size: 21px;
+  color: #4c7d42;
+}
+
+.savor-product-card__prices {
+  display: flex;
+  align-items: baseline;
+  gap: 10px;
   margin: -12px 0 18px;
+}
+
+.savor-product-card__original-price {
+  color: #888;
+  font-size: 16px;
+  font-weight: 500;
 }

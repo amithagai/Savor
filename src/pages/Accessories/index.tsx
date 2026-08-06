@@ -48,6 +48,7 @@ export default function Accessories() {
           subtitle={product.category?.name || 'מוצר משלים'}
           image={product.images[0]}
           price={product.current_price}
+          originalPrice={product.original_price}
           productHref={`/accessories/${product.slug}`}
           onAddToCart={() => addProduct(product)}
         />) : <p className="catalog-page__empty">עדיין אין מוצרים בקטגוריה הזאת.</p>}

@@ -16,7 +16,8 @@
 .admin-products__identity small { color: var(--text-muted); }
 .admin-products__status { justify-self: start; padding: 4px 9px; border-radius: 999px; background: #f0f0f0; color: #777; font-size: 11px; font-weight: 700; }
 .admin-products__status--active { background: var(--sage); color: var(--signup-button); }
-.admin-products__price { font-weight: 700; font-size: 14px; }
+.admin-products__price { display: flex; flex-direction: column; align-items: flex-start; font-weight: 700; font-size: 14px; }
+.admin-products__price del { color: var(--text-muted); font-size: 11px; font-weight: 500; }
 .admin-products__edit { color: var(--signup-button); font-size: 13px; font-weight: 700; }
 .admin-products__state { padding: 30px 0; color: var(--text-muted); }
 .admin-products__state--error { color: #a52b2b; }

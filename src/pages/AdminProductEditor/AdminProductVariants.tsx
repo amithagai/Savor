@@ -17,6 +17,7 @@ type VariantDraft = {
   color_hex: string
   sku: string
   price: string
+  sale_price: string
   model_url: string
   thumbnail_url: string
   is_active: boolean
@@ -29,6 +30,7 @@ const emptyDraft: VariantDraft = {
   color_hex: '#f2eee5',
   sku: '',
   price: '',
+  sale_price: '',
   model_url: '',
   thumbnail_url: '',
   is_active: false,
@@ -42,6 +44,7 @@ function toDraft(variant: ProductVariant): VariantDraft {
     color_hex: String(variant.attributes?.color_hex || '#f2eee5'),
     sku: variant.sku,
     price: String(variant.price),
+    sale_price: String(variant.sale_price ?? ''),
     model_url: variant.model_url,
     thumbnail_url: variant.thumbnail_url || '',
     is_active: variant.is_active,
@@ -83,8 +86,13 @@ export default function AdminProductVariants({ productId, token, variants, onCha
   const save = async (key: string) => {
     const draft = drafts[key]
     const price = Number(draft.price)
+    const salePrice = draft.sale_price.trim() ? Number(draft.sale_price) : null
     if (!draft.color_id || !draft.color_label || !draft.sku || !draft.model_url || !Number.isFinite(price) || price <= 0) {
       setError('יש למלא צבע, שם צבע, מק״ט, מחיר ומודל GLB')
+      return
+    }
+    if (salePrice != null && (!Number.isFinite(salePrice) || salePrice <= 0 || salePrice >= price)) {
+      setError('מחיר המבצע חייב להיות נמוך מהמחיר הרגיל')
       return
     }
     setBusy(`${key}-save`)
@@ -94,6 +102,7 @@ export default function AdminProductVariants({ productId, token, variants, onCha
       color_label: draft.color_label.trim(),
       sku: draft.sku.trim(),
       price,
+      sale_price: salePrice,
       model_url: draft.model_url,
       thumbnail_url: draft.thumbnail_url || null,
       attributes: { color_hex: draft.color_hex },
@@ -175,6 +184,9 @@ export default function AdminProductVariants({ productId, token, variants, onCha
                   </label>
                   <label className="admin-product-editor__field">מחיר
                     <div className="admin-product-editor__price-input"><input type="number" min="1" value={draft.price} onChange={(event) => setDraftField(key, 'price', event.target.value)} /><span>₪</span></div>
+                  </label>
+                  <label className="admin-product-editor__field">מחיר מבצע (אופציונלי)
+                    <div className="admin-product-editor__price-input"><input type="number" min="1" value={draft.sale_price} onChange={(event) => setDraftField(key, 'sale_price', event.target.value)} placeholder="ללא מבצע" /><span>₪</span></div>
                   </label>
                   <label className="admin-product-editor__field">צבע לתצוגה
                     <input type="color" value={draft.color_hex} onChange={(event) => setDraftField(key, 'color_hex', event.target.value)} />

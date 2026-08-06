@@ -8,6 +8,10 @@
 .admin-product-editor__secondary { background: white; border: 1px solid var(--border); }
 .admin-product-editor__actions button:disabled { opacity: .6; }
 .admin-product-editor__saved { color: var(--signup-button); font-size: 13px; font-weight: 700; }
+.admin-product-editor__danger-zone { border-color: #e9caca; }
+.admin-product-editor__danger { width: 100%; border: 1px solid #b33a3a; border-radius: 999px; color: #a52b2b; background: #fff7f7; padding: 10px 16px; font-weight: 700; }
+.admin-product-editor__danger:hover { background: #fdeaea; }
+.admin-product-editor__danger:disabled { opacity: .55; cursor: default; }
 .admin-product-editor__error { color: #8d2525; background: #fff0f0; border: 1px solid #f0caca; border-radius: 12px; padding: 11px 14px; margin-bottom: 16px; }
 .admin-product-editor__layout { display: grid; grid-template-columns: minmax(0, 1fr) 280px; gap: 18px; align-items: start; }
 .admin-product-editor__main, .admin-product-editor__side { display: flex; flex-direction: column; gap: 18px; }

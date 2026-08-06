@@ -14,6 +14,7 @@ type FormState = {
   product_type: ProductType
   category_id: string
   price: string
+  sale_price: string
   size: string
   model: string
   color: string
@@ -32,7 +33,7 @@ type FormState = {
 }
 
 const emptyForm: FormState = {
-  name: '', slug: '', description: '', product_type: 'KITCHEN', category_id: '', price: '',
+  name: '', slug: '', description: '', product_type: 'KITCHEN', category_id: '', price: '', sale_price: '',
   size: '', model: '', color: '', material: '', delivery_days: '14', sku: '', images: [],
   configurator_enabled: false, configurator_category: 'תחתונים', configurator_subtitle: '',
   width_cm: '', height_cm: '', depth_cm: '', installation_pdf_url: '', is_active: false,
@@ -51,7 +52,8 @@ function detailToForm(product: AdminProductDetail): FormState {
     description: product.description || '',
     product_type: product.product_type,
     category_id: product.category_id || '',
-    price: String(product.current_price ?? ''),
+    price: String(product.regular_price ?? product.current_price ?? ''),
+    sale_price: product.original_price != null ? String(product.current_price ?? '') : '',
     size: String(attr.size ?? ''),
     model: String(attr.model ?? ''),
     color: String(attr.color ?? ''),
@@ -80,6 +82,7 @@ export default function AdminProductEditor() {
   const [variants, setVariants] = useState<ProductVariant[]>([])
   const [loading, setLoading] = useState(!isNew)
   const [saving, setSaving] = useState(false)
+  const [deleting, setDeleting] = useState(false)
   const [uploading, setUploading] = useState(false)
   const [error, setError] = useState('')
   const [saved, setSaved] = useState(false)
@@ -155,14 +158,19 @@ export default function AdminProductEditor() {
   const handleSave = async (publish?: boolean) => {
     setError('')
     const price = Number(form.price)
+    const salePrice = form.sale_price.trim() ? Number(form.sale_price) : null
     if (!form.name.trim() || !form.slug.trim() || !Number.isFinite(price) || price <= 0) {
       setError('יש למלא שם, כתובת מוצר ומחיר תקין')
+      return
+    }
+    if (salePrice != null && (!Number.isFinite(salePrice) || salePrice <= 0 || salePrice >= price)) {
+      setError('מחיר המבצע חייב להיות נמוך מהמחיר הרגיל')
       return
     }
     setSaving(true)
     const payload = {
       name: form.name.trim(), slug: form.slug.trim(), description: form.description.trim() || null,
-      product_type: form.product_type, category_id: form.category_id || null, price,
+      product_type: form.product_type, category_id: form.category_id || null, price, sale_price: salePrice,
       attributes: {
         size: form.size.trim(), model: form.model.trim(), color: form.color.trim(),
         material: form.material.trim(), delivery_days: Number(form.delivery_days) || null, sku: form.sku.trim(),
@@ -188,6 +196,20 @@ export default function AdminProductEditor() {
       setError(err instanceof ApiError ? err.message : 'שמירת המוצר נכשלה')
     } finally {
       setSaving(false)
+    }
+  }
+
+  const handleDelete = async () => {
+    if (isNew || !productId) return
+    if (!window.confirm(`למחוק לצמיתות את המוצר "${form.name}"? לא ניתן לבטל פעולה זו.`)) return
+    setDeleting(true)
+    setError('')
+    try {
+      await api.delete(`/admin/products/${productId}`, token)
+      navigate('/admin/products', { replace: true })
+    } catch (err) {
+      setError(err instanceof ApiError ? err.message : 'מחיקת המוצר נכשלה')
+      setDeleting(false)
     }
   }
 
@@ -227,6 +249,10 @@ export default function AdminProductEditor() {
               </label>
               <label className="admin-product-editor__field">מחיר
                 <div className="admin-product-editor__price-input"><input type="number" min="1" value={form.price} onChange={(e) => setField('price', e.target.value)} /><span>₪</span></div>
+              </label>
+              <label className="admin-product-editor__field">מחיר מבצע (אופציונלי)
+                <div className="admin-product-editor__price-input"><input type="number" min="1" value={form.sale_price} onChange={(e) => setField('sale_price', e.target.value)} placeholder="ללא מבצע" /><span>₪</span></div>
+                <small className="admin-product-editor__hint">המחיר הרגיל יוצג עם קו חוצה</small>
               </label>
               <label className="admin-product-editor__field">קטגוריה
                 <select value={form.category_id} onChange={(e) => setField('category_id', e.target.value)}>
@@ -319,6 +345,13 @@ export default function AdminProductEditor() {
             <h2>מסמך התקנה</h2>
             <label className="admin-product-editor__field">קישור ל-PDF<input dir="ltr" value={form.installation_pdf_url} onChange={(e) => setField('installation_pdf_url', e.target.value)} placeholder="https://…" /></label>
           </section>
+          {!isNew && <section className="admin-product-editor__card admin-product-editor__danger-zone">
+            <h2>מחיקת מוצר</h2>
+            <p className="admin-product-editor__hint">המחיקה קבועה ותסיר את המוצר גם מסלים ומרשימות משאלות.</p>
+            <button type="button" className="admin-product-editor__danger" disabled={deleting || saving} onClick={handleDelete}>
+              {deleting ? 'מוחק…' : 'מחיקת המוצר'}
+            </button>
+          </section>}
         </aside>
       </div>
     </div>

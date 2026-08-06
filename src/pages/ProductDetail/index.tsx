@@ -57,7 +57,10 @@ export default function ProductDetail() {
           {product.category && <span className="product-detail__category">{product.category.name}</span>}
           <h1>{product.name}</h1>
           {product.description && <p className="product-detail__description">{product.description}</p>}
-          {product.current_price != null && <div className="product-detail__price">{product.current_price.toLocaleString('he-IL')} ₪</div>}
+          {product.current_price != null && <div className="product-detail__prices">
+            <strong className="product-detail__price">{product.current_price.toLocaleString('he-IL')} ₪</strong>
+            {product.original_price != null && <del className="product-detail__original-price">{product.original_price.toLocaleString('he-IL')} ₪</del>}
+          </div>}
           {product.attributes.delivery_days != null && <p className="product-detail__delivery">אספקה משוערת: עד {String(product.attributes.delivery_days)} ימי עסקים</p>}
           <button className="product-detail__add" type="button" onClick={addProduct} disabled={product.current_price == null}>הוספה לסל</button>
           {product.installation_pdf_url && <a className="product-detail__pdf" href={product.installation_pdf_url} target="_blank" rel="noreferrer">הורדת הוראות התקנה</a>}

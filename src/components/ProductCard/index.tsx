@@ -6,11 +6,12 @@ type ProductCardProps = {
   subtitle: string
   image?: string
   price?: number | null
+  originalPrice?: number | null
   productHref?: string
   onAddToCart: () => void
 }
 
-export default function ProductCard({ name, subtitle, image, price, productHref, onAddToCart }: ProductCardProps) {
+export default function ProductCard({ name, subtitle, image, price, originalPrice, productHref, onAddToCart }: ProductCardProps) {
   const media = image ? (
     <img src={image} alt={name} className="savor-product-card__image" loading="lazy" />
   ) : (
@@ -24,7 +25,10 @@ export default function ProductCard({ name, subtitle, image, price, productHref,
       <div className="savor-product-card__content">
         <h3>{productHref ? <Link to={productHref}>{name}</Link> : name}</h3>
         <p>{subtitle}</p>
-        {price != null && <strong className="savor-product-card__price">{price.toLocaleString('he-IL')} ₪</strong>}
+        {price != null && <div className="savor-product-card__prices">
+          <strong className="savor-product-card__price">{price.toLocaleString('he-IL')} ₪</strong>
+          {originalPrice != null && <del className="savor-product-card__original-price">{originalPrice.toLocaleString('he-IL')} ₪</del>}
+        </div>}
         <button className="savor-product-card__button" onClick={onAddToCart}>
           הוסף לסל
         </button>
