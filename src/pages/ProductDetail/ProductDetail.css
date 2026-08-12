@@ -64,20 +64,20 @@
   border-radius: 50%;
   display: grid;
   place-items: center;
-  color: #a7a7a7;
+  color: #377E2B;
   background: rgba(255, 255, 255, .78);
   backdrop-filter: blur(4px);
   transition: color .18s ease, background .18s ease, transform .18s ease;
 }
 
 .product-detail__wishlist:hover {
-  color: var(--signup-button);
+  color: #377E2B;
   background: #fff;
   transform: scale(1.04);
 }
 
 .product-detail__wishlist--active {
-  color: var(--signup-button);
+  color: #377E2B;
 }
 
 .product-detail__wishlist svg {

@@ -271,7 +271,7 @@
 
   border-radius: 50%;
 
-  background-color: #d94d3f;
+  background-color: #377E2B;
   color: white;
 
   display: flex;
@@ -281,6 +281,23 @@
   font-size: 11px;
   font-weight: 600;
 }
+
+.navbar__wishlist-count {
+  position: absolute;
+  top: -6px;
+  right: -6px;
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  background-color: #377E2B;
+  color: white;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 11px;
+  font-weight: 600;
+}
+
 /* Hamburger is desktop-hidden; shown only on mobile */
 .navbar__hamburger {
   display: none;

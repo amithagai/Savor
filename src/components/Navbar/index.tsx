@@ -153,7 +153,7 @@ export default function Navbar() {
           >
             <HeartIcon filled={wishlistItems.length > 0} />
             {wishlistItems.length > 0 && (
-              <span className="navbar__cart-badge">{wishlistItems.length}</span>
+              <span className="navbar__wishlist-count">{wishlistItems.length}</span>
             )}
           </button>
 

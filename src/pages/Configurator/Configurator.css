@@ -490,7 +490,7 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  color: #B9C2C9;
+  color: #377E2B;
   transition: color 0.15s;
 }
 
@@ -500,11 +500,11 @@
 }
 
 .cfg__product-heart:hover {
-  color: var(--green);
+  color: #377E2B;
 }
 
 .cfg__product-heart--on {
-  color: var(--green);
+  color: #377E2B;
 }
 
 .cfg__product-swatch {
