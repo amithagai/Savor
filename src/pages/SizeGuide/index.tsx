@@ -50,7 +50,7 @@ export default function SizeGuide() {
 }
 
 function SizeGuideAccordion({ content }: { content: SizeGuideContent }) {
-  const [openSteps, setOpenSteps] = useState(() => new Set(content.steps.map((step) => step.id)))
+  const [openSteps, setOpenSteps] = useState(() => new Set(content.steps[0] ? [content.steps[0].id] : []))
 
   const toggleStep = (stepId: string) => {
     setOpenSteps((current) => {
