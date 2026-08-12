@@ -58,13 +58,7 @@ export default function ProductDetail() {
         setSelectedImage(0)
         setQuantity(1)
 
-        const relatedEndpoint = loadedProduct.product_type === 'ACCESSORY'
-          ? '/catalog/accessories'
-          : loadedProduct.product_type === 'CABINET'
-            ? '/catalog/cabinets'
-            : '/catalog/kitchens'
-
-        return api.get<CatalogProduct[]>(relatedEndpoint)
+        return api.get<CatalogProduct[]>('/catalog/accessories')
           .then((products) => setRelatedProducts(products.filter((item) => item.id !== loadedProduct.id)))
           .catch(() => setRelatedProducts([]))
       })
@@ -76,11 +70,6 @@ export default function ProductDetail() {
   if (error || !product) return <main className="product-detail"><p className="product-detail__state">{error}</p></main>
 
   const catalogPath = product.product_type === 'ACCESSORY'
-    ? '/accessories'
-    : product.product_type === 'CABINET'
-      ? '/single-products'
-      : '/catalog'
-  const productPath = product.product_type === 'ACCESSORY'
     ? '/accessories'
     : product.product_type === 'CABINET'
       ? '/single-products'
@@ -187,8 +176,13 @@ export default function ProductDetail() {
           {relatedProducts.map((relatedProduct) => {
             const relatedImage = relatedProduct.images[0]
             const relatedDisplay = getImageDisplaySettings(relatedProduct.attributes, relatedImage)
+            const relatedProductPath = relatedProduct.product_type === 'ACCESSORY'
+              ? '/accessories'
+              : relatedProduct.product_type === 'CABINET'
+                ? '/single-products'
+                : '/catalog'
             return (
-              <Link key={relatedProduct.id} className="product-detail__related-card" to={`${productPath}/${relatedProduct.slug}`}>
+              <Link key={relatedProduct.id} className="product-detail__related-card" to={`${relatedProductPath}/${relatedProduct.slug}`}>
                 <div className="product-detail__related-image">
                   {relatedImage
                     ? <img src={relatedImage} alt="" loading="lazy" style={{ objectFit: relatedDisplay.fit, objectPosition: `${relatedDisplay.positionX}% ${relatedDisplay.positionY}%` }} />
