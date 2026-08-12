@@ -24,12 +24,12 @@ const targets = [
   { file: 'configurator-model.glb', publicId: 'savor/configurator-model', resourceType: 'raw' },
 ];
 
-if (!process.env.VITE_CLOUDINARY_URL) {
-  console.error('VITE_CLOUDINARY_URL is not set (expected in savor-frontend/.env)');
+if (!process.env.CLOUDINARY_URL) {
+  console.error('CLOUDINARY_URL is not set (expected in savor-frontend/.env for this server-side script only)');
   process.exit(1);
 }
 
-const cloudinaryUrl = new URL(process.env.VITE_CLOUDINARY_URL);
+const cloudinaryUrl = new URL(process.env.CLOUDINARY_URL);
 cloudinary.config({
   cloud_name: cloudinaryUrl.hostname,
   api_key: cloudinaryUrl.username,
