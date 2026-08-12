@@ -958,6 +958,16 @@
   gap: 18px;
 }
 
+@media (min-width: 769px) {
+  .cfg__filter-row {
+    margin-bottom: 8px;
+  }
+
+  .cfg__color-row {
+    padding-bottom: 12px;
+  }
+}
+
 /* ═══════════════════════ Mobile ═══════════════════════ */
 @media (max-width: 768px) {
   .cfg {
