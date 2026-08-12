@@ -11,6 +11,7 @@ import type {
   HomeContent,
   SiteContentResponse,
 } from '../../types/content'
+import type { CatalogProduct } from '../../types/catalog'
 
 type ContentTab = 'home' | 'pages' | 'site'
 type Notice = { tone: 'success' | 'error'; text: string } | null
@@ -27,6 +28,7 @@ export default function AdminContent() {
   const navigate = useNavigate()
   const [tab, setTab] = useState<ContentTab>('home')
   const [home, setHome] = useState<SiteContentResponse<HomeContent> | null>(null)
+  const [homeProducts, setHomeProducts] = useState<CatalogProduct[]>([])
   const [pages, setPages] = useState<ContentPageData[]>([])
   const [selectedPageSlug, setSelectedPageSlug] = useState('')
   const [footer, setFooter] = useState<SiteContentResponse<FooterContent> | null>(null)
@@ -51,9 +53,21 @@ export default function AdminContent() {
       api.get<ContentPageData[]>('/admin/content/pages', token),
       api.get<SiteContentResponse<FooterContent>>('/admin/content/site/footer', token),
       api.get<SiteContentResponse<ContactContent>>('/admin/content/site/contact', token),
+      api.get<CatalogProduct[]>('/catalog/kitchens?limit=100'),
     ])
-      .then(([homeContent, contentPages, footerContent, contactContent]) => {
-        setHome(homeContent)
+      .then(([homeContent, contentPages, footerContent, contactContent, catalogProducts]) => {
+        const defaultProducts = catalogProducts.filter((product) => product.attributes.featured).slice(0, 3)
+        setHome({
+          ...homeContent,
+          data: {
+            ...homeContent.data,
+            best_sellers: homeContent.data.best_sellers ?? {
+              title: 'הנמכרים ביותר',
+              product_ids: (defaultProducts.length ? defaultProducts : catalogProducts.slice(0, 3)).map((product) => product.id),
+            },
+          },
+        })
+        setHomeProducts(catalogProducts)
         setPages(contentPages)
         setSelectedPageSlug(contentPages[0]?.slug || '')
         setFooter(footerContent)
@@ -70,6 +84,33 @@ export default function AdminContent() {
 
   const changeHome = (update: (content: HomeContent) => HomeContent) => {
     setHome((current) => current ? { ...current, data: update(current.data) } : current)
+  }
+
+  const changeBestSellers = (patch: Partial<NonNullable<HomeContent['best_sellers']>>) => {
+    changeHome((data) => ({
+      ...data,
+      best_sellers: {
+        title: data.best_sellers?.title || 'הנמכרים ביותר',
+        product_ids: data.best_sellers?.product_ids || [],
+        ...patch,
+      },
+    }))
+  }
+
+  const addBestSeller = (productId: string) => {
+    if (!productId || !home?.data.best_sellers) return
+    const currentIds = home.data.best_sellers.product_ids
+    if (currentIds.includes(productId) || currentIds.length >= 3) return
+    changeBestSellers({ product_ids: [...currentIds, productId] })
+  }
+
+  const moveBestSeller = (index: number, direction: -1 | 1) => {
+    const currentIds = home?.data.best_sellers?.product_ids || []
+    const target = index + direction
+    if (target < 0 || target >= currentIds.length) return
+    const nextIds = [...currentIds]
+    ;[nextIds[index], nextIds[target]] = [nextIds[target], nextIds[index]]
+    changeBestSellers({ product_ids: nextIds })
   }
 
   const changeSelectedPage = (patch: Partial<ContentPageData>) => {
@@ -225,6 +266,45 @@ export default function AdminContent() {
               <span>הודעה אחת בכל שורה</span>
               <textarea rows={5} value={home.data.announcements.join('\n')} onChange={(event) => changeHome((data) => ({ ...data, announcements: event.target.value.split('\n') }))} />
             </label>
+          </section>
+
+          <section className="admin-content__card">
+            <div className="admin-content__section-heading">
+              <div><h2>הנמכרים ביותר</h2><p>בחירת עד שלושה מטבחים שיופיעו בדף הבית, לפי הסדר הרצוי.</p></div>
+              <span className="admin-content__selection-count">{home.data.best_sellers?.product_ids.length || 0}/3</span>
+            </div>
+            <Field label="כותרת האזור" value={home.data.best_sellers?.title || ''} onChange={(title) => changeBestSellers({ title })} />
+            <div className="admin-content__featured-list">
+              {(home.data.best_sellers?.product_ids || []).map((productId, index) => {
+                const product = homeProducts.find((item) => item.id === productId)
+                if (!product) return null
+                return (
+                  <div className="admin-content__featured-product" key={product.id}>
+                    <div className="admin-content__featured-image">
+                      {product.images[0] ? <img src={product.images[0]} alt="" /> : <span>אין תמונה</span>}
+                    </div>
+                    <div><strong>{product.name}</strong><span>{String(product.attributes.size || product.category?.name || 'מטבח')}</span></div>
+                    <div className="admin-content__featured-actions">
+                      <button type="button" disabled={index === 0} onClick={() => moveBestSeller(index, -1)} aria-label="העברה למעלה">↑</button>
+                      <button type="button" disabled={index === (home.data.best_sellers?.product_ids.length || 0) - 1} onClick={() => moveBestSeller(index, 1)} aria-label="העברה למטה">↓</button>
+                      <button type="button" className="is-remove" onClick={() => changeBestSellers({ product_ids: (home.data.best_sellers?.product_ids || []).filter((id) => id !== product.id) })}>הסרה</button>
+                    </div>
+                  </div>
+                )
+              })}
+            </div>
+            {(home.data.best_sellers?.product_ids.length || 0) < 3 && (
+              <label className="admin-content__field admin-content__featured-picker">
+                <span>הוספת מטבח</span>
+                <select value="" onChange={(event) => addBestSeller(event.target.value)}>
+                  <option value="">בחרו מוצר…</option>
+                  {homeProducts.filter((product) => !home.data.best_sellers?.product_ids.includes(product.id)).map((product) => (
+                    <option value={product.id} key={product.id}>{product.name}{product.attributes.size ? ` · ${String(product.attributes.size)}` : ''}</option>
+                  ))}
+                </select>
+              </label>
+            )}
+            {(home.data.best_sellers?.product_ids.length || 0) === 0 && <p className="admin-content__hint">כאשר לא נבחרים מוצרים, האזור לא יוצג בדף הבית.</p>}
           </section>
 
           <section className="admin-content__card">

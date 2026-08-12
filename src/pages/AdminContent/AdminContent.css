@@ -48,6 +48,19 @@
 .admin-content__page-picker button { border: 1px solid var(--border); background: white; }
 .admin-content__body-editor { min-height: 360px; }
 .admin-content__state { padding: 32px 0; color: var(--text-muted); }
+.admin-content__selection-count { padding: 6px 10px; border-radius: 999px; background: var(--sage); color: var(--signup-button); font-size: 12px; font-weight: 800; }
+.admin-content__featured-list { display: grid; gap: 10px; margin-top: 16px; }
+.admin-content__featured-product { display: grid; grid-template-columns: 64px minmax(0, 1fr) auto; align-items: center; gap: 13px; padding: 10px; border: 1px solid var(--border); border-radius: 13px; background: #fafbf9; }
+.admin-content__featured-image { width: 64px; aspect-ratio: 1; display: grid; place-items: center; overflow: hidden; border-radius: 9px; background: var(--footer-bg); color: var(--text-muted); font-size: 10px; }
+.admin-content__featured-image img { width: 100%; height: 100%; object-fit: cover; }
+.admin-content__featured-product > div:nth-child(2) { display: grid; gap: 3px; }
+.admin-content__featured-product > div:nth-child(2) span { color: var(--text-muted); font-size: 11px; }
+.admin-content__featured-actions { display: flex; gap: 5px; }
+.admin-content__featured-actions button { min-width: 32px; min-height: 32px; padding: 6px 9px; border: 1px solid var(--border); border-radius: 9px; background: white; color: var(--text); font: inherit; font-size: 12px; font-weight: 700; }
+.admin-content__featured-actions button:disabled { opacity: .35; }
+.admin-content__featured-actions .is-remove { color: #a33a31; }
+.admin-content__featured-picker { margin-top: 14px; }
+.admin-content__featured-picker select { width: 100%; padding: 11px 13px; border: 1px solid var(--border); border-radius: 11px; background: #fcfdfb; color: var(--text); font: inherit; }
 
 @media (max-width: 820px) {
   .admin-content__grid, .admin-content__tiles { grid-template-columns: 1fr; }
@@ -63,4 +76,7 @@
   .admin-content__image-field, .admin-content__tile .admin-content__image-field { grid-template-columns: 1fr; }
   .admin-content__image-preview { max-height: 190px; }
   .admin-content__save-bar button { width: 100%; }
+  .admin-content__featured-product { grid-template-columns: 54px minmax(0, 1fr); }
+  .admin-content__featured-image { width: 54px; }
+  .admin-content__featured-actions { grid-column: 1 / -1; justify-content: flex-start; }
 }

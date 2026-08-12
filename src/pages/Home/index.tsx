@@ -27,7 +27,7 @@ export default function Home() {
             </Link>
           ))}
         </div>
-        <BestSellersSection />
+        <BestSellersSection config={data.best_sellers} />
         <MaterialsSection title={data.materials_title} materials={data.materials} />
         <GallerySection gallery={data.gallery} />
         <TestimonialsSection title={data.testimonials_title} testimonials={data.testimonials} />

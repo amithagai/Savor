@@ -29,6 +29,10 @@ export type HomeContent = {
     tags: Array<{ label: string; to: string }>
   }
   announcements: string[]
+  best_sellers?: {
+    title: string
+    product_ids: string[]
+  }
   materials_title: string
   materials: Array<{ label: string; image_url: string }>
   gallery: {
