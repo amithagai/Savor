@@ -31,7 +31,9 @@ export default function ProductDetail() {
   if (error || !product) return <main className="product-detail"><p className="product-detail__state">{error}</p></main>
 
   const isAccessory = product.product_type === 'ACCESSORY'
-  const specs = Object.entries(product.attributes).filter(([, value]) => value !== '' && value != null)
+  const specs = Object.entries(product.attributes).filter(
+    ([key, value]) => !key.startsWith('configurator_') && value !== '' && value != null,
+  )
   const addProduct = () => {
     if (product.current_price == null) return
     addToCart({
