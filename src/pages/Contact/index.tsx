@@ -53,7 +53,15 @@ export default function Contact() {
             <p>כתובת לאיסוף עצמי: מומנטום - שדרות טום לנטוס 10, נתניה</p>
           </address>
 
-          <div className="contact__map-placeholder" aria-hidden="true" />
+          <div className="contact__map">
+            <iframe
+              title="מפת הגעה למומנטום, שדרות טום לנטוס 10, נתניה"
+              src="https://www.google.com/maps?q=%D7%9E%D7%95%D7%9E%D7%A0%D7%98%D7%95%D7%9D%2C%20%D7%A9%D7%93%D7%A8%D7%95%D7%AA%20%D7%98%D7%95%D7%9D%20%D7%9C%D7%A0%D7%98%D7%95%D7%A1%2010%2C%20%D7%A0%D7%AA%D7%A0%D7%99%D7%94&amp;z=15&amp;output=embed"
+              loading="lazy"
+              referrerPolicy="no-referrer-when-downgrade"
+              allowFullScreen
+            />
+          </div>
         </div>
 
         <div className="contact__form-card">

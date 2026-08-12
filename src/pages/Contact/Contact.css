@@ -47,11 +47,19 @@
   display: inline-block;
 }
 
-.contact__map-placeholder {
+.contact__map {
   width: 100%;
   height: 147px;
+  overflow: hidden;
   border-radius: 15px;
   background: #efefef;
+}
+
+.contact__map iframe {
+  display: block;
+  width: 100%;
+  height: 100%;
+  border: 0;
 }
 
 .contact__form-card {
@@ -172,7 +180,7 @@
     margin-inline: auto;
   }
 
-  .contact__map-placeholder {
+  .contact__map {
     height: 180px;
   }
 }
