@@ -129,6 +129,7 @@
 }
 
 .contact__form button[type='submit'] {
+  align-self: flex-end;
   width: 139px;
   height: 34px;
   margin-top: 5px;
@@ -203,6 +204,7 @@
   }
 
   .contact__form button[type='submit'] {
+    align-self: stretch;
     width: 100%;
   }
 }
