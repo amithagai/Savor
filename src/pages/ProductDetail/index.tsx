@@ -116,7 +116,7 @@ export default function ProductDetail() {
         <div className="product-detail__gallery">
           <div className="product-detail__main-image">
             {activeImage
-              ? <img src={activeImage} alt={product.name} style={{ objectFit: activeImageDisplay.fit, objectPosition: `${activeImageDisplay.positionX}% ${activeImageDisplay.positionY}%` }} />
+              ? <img src={activeImage} alt={product.name} style={{ objectFit: 'contain', objectPosition: `${activeImageDisplay.positionX}% ${activeImageDisplay.positionY}%` }} />
               : <span>{product.name}</span>}
             {product.current_price != null && <button type="button" className={wishlistActive ? 'product-detail__wishlist product-detail__wishlist--active' : 'product-detail__wishlist'} aria-label={wishlistActive ? 'הסרה מהמועדפים' : 'הוספה למועדפים'} aria-pressed={wishlistActive} onClick={toggleProductWishlist}><HeartIcon filled={wishlistActive} /></button>}
           </div>
@@ -124,7 +124,7 @@ export default function ProductDetail() {
           {product.images.length > 1 && <div className="product-detail__thumbs" aria-label="תמונות נוספות">
             {product.images.map((image, index) => {
               const display = getImageDisplaySettings(product.attributes, image)
-              return <button type="button" key={`${image}-${index}`} className={index === selectedImage ? 'product-detail__thumb product-detail__thumb--active' : 'product-detail__thumb'} aria-label={`הצגת תמונה ${index + 1} של ${product.name}`} aria-pressed={index === selectedImage} onClick={() => setSelectedImage(index)}><img src={image} alt="" style={{ objectFit: display.fit, objectPosition: `${display.positionX}% ${display.positionY}%` }} /></button>
+              return <button type="button" key={`${image}-${index}`} className={index === selectedImage ? 'product-detail__thumb product-detail__thumb--active' : 'product-detail__thumb'} aria-label={`הצגת תמונה ${index + 1} של ${product.name}`} aria-pressed={index === selectedImage} onClick={() => setSelectedImage(index)}><img src={image} alt="" style={{ objectFit: 'contain', objectPosition: `${display.positionX}% ${display.positionY}%` }} /></button>
             })}
           </div>}
         </div>
