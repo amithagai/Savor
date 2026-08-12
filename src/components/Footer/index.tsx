@@ -69,6 +69,7 @@ export default function Footer() {
                 </span>
               </li>
               <li><a href="/warranty">מדיניות אחריות והחזרה</a></li>
+              <li><a href="/terms">תנאי השימוש</a></li>
             </ul>
           </div>
 

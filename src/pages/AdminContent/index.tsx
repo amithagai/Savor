@@ -17,6 +17,7 @@ type Notice = { tone: 'success' | 'error'; text: string } | null
 
 const PAGE_LABELS: Record<string, string> = {
   about: 'אודות',
+  terms: 'תנאי השימוש',
   warranty: 'אחריות והחזרות',
   'size-guide': 'מדריך מידות',
 }

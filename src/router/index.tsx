@@ -14,6 +14,7 @@ import About from "../pages/About";
 import Contact from "../pages/Contact";
 import SizeGuide from "../pages/SizeGuide";
 import Warranty from "../pages/Warranty";
+import Terms from "../pages/Terms";
 import NotFound from "../pages/NotFound";
 import { AdminAuthProvider } from "../context/AdminAuthProvider";
 import ProtectedAdminRoute from "../components/ProtectedAdminRoute";
@@ -54,6 +55,7 @@ const router = createBrowserRouter([
       { path: "contact", element: <Contact /> },
       { path: "size-guide", element: <SizeGuide /> },
       { path: "warranty", element: <Warranty /> },
+      { path: "terms", element: <Terms /> },
 
       { path: "*", element: <NotFound /> },
     ],
