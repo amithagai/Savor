@@ -4,11 +4,13 @@ import { useNavigate } from 'react-router-dom'
 import './AdminContent.css'
 import { useAdminAuth } from '../../context/useAdminAuth'
 import { ApiError, api } from '../../lib/api'
+import { DEFAULT_SIZE_GUIDE_CONTENT, normalizeSizeGuideContent } from '../../lib/sizeGuide'
 import type {
   ContactContent,
   ContentPageData,
   FooterContent,
   HomeContent,
+  SizeGuideContent,
   SiteContentResponse,
 } from '../../types/content'
 import type { CatalogProduct } from '../../types/catalog'
@@ -33,6 +35,7 @@ export default function AdminContent() {
   const [selectedPageSlug, setSelectedPageSlug] = useState('')
   const [footer, setFooter] = useState<SiteContentResponse<FooterContent> | null>(null)
   const [contact, setContact] = useState<SiteContentResponse<ContactContent> | null>(null)
+  const [sizeGuide, setSizeGuide] = useState<SiteContentResponse<SizeGuideContent> | null>(null)
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState<ContentTab | null>(null)
   const [uploading, setUploading] = useState('')
@@ -48,14 +51,21 @@ export default function AdminContent() {
   }, [logout, navigate])
 
   useEffect(() => {
+    const sizeGuideRequest = api.get<SiteContentResponse<SizeGuideContent>>('/admin/content/site/size-guide', token)
+      .catch((error) => {
+        if (error instanceof ApiError && error.status === 404) return null
+        throw error
+      })
+
     Promise.all([
       api.get<SiteContentResponse<HomeContent>>('/admin/content/site/home', token),
       api.get<ContentPageData[]>('/admin/content/pages', token),
       api.get<SiteContentResponse<FooterContent>>('/admin/content/site/footer', token),
       api.get<SiteContentResponse<ContactContent>>('/admin/content/site/contact', token),
       api.get<CatalogProduct[]>('/catalog/kitchens?limit=100'),
+      sizeGuideRequest,
     ])
-      .then(([homeContent, contentPages, footerContent, contactContent, catalogProducts]) => {
+      .then(([homeContent, contentPages, footerContent, contactContent, catalogProducts, sizeGuideContent]) => {
         const defaultProducts = catalogProducts.filter((product) => product.attributes.featured).slice(0, 3)
         setHome({
           ...homeContent,
@@ -72,6 +82,16 @@ export default function AdminContent() {
         setSelectedPageSlug(contentPages[0]?.slug || '')
         setFooter(footerContent)
         setContact(contactContent)
+        const sizeGuidePage = contentPages.find((page) => page.slug === 'size-guide')
+        setSizeGuide(sizeGuideContent
+          ? { ...sizeGuideContent, data: normalizeSizeGuideContent(sizeGuideContent.data) }
+          : {
+              id: '',
+              key: 'size-guide',
+              data: DEFAULT_SIZE_GUIDE_CONTENT,
+              is_published: sizeGuidePage?.is_published ?? true,
+              updated_at: '',
+            })
       })
       .catch((error) => handleError(error, 'טעינת תוכן האתר נכשלה'))
       .finally(() => setLoading(false))
@@ -117,6 +137,27 @@ export default function AdminContent() {
     setPages((current) => current.map((page) => (
       page.slug === selectedPageSlug ? { ...page, ...patch } : page
     )))
+  }
+
+  const changeSizeGuide = (update: (content: SizeGuideContent) => SizeGuideContent) => {
+    setSizeGuide((current) => current ? { ...current, data: update(current.data) } : current)
+  }
+
+  const moveSizeGuideStep = (index: number, direction: -1 | 1) => {
+    changeSizeGuide((content) => {
+      const target = index + direction
+      if (target < 0 || target >= content.steps.length) return content
+      const steps = [...content.steps]
+      ;[steps[index], steps[target]] = [steps[target], steps[index]]
+      return { ...content, steps }
+    })
+  }
+
+  const updateSizeGuideStep = (index: number, patch: Partial<SizeGuideContent['steps'][number]>) => {
+    changeSizeGuide((content) => ({
+      ...content,
+      steps: content.steps.map((step, stepIndex) => stepIndex === index ? { ...step, ...patch } : step),
+    }))
   }
 
   const uploadImage = async (file: File, slot: string, onUploaded: (url: string) => void) => {
@@ -169,6 +210,14 @@ export default function AdminContent() {
         },
         token,
       )
+      if (selectedPage.slug === 'size-guide' && sizeGuide) {
+        const savedGuide = await api.put<SiteContentResponse<SizeGuideContent>>(
+          '/admin/content/site/size-guide',
+          { data: sizeGuide.data, is_published: selectedPage.is_published },
+          token,
+        )
+        setSizeGuide(savedGuide)
+      }
       setPages((current) => current.map((page) => page.slug === saved.slug ? saved : page))
       setNotice({ tone: 'success', text: 'העמוד נשמר בהצלחה' })
     } catch (error) {
@@ -396,11 +445,59 @@ export default function AdminContent() {
           {selectedPage ? (
             <section className="admin-content__card">
               <div className="admin-content__section-heading">
-                <div><h2>{PAGE_LABELS[selectedPage.slug] || selectedPage.title}</h2><p>התוכן נשמר בפורמט טקסט וניתן להוסיף פסקאות באמצעות שורה ריקה.</p></div>
+                <div>
+                  <h2>{PAGE_LABELS[selectedPage.slug] || selectedPage.title}</h2>
+                  <p>{selectedPage.slug === 'size-guide' ? 'מזינים את התוכן בלבד. העיצוב, ההדגשות והחצים נוצרים אוטומטית באתר.' : 'התוכן נשמר בפורמט טקסט וניתן להוסיף פסקאות באמצעות שורה ריקה.'}</p>
+                </div>
                 <label className="admin-content__toggle"><input type="checkbox" checked={selectedPage.is_published} onChange={(event) => changeSelectedPage({ is_published: event.target.checked })} />מפורסם באתר</label>
               </div>
               <Field label="כותרת העמוד" value={selectedPage.title} onChange={(title) => changeSelectedPage({ title })} />
-              <label className="admin-content__field"><span>תוכן העמוד</span><textarea className="admin-content__body-editor" rows={18} value={selectedPage.body} onChange={(event) => changeSelectedPage({ body: event.target.value })} /></label>
+              {selectedPage.slug === 'size-guide' && sizeGuide ? (
+                <div className="admin-content__guide-editor">
+                  <div className="admin-content__guide-intro">
+                    <Field label="כותרת משנה" value={sizeGuide.data.subtitle} onChange={(subtitle) => changeSizeGuide((content) => ({ ...content, subtitle }))} />
+                    <TextAreaField label="פתיח קצר" rows={3} value={sizeGuide.data.introduction} onChange={(introduction) => changeSizeGuide((content) => ({ ...content, introduction }))} />
+                  </div>
+
+                  <div className="admin-content__guide-heading">
+                    <div><h3>שלבי המדריך</h3><p>המספור, הקווים והחצים נקבעים אוטומטית לפי הסדר.</p></div>
+                    <span>{sizeGuide.data.steps.length} שלבים</span>
+                  </div>
+
+                  <div className="admin-content__guide-steps">
+                    {sizeGuide.data.steps.map((step, index) => (
+                      <section className="admin-content__guide-step" key={step.id}>
+                        <header>
+                          <strong>שלב {index + 1}</strong>
+                          <div className="admin-content__guide-actions">
+                            <button type="button" disabled={index === 0} onClick={() => moveSizeGuideStep(index, -1)} aria-label={`העברת שלב ${index + 1} למעלה`}>↑</button>
+                            <button type="button" disabled={index === sizeGuide.data.steps.length - 1} onClick={() => moveSizeGuideStep(index, 1)} aria-label={`העברת שלב ${index + 1} למטה`}>↓</button>
+                            <button type="button" className="is-remove" onClick={() => changeSizeGuide((content) => ({ ...content, steps: content.steps.filter((_, stepIndex) => stepIndex !== index) }))}>הסרה</button>
+                          </div>
+                        </header>
+                        <Field label="כותרת השלב" value={step.title} onChange={(title) => updateSizeGuideStep(index, { title })} />
+                        <TextAreaField label="פסקת פתיחה" rows={2} value={step.lead} onChange={(lead) => updateSizeGuideStep(index, { lead })} />
+                        <TextAreaField label="פירוט (פסקה חדשה בכל שורה; טקסט לפני נקודתיים יודגש אוטומטית)" rows={5} value={step.body} onChange={(body) => updateSizeGuideStep(index, { body })} />
+                        <TextAreaField label="שורת טיפ מודגשת — לא חובה" rows={2} value={step.note} onChange={(note) => updateSizeGuideStep(index, { note })} />
+                      </section>
+                    ))}
+                  </div>
+                  <AddButton label="הוספת שלב" onClick={() => changeSizeGuide((content) => ({
+                    ...content,
+                    steps: [...content.steps, { id: `step-${Date.now()}`, title: '', lead: '', body: '', note: '' }],
+                  }))} />
+
+                  <div className="admin-content__guide-intro">
+                    <h3>סיום המדריך</h3>
+                    <Field label="כותרת סיום מודגשת" value={sizeGuide.data.closing_title} onChange={(closing_title) => changeSizeGuide((content) => ({ ...content, closing_title }))} />
+                    <TextAreaField label="טקסט סיום" rows={2} value={sizeGuide.data.closing_body} onChange={(closing_body) => changeSizeGuide((content) => ({ ...content, closing_body }))} />
+                    <Field label="שאלת סיום מודגשת" value={sizeGuide.data.closing_question} onChange={(closing_question) => changeSizeGuide((content) => ({ ...content, closing_question }))} />
+                    <TextAreaField label="טקסט עזרה" rows={3} value={sizeGuide.data.closing_note} onChange={(closing_note) => changeSizeGuide((content) => ({ ...content, closing_note }))} />
+                  </div>
+                </div>
+              ) : (
+                <label className="admin-content__field"><span>תוכן העמוד</span><textarea className="admin-content__body-editor" rows={18} value={selectedPage.body} onChange={(event) => changeSelectedPage({ body: event.target.value })} /></label>
+              )}
               <Field label="תיאור למנועי חיפוש" value={selectedPage.meta_description || ''} onChange={(meta_description) => changeSelectedPage({ meta_description })} />
               <SaveBar label="שמירת העמוד" saving={saving === 'pages'} onClick={savePage} />
             </section>
@@ -444,6 +541,10 @@ export default function AdminContent() {
 
 function Field({ label, value, onChange, dir }: { label: string; value: string; onChange: (value: string) => void; dir?: 'ltr' | 'rtl' }) {
   return <label className="admin-content__field"><span>{label}</span><input value={value} dir={dir} onChange={(event) => onChange(event.target.value)} /></label>
+}
+
+function TextAreaField({ label, value, rows, onChange }: { label: string; value: string; rows: number; onChange: (value: string) => void }) {
+  return <label className="admin-content__field"><span>{label}</span><textarea rows={rows} value={value} onChange={(event) => onChange(event.target.value)} /></label>
 }
 
 function ImageField({ label, value, uploading, onChange, onUpload }: { label: string; value: string; uploading: boolean; onChange: (value: string) => void; onUpload: (file: File) => void }) {

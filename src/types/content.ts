@@ -61,3 +61,21 @@ export type ContactContent = {
   subtitle: string
   success_message: string
 }
+
+export type SizeGuideStep = {
+  id: string
+  title: string
+  lead: string
+  body: string
+  note: string
+}
+
+export type SizeGuideContent = {
+  subtitle: string
+  introduction: string
+  steps: SizeGuideStep[]
+  closing_title: string
+  closing_body: string
+  closing_question: string
+  closing_note: string
+}
