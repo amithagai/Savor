@@ -107,7 +107,16 @@
 }
 
 .footer__email-row {
-  width: 225px;
+  width: 280px;
+}
+
+.footer__email-row .newsletter__input-row input {
+  padding: 10px 16px;
+}
+
+.footer__email-row .newsletter__input-row button {
+  padding-inline: 18px;
+  margin: 3px;
 }
 
 @media (min-width: 769px) {
