@@ -3,7 +3,7 @@ import type { ChangeEvent, FormEvent } from 'react'
 import { useNavigate, useSearchParams } from 'react-router-dom'
 import { useCart } from '../../context/useCart'
 import { api, ApiError } from '../../lib/api'
-import { knownColorHexOf } from '../Configurator/colors'
+import { colorSwatchStyleOf } from '../Configurator/colors'
 import './Cart.css'
 
 const QUANTITY_OPTIONS = Array.from({ length: 10 }, (_, index) => index + 1)
@@ -165,7 +165,7 @@ export default function Cart() {
             {cartItems.map((item) => {
               const subtitle = [item.category, item.size, item.variant].filter(Boolean).join(' · ')
               const lineId = item.lineId ?? item.id
-              const swatchColor = item.swatchColor || knownColorHexOf(item.variant, item.name)
+              const swatchStyle = colorSwatchStyleOf(item.variant, item.name, item.swatchColor)
 
               return (
                 <li key={lineId} className="cart-page__item">
@@ -204,7 +204,7 @@ export default function Cart() {
                       </select>
                       <span
                         className="cart-page__item-swatch"
-                        style={swatchColor ? { backgroundColor: swatchColor } : undefined}
+                        style={swatchStyle}
                         aria-hidden="true"
                       />
                     </div>

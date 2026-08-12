@@ -1,10 +1,18 @@
-export type ColorOption = { id: string; label: string; hex: string }
+export type ColorOption = { id: string; label: string; hex: string; texture?: string }
+
+export type ColorSwatchStyle = {
+  backgroundColor: string
+  backgroundImage?: string
+  backgroundPosition?: string
+  backgroundRepeat?: string
+  backgroundSize?: string
+}
 
 export const COLORS: ColorOption[] = [
-  { id: 'cloud', label: 'CLOUD', hex: '#D7D8DA' },
-  { id: 'cream', label: 'CREAM', hex: '#F2EEE5' },
-  { id: 'latte', label: 'LATTE', hex: '#D7CEC1' },
-  { id: 'timber', label: 'TIMBER', hex: '#D3A968' },
+  { id: 'cloud', label: 'CLOUD', hex: '#D9D9D9' },
+  { id: 'cream', label: 'CREAM', hex: '#F1EDE5' },
+  { id: 'latte', label: 'LATTE', hex: '#DAD2C9' },
+  { id: 'timber', label: 'TIMBER', hex: '#D8C398', texture: '/timber-swatch.png' },
 ]
 
 // Optional pre-assigned pairs: picking a key auto-selects its partner as the
@@ -12,7 +20,7 @@ export const COLORS: ColorOption[] = [
 // chosen — leave empty for free two-color selection.
 export const COLOR_PAIRS: Partial<Record<string, string>> = {}
 
-const DEFAULT_HEX = '#F2EEE5'
+const DEFAULT_HEX = '#F1EDE5'
 
 const COLOR_ALIASES: Record<string, string[]> = {
   cloud: ['cloud'],
@@ -45,6 +53,23 @@ export function knownColorHexOf(...values: Array<string | null | undefined>): st
 
 export function colorHexOf(...values: Array<string | null | undefined>): string {
   return knownColorHexOf(...values) ?? DEFAULT_HEX
+}
+
+export function colorSwatchStyleOf(
+  idOrName?: string | null,
+  labelOrName?: string | null,
+  fallbackHex?: string,
+): ColorSwatchStyle {
+  const option = colorOptionOf(idOrName, labelOrName)
+  return {
+    backgroundColor: option?.hex ?? fallbackHex ?? DEFAULT_HEX,
+    ...(option?.texture ? {
+      backgroundImage: `url("${option.texture}")`,
+      backgroundPosition: 'center',
+      backgroundRepeat: 'no-repeat',
+      backgroundSize: 'cover',
+    } : {}),
+  }
 }
 
 export function colorLabelOf(id: string): string {

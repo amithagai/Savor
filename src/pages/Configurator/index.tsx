@@ -7,7 +7,7 @@ import { useCart } from '../../context/useCart'
 import KitchenModelViewer from './KitchenModelViewer'
 import Configurator2DView from './Configurator2DView'
 import ProductThumbnail from './ProductThumbnail'
-import { COLORS, colorHexOf, colorIdOf, colorLabelOf } from './colors'
+import { COLORS, colorHexOf, colorIdOf, colorLabelOf, colorSwatchStyleOf, knownColorHexOf } from './colors'
 import { availableColorsFor } from './modelCatalog'
 import type { AccessoryPositions, CabinetCategory, CabinetPositions, KitchenAccessoryId } from './cabinetLayout'
 import { api } from '../../lib/api'
@@ -319,7 +319,7 @@ export default function Configurator() {
       quantity: item.qty,
       price: item.price,
       image: item.thumbnailUrl,
-      swatchColor: item.colorHex || colorHexOf(item.colorId, item.colorLabel),
+      swatchColor: knownColorHexOf(item.colorId, item.colorLabel) || item.colorHex || colorHexOf(item.colorId, item.colorLabel),
     })))
     navigate('/cart')
   }
@@ -457,7 +457,7 @@ export default function Configurator() {
                   <button
                     type="button"
                     className={`cfg__color-dot${selected ? ' cfg__color-dot--on' : ''}`}
-                    style={{ backgroundColor: color.hex }}
+                    style={colorSwatchStyleOf(color.id, color.label)}
                     onClick={() => toggleColor(color.id)}
                     aria-label={`${selected ? 'הסרת' : 'בחירת'} צבע ${color.label}`}
                     aria-pressed={selected}
@@ -541,7 +541,7 @@ export default function Configurator() {
                   </button>
                   <div
                     className="cfg__product-swatch"
-                    style={{ background: variant.colorHex || colorHexOf(variant.colorId, variant.colorLabel) }}
+                    style={colorSwatchStyleOf(variant.colorId, variant.colorLabel, variant.colorHex)}
                     title={`צבע ${variant.colorLabel}`}
                   />
                 </div>
@@ -628,7 +628,7 @@ export default function Configurator() {
                   </button>
                   <span
                     className="cfg__ci-swatch"
-                    style={{ background: item.colorHex || colorHexOf(item.colorId, item.colorLabel) }}
+                    style={colorSwatchStyleOf(item.colorId, item.colorLabel, item.colorHex)}
                     aria-label={`צבע ${item.colorLabel}`}
                     role="img"
                   />

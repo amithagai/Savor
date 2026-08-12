@@ -144,11 +144,10 @@
 }
 
 .cfg__color-dot--on::before {
-  content: '✓';
-  font-size: 12px;
-  font-weight: 700;
-  color: #2b2b2b;
-  text-shadow: 0 0 2px rgba(255, 255, 255, 0.8);
+  content: '';
+  width: 9px;
+  height: 7px;
+  background: url('/color-check.svg') center / contain no-repeat;
 }
 
 .cfg__color-tip {
