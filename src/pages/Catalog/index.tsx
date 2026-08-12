@@ -7,6 +7,7 @@ import { useCart } from '../../context/useCart'
 import { api } from '../../lib/api'
 import { getImageDisplaySettings } from '../../lib/imageDisplay'
 import type { CatalogProduct } from '../../types/catalog'
+import { knownColorHexOf } from '../Configurator/colors'
 
 export default function Catalog() {
   const [products, setProducts] = useState<CatalogProduct[]>([])
@@ -35,6 +36,7 @@ export default function Catalog() {
       size: String(product.attributes.size || ''),
       price: product.current_price,
       image: product.images[0],
+      swatchColor: knownColorHexOf(String(product.attributes.model || ''), String(product.attributes.color || ''), product.name, product.slug),
       quantity: 1,
     })
   }

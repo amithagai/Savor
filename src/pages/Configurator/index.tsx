@@ -7,7 +7,7 @@ import { useCart } from '../../context/useCart'
 import KitchenModelViewer from './KitchenModelViewer'
 import Configurator2DView from './Configurator2DView'
 import ProductThumbnail from './ProductThumbnail'
-import { colorHexOf, colorLabelOf } from './colors'
+import { COLORS, colorHexOf, colorIdOf, colorLabelOf } from './colors'
 import { availableColorsFor } from './modelCatalog'
 import type { AccessoryPositions, CabinetCategory, CabinetPositions, KitchenAccessoryId } from './cabinetLayout'
 import { api } from '../../lib/api'
@@ -121,7 +121,7 @@ function configuratorProductFromApi(product: ConfiguratorProduct): CabinetProduc
   if (!CATEGORIES.includes(category) || !Number.isFinite(width) || width <= 0 || product.variants.length === 0) return null
   const variants = product.variants.map((variant) => ({
     variantId: variant.id,
-    colorId: variant.color_id,
+    colorId: colorIdOf(variant.color_id, variant.color_label),
     colorLabel: variant.color_label,
     price: variant.sale_price ?? variant.price,
     originalPrice: variant.sale_price != null ? variant.price : undefined,
@@ -200,6 +200,7 @@ export default function Configurator() {
   const [wallLength, setWallLength] = useState('')
   const [appliedWallLength, setAppliedWallLength] = useState<number | null>(null)
   const [selectedCategories, setSelectedCategories] = useState<ConfiguratorCategory[]>(['תחתונים'])
+  const [selectedColors, setSelectedColors] = useState<string[]>(['latte', 'timber'])
   const [products, setProducts] = useState<CabinetProduct[]>(FALLBACK_PRODUCTS)
   const [cartItems, setCartItems] = useState<CartItem[]>(INITIAL_CART)
   const [cabinetPositions, setCabinetPositions] = useState<CabinetPositions>({})
@@ -260,6 +261,14 @@ export default function Configurator() {
     })
   }
 
+  function toggleColor(colorId: string) {
+    setSelectedColors((current) => {
+      if (!current.includes(colorId)) return [...current, colorId]
+      if (current.length === 1) return current
+      return current.filter((selectedColor) => selectedColor !== colorId)
+    })
+  }
+
   function addToCart(product: CabinetProduct, variant: CabinetProductVariant) {
     if (variant.inStock === false && !variant.allowPreorder) return
     setCartItems(prev => {
@@ -310,7 +319,7 @@ export default function Configurator() {
       quantity: item.qty,
       price: item.price,
       image: item.thumbnailUrl,
-      swatchColor: item.colorHex || colorHexOf(item.colorId),
+      swatchColor: item.colorHex || colorHexOf(item.colorId, item.colorLabel),
     })))
     navigate('/cart')
   }
@@ -321,20 +330,6 @@ export default function Configurator() {
 
   function setAccessoryPosition(id: KitchenAccessoryId, xCm: number) {
     setAccessories(prev => ({ ...prev, [id]: xCm }))
-  }
-
-  function toggleAccessory(id: KitchenAccessoryId) {
-    setAccessories(prev => {
-      if (prev[id] != null) {
-        const next = { ...prev }
-        delete next[id]
-        return next
-      }
-      const availableWidth = appliedWallLength ?? counterCabinetWidth
-      const center = Math.max(30, availableWidth / 2)
-      const x = id === 'sink' ? center : Math.min(Math.max(4, availableWidth - 4), center + 20)
-      return { ...prev, [id]: x }
-    })
   }
 
   function applyWallLength() {
@@ -451,21 +446,28 @@ export default function Configurator() {
           </div>
         </div>
 
-        <div className="cfg__extras-row">
-          <h2 className="cfg__field-label">תוספות להדמיה</h2>
-          <div className="cfg__extra-buttons">
-            <button
-              type="button"
-              className={`cfg__extra-btn${accessories.sink != null ? ' cfg__extra-btn--on' : ''}`}
-              onClick={() => toggleAccessory('sink')}
-              disabled={counterCabinetWidth === 0}
-              aria-pressed={accessories.sink != null}
-            >
-              <span className="cfg__extra-icon cfg__extra-icon--sink" aria-hidden="true" />
-              כיור
-            </button>
+        <div className="cfg__color-row">
+          <h2 className="cfg__field-label">צבעים</h2>
+          <div className="cfg__color-dots" role="group" aria-label="סינון מוצרים לפי צבע">
+            {COLORS.map((color) => {
+              const selected = selectedColors.includes(color.id)
+              const isLastSelected = selected && selectedColors.length === 1
+              return (
+                <span className="cfg__color-wrap" key={color.id}>
+                  <button
+                    type="button"
+                    className={`cfg__color-dot${selected ? ' cfg__color-dot--on' : ''}`}
+                    style={{ backgroundColor: color.hex }}
+                    onClick={() => toggleColor(color.id)}
+                    aria-label={`${selected ? 'הסרת' : 'בחירת'} צבע ${color.label}`}
+                    aria-pressed={selected}
+                    title={isLastSelected ? 'חובה להשאיר לפחות צבע אחד מסומן' : undefined}
+                  />
+                  <span className="cfg__color-tip" aria-hidden="true">צבע {color.label}</span>
+                </span>
+              )
+            })}
           </div>
-          <span className="cfg__extras-help">מוסיפים ואז גוררים למיקום הרצוי</span>
         </div>
 
 
@@ -486,7 +488,9 @@ export default function Configurator() {
         {/* RIGHT panel: product catalog (RTL start — first in DOM) */}
         <div className="cfg__catalog">
           <div className="cfg__product-list">
-            {filteredProducts.flatMap(product => variantsFor(product).map(variant => {
+            {filteredProducts.flatMap(product => variantsFor(product)
+              .filter((variant) => selectedColors.includes(colorIdOf(variant.colorId, variant.colorLabel)))
+              .map(variant => {
               const wishlistId = `${product.id}-${variant.colorId}`
               return (
                 <div
@@ -537,7 +541,7 @@ export default function Configurator() {
                   </button>
                   <div
                     className="cfg__product-swatch"
-                    style={{ background: variant.colorHex || colorHexOf(variant.colorId) }}
+                    style={{ background: variant.colorHex || colorHexOf(variant.colorId, variant.colorLabel) }}
                     title={`צבע ${variant.colorLabel}`}
                   />
                 </div>
@@ -582,7 +586,7 @@ export default function Configurator() {
               </button>
             ))}
           </div>
-          <div className="cfg__drag-hint">גררו ארונות, כיור וברז למיקום הרצוי</div>
+          <div className="cfg__drag-hint">גררו ארונות וברזים למיקום הרצוי</div>
         </div>
 
         {/* LEFT panel: shopping list (RTL end — last in DOM) */}
@@ -624,7 +628,7 @@ export default function Configurator() {
                   </button>
                   <span
                     className="cfg__ci-swatch"
-                    style={{ background: item.colorHex || colorHexOf(item.colorId) }}
+                    style={{ background: item.colorHex || colorHexOf(item.colorId, item.colorLabel) }}
                     aria-label={`צבע ${item.colorLabel}`}
                     role="img"
                   />

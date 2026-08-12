@@ -8,6 +8,7 @@ import { useWishlist } from '../../context/useWishlist'
 import { api } from '../../lib/api'
 import { getImageDisplaySettings } from '../../lib/imageDisplay'
 import type { CatalogProduct } from '../../types/catalog'
+import { knownColorHexOf } from '../Configurator/colors'
 
 function ChevronRightIcon() {
   return (
@@ -88,6 +89,7 @@ export default function ProductDetail() {
       category: product.category?.name,
       price: product.current_price,
       image: product.images[0],
+      swatchColor: knownColorHexOf(String(product.attributes.model || ''), String(product.attributes.color || ''), product.name, product.slug),
       quantity,
     })
   }

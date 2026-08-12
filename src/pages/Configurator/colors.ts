@@ -14,10 +14,39 @@ export const COLOR_PAIRS: Partial<Record<string, string>> = {}
 
 const DEFAULT_HEX = '#F2EEE5'
 
-export function colorHexOf(id: string): string {
-  return COLORS.find(c => c.id === id)?.hex ?? DEFAULT_HEX
+const COLOR_ALIASES: Record<string, string[]> = {
+  cloud: ['cloud'],
+  cream: ['cream', 'קרם'],
+  latte: ['latte', 'לאטה'],
+  timber: ['timber', 'טימבר'],
+}
+
+function normalizedTokens(value: string): string[] {
+  return value.trim().toLowerCase().split(/[^a-z0-9\u0590-\u05ff]+/).filter(Boolean)
+}
+
+export function colorOptionOf(...values: Array<string | null | undefined>): ColorOption | undefined {
+  for (const value of values) {
+    if (!value) continue
+    const tokens = normalizedTokens(value)
+    const option = COLORS.find((color) => COLOR_ALIASES[color.id].some((alias) => tokens.includes(alias)))
+    if (option) return option
+  }
+  return undefined
+}
+
+export function colorIdOf(...values: Array<string | null | undefined>): string {
+  return colorOptionOf(...values)?.id ?? values.find(Boolean)?.trim().toLowerCase() ?? ''
+}
+
+export function knownColorHexOf(...values: Array<string | null | undefined>): string | undefined {
+  return colorOptionOf(...values)?.hex
+}
+
+export function colorHexOf(...values: Array<string | null | undefined>): string {
+  return knownColorHexOf(...values) ?? DEFAULT_HEX
 }
 
 export function colorLabelOf(id: string): string {
-  return COLORS.find(c => c.id === id)?.label ?? id.toUpperCase()
+  return colorOptionOf(id)?.label ?? id.toUpperCase()
 }
