@@ -1,4 +1,4 @@
-import { Suspense, useMemo, useState } from 'react'
+import { Component, Suspense, useMemo, useState, type ErrorInfo, type ReactNode } from 'react'
 import { Canvas, type ThreeEvent } from '@react-three/fiber'
 import { Edges, Environment, Html, Line, OrbitControls, Text, useGLTF } from '@react-three/drei'
 import { ACESFilmicToneMapping, Box3, Color, Plane, Vector3 } from 'three'
@@ -136,6 +136,25 @@ function RealCabinetModel({ url, width }: {
   return <primitive object={cloned} />
 }
 
+class CabinetModelErrorBoundary extends Component<
+  { children: ReactNode; fallback: ReactNode },
+  { failed: boolean }
+> {
+  state = { failed: false }
+
+  static getDerivedStateFromError() {
+    return { failed: true }
+  }
+
+  componentDidCatch(error: Error, info: ErrorInfo) {
+    console.error('Could not load cabinet GLB; using the procedural fallback.', error, info)
+  }
+
+  render() {
+    return this.state.failed ? this.props.fallback : this.props.children
+  }
+}
+
 type DragHandlers = {
   onPointerDown: (event: ThreeEvent<PointerEvent>) => void
   onPointerMove: (event: ThreeEvent<PointerEvent>) => void
@@ -160,7 +179,11 @@ function Cabinet({ x, width, spec, color, subtitle, modelUrl, active, dragHandle
 
   return (
     <group position={[x, elevation, 0]} {...dragHandlers}>
-      {modelUrl ? <RealCabinetModel url={modelUrl} width={width} /> : fallback}
+      {modelUrl ? (
+        <CabinetModelErrorBoundary key={modelUrl} fallback={fallback}>
+          <RealCabinetModel url={modelUrl} width={width} />
+        </CabinetModelErrorBoundary>
+      ) : fallback}
       {active && (
         <mesh position={[0, height / 2, depth / 2]}>
           <boxGeometry args={[width + 0.035, height + 0.035, depth + 0.035]} />
