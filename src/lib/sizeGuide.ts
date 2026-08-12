@@ -50,6 +50,8 @@ export function normalizeSizeGuideContent(content?: Partial<SizeGuideContent> | 
   return {
     ...DEFAULT_SIZE_GUIDE_CONTENT,
     ...content,
+    subtitle: content?.subtitle?.trim() || DEFAULT_SIZE_GUIDE_CONTENT.subtitle,
+    introduction: content?.introduction?.trim() || DEFAULT_SIZE_GUIDE_CONTENT.introduction,
     steps: Array.isArray(content?.steps)
       ? content.steps.map((step, index) => ({
           id: step.id || `step-${index + 1}`,
@@ -59,5 +61,9 @@ export function normalizeSizeGuideContent(content?: Partial<SizeGuideContent> | 
           note: step.note || '',
         }))
       : DEFAULT_SIZE_GUIDE_CONTENT.steps,
+    closing_title: content?.closing_title?.trim() || DEFAULT_SIZE_GUIDE_CONTENT.closing_title,
+    closing_body: content?.closing_body?.trim() || DEFAULT_SIZE_GUIDE_CONTENT.closing_body,
+    closing_question: content?.closing_question?.trim() || DEFAULT_SIZE_GUIDE_CONTENT.closing_question,
+    closing_note: content?.closing_note?.trim() || DEFAULT_SIZE_GUIDE_CONTENT.closing_note,
   }
 }

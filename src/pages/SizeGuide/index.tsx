@@ -10,32 +10,14 @@ export default function SizeGuide() {
   const { page, loading, error } = useContentPage('size-guide')
   const guide = useSiteContent<SizeGuideContent>('size-guide')
 
-  if (loading || guide.loading) {
+  if (loading && guide.loading) {
     return <main className="size-guide"><div className="size-guide__container">טוען…</div></main>
-  }
-  if (error || !page) {
-    return <main className="size-guide"><div className="size-guide__container">לא הצלחנו לטעון את העמוד.</div></main>
   }
 
   const savedGuide = !guide.error && guide.data && Array.isArray(guide.data.steps) ? normalizeSizeGuideContent(guide.data) : null
-  const isPlaceholder = !page.body.trim() || page.body.includes('יעודכן בקרוב')
-  const guideContent = savedGuide || (isPlaceholder ? DEFAULT_SIZE_GUIDE_CONTENT : null)
-  const pageTitle = isPlaceholder && page.title === 'מדריך ללקיחת מידה' ? 'מפת הדרכים לבדיקת מידות:' : page.title
-
-  if (!guideContent) {
-    return (
-      <main className="size-guide">
-        <div className="size-guide__container">
-          <h1 className="size-guide__title">{pageTitle}</h1>
-          <div className="size-guide__legacy">
-            {page.body.split(/\n\s*\n/).filter(Boolean).map((paragraph, index) => (
-              <p key={`${paragraph.slice(0, 20)}-${index}`}>{paragraph}</p>
-            ))}
-          </div>
-        </div>
-      </main>
-    )
-  }
+  const guideContent = savedGuide || DEFAULT_SIZE_GUIDE_CONTENT
+  const legacyTitles = ['מדריך ללקיחת מידה', 'מדריך לקיחת מידה']
+  const pageTitle = !page || error || legacyTitles.includes(page.title) ? 'מפת הדרכים לבדיקת מידות:' : page.title
 
   return (
     <main className="size-guide">

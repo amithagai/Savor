@@ -157,17 +157,6 @@
   margin-top: 8px;
 }
 
-.size-guide__legacy {
-  width: 46%;
-  margin-right: 9.5%;
-}
-
-.size-guide__legacy p {
-  margin-bottom: 20px;
-  font-size: 1rem;
-  line-height: 1.9;
-}
-
 .size-guide__empty {
   padding: 32px 0;
   color: var(--text-muted);
@@ -186,8 +175,7 @@
     padding: 40px 28px 72px;
   }
 
-  .size-guide__content,
-  .size-guide__legacy {
+  .size-guide__content {
     width: 100%;
     margin-right: 0;
   }
