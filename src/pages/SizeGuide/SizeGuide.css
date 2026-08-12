@@ -2,22 +2,15 @@
   direction: rtl;
   min-height: 60vh;
   padding: 0;
-  background: #eff4f7;
-}
-
-.size-guide__container {
-  width: min(calc(100% - 36px), 1470px);
-  min-height: 760px;
-  margin: 0 auto;
-  padding: 62px 0 86px;
   background: #fff;
 }
 
-@media (min-width: 1507px) {
-  .size-guide__container {
-    margin-right: 24px;
-    margin-left: auto;
-  }
+.size-guide__container {
+  width: 100%;
+  min-height: 760px;
+  margin: 0;
+  padding: 62px 0 86px;
+  background: #fff;
 }
 
 .size-guide__content {
