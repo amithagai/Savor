@@ -69,7 +69,8 @@ export default function Cart() {
 
   const deliveryFee = DELIVERY_FEES[deliveryMethod]
   const installationFee = wantsInstallation ? INSTALLATION_FEE : 0
-  const total = itemsTotal + deliveryFee + installationFee
+  // Installation is paid directly to the installer and is not part of checkout.
+  const total = itemsTotal + deliveryFee
 
   const checkoutIssues = useMemo(() => {
     const issues: string[] = []
@@ -244,6 +245,7 @@ export default function Cart() {
               onChange={(event) => setWantsInstallation(event.target.checked)}
             />
             התקנה בבית הלקוח (תשלום למתקין): {formatPrice(INSTALLATION_FEE)} ₪
+            {installationFee > 0 && ' — לא נכלל בסכום לתשלום באתר'}
           </label>
         </div>
       </section>

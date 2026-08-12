@@ -414,7 +414,8 @@ export default function AdminOrders() {
                         <DetailLine label="ספק" value={order.payment_provider || (order.status === 'CREATED' ? 'טרם נבחר' : 'לא ידוע')} />
                         <DetailLine label="סטטוס" value={orderStatusLabel(order)} />
                         <DetailLine label="סכום מוצרים" value={formatMoney(order.subtotal_snapshot)} />
-                        <DetailLine label="משלוח והתקנה" value={formatMoney((address.delivery_fee || 0) + (address.installation_fee || 0))} />
+                        <DetailLine label="משלוח" value={formatMoney(address.delivery_fee || 0)} />
+                        {address.wants_installation && <DetailLine label="התקנה (תשלום נפרד למתקין)" value={formatMoney(address.installation_fee || 0)} />}
                       </DetailSection>
                     </div>
 
