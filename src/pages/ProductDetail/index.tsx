@@ -116,7 +116,10 @@ export default function ProductDetail() {
         <div className="product-detail__gallery">
           <div className="product-detail__main-image">
             {activeImage
-              ? <img src={activeImage} alt={product.name} style={{ objectFit: 'contain', objectPosition: `${activeImageDisplay.positionX}% ${activeImageDisplay.positionY}%` }} />
+              ? <>
+                  <img className="product-detail__main-image-backdrop" src={activeImage} alt="" aria-hidden="true" style={{ objectPosition: `${activeImageDisplay.positionX}% ${activeImageDisplay.positionY}%` }} />
+                  <img className="product-detail__main-image-photo" src={activeImage} alt={product.name} style={{ objectPosition: `${activeImageDisplay.positionX}% ${activeImageDisplay.positionY}%` }} />
+                </>
               : <span>{product.name}</span>}
             {product.current_price != null && <button type="button" className={wishlistActive ? 'product-detail__wishlist product-detail__wishlist--active' : 'product-detail__wishlist'} aria-label={wishlistActive ? 'הסרה מהמועדפים' : 'הוספה למועדפים'} aria-pressed={wishlistActive} onClick={toggleProductWishlist}><HeartIcon filled={wishlistActive} /></button>}
           </div>
