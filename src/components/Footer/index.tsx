@@ -49,7 +49,7 @@ export default function Footer() {
             <ul>
               <li><a href="/about">מי אנחנו</a></li>
               <li><a href="/size-guide">מדריך ללקיחת מידה</a></li>
-              <li><a href="#">חוברות הרכבה</a></li>
+              <li><a href="/assembly-guides">חוברות הרכבה</a></li>
             </ul>
           </div>
 

@@ -32,6 +32,8 @@
 .admin-product-editor__dropzone input { display: none; }
 .admin-product-editor__dropzone span { color: var(--text-muted); font-size: 11px; }
 .admin-product-editor__dropzone--busy { opacity: .65; cursor: wait; }
+.admin-product-editor__pdf-upload { min-height: 82px; margin-top: 12px; padding: 12px; text-align: center; }
+.admin-product-editor__remove-pdf { margin-top: 10px; color: #982e2e; font-size: 12px; font-weight: 700; }
 .admin-product-editor__images { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; margin-top: 14px; }
 .admin-product-editor__image { position: relative; aspect-ratio: 1; border-radius: 10px; overflow: hidden; background: var(--footer-bg); }
 .admin-product-editor__image img { width: 100%; height: 100%; object-fit: cover; }

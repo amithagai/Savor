@@ -84,6 +84,7 @@ export default function AdminProductEditor() {
   const [saving, setSaving] = useState(false)
   const [deleting, setDeleting] = useState(false)
   const [uploading, setUploading] = useState(false)
+  const [uploadingPdf, setUploadingPdf] = useState(false)
   const [error, setError] = useState('')
   const [saved, setSaved] = useState(false)
   const [showCategoryForm, setShowCategoryForm] = useState(false)
@@ -129,6 +130,20 @@ export default function AdminProductEditor() {
       setError(err instanceof ApiError ? err.message : 'העלאת התמונות נכשלה')
     } finally {
       setUploading(false)
+    }
+  }
+
+  const uploadInstallationPdf = async (file: File | undefined) => {
+    if (!file) return
+    setUploadingPdf(true)
+    setError('')
+    try {
+      const result = await api.upload<{ url: string }>('/admin/media', file, token)
+      setField('installation_pdf_url', result.url)
+    } catch (err) {
+      setError(err instanceof ApiError ? err.message : 'העלאת חוברת ההרכבה נכשלה')
+    } finally {
+      setUploadingPdf(false)
     }
   }
 
@@ -344,6 +359,12 @@ export default function AdminProductEditor() {
           <section className="admin-product-editor__card">
             <h2>מסמך התקנה</h2>
             <label className="admin-product-editor__field">קישור ל-PDF<input dir="ltr" value={form.installation_pdf_url} onChange={(e) => setField('installation_pdf_url', e.target.value)} placeholder="https://…" /></label>
+            <label className={`admin-product-editor__dropzone admin-product-editor__pdf-upload${uploadingPdf ? ' admin-product-editor__dropzone--busy' : ''}`}>
+              <input type="file" accept="application/pdf,.pdf" disabled={uploadingPdf} onChange={(event) => { const file = event.target.files?.[0]; event.target.value = ''; void uploadInstallationPdf(file) }} />
+              <strong>{uploadingPdf ? 'מעלה את החוברת…' : 'העלאת חוברת PDF'}</strong>
+              <span>עד 30MB · תוצג אוטומטית בעמוד חוברות ההרכבה לאחר שמירת המוצר</span>
+            </label>
+            {form.installation_pdf_url && <button type="button" className="admin-product-editor__remove-pdf" onClick={() => setField('installation_pdf_url', '')}>הסרת החוברת</button>}
           </section>
           {!isNew && <section className="admin-product-editor__card admin-product-editor__danger-zone">
             <h2>מחיקת מוצר</h2>
