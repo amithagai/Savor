@@ -8,7 +8,7 @@ import { ApiError, api } from '../../lib/api'
 
 type OrderStatus = 'CREATED' | 'PAID' | 'PROCESSING' | 'SHIPPED' | 'DELIVERED' | 'CANCELLED'
 type PaymentOutcome = 'expired' | 'failed'
-type OrderFilter = OrderStatus | 'PAYMENT_EXPIRED' | 'PAYMENT_FAILED' | 'ALL'
+type OrderFilter = OrderStatus | 'PAYMENT_EXPIRED' | 'PAYMENT_FAILED' | 'INVENTORY_SHORTAGE' | 'ALL'
 type DateFilter = 'ALL' | 'TODAY' | 'WEEK'
 
 type ShippingAddress = {
@@ -46,8 +46,19 @@ type OrderItem = {
   }
 }
 
+type InventoryShortage = {
+  inventory_item_id?: string | null
+  sku?: string | null
+  product_name?: string | null
+  requested_quantity: number
+  available_quantity: number
+  shortage_quantity: number
+  reason: 'insufficient_stock' | 'inventory_record_missing'
+}
+
 type Order = {
   id: string
+  order_number: number
   status: OrderStatus
   shipping_address: ShippingAddress
   subtotal_snapshot: number
@@ -55,6 +66,8 @@ type Order = {
   payment_provider?: string | null
   payment_reference?: string | null
   payment_outcome?: PaymentOutcome | null
+  inventory_shortage_at?: string | null
+  inventory_shortage_details: InventoryShortage[]
   items: OrderItem[]
   created_at: string
 }
@@ -187,6 +200,10 @@ export default function AdminOrders() {
     expired: orders.filter((order) => order.status === 'CANCELLED' && order.payment_outcome === 'expired').length,
     failed: orders.filter((order) => order.status === 'CANCELLED' && order.payment_outcome === 'failed').length,
   }), [orders])
+  const inventoryShortageCount = useMemo(
+    () => orders.filter((order) => Boolean(order.inventory_shortage_at)).length,
+    [orders],
+  )
 
   const visibleOrders = useMemo(() => {
     const normalized = query.trim().toLocaleLowerCase('he')
@@ -198,7 +215,9 @@ export default function AdminOrders() {
       const address = order.shipping_address || {}
       const createdAt = new Date(order.created_at).getTime()
       const matchesStatus = filter === 'ALL'
-        || (filter === 'PAYMENT_EXPIRED'
+        || (filter === 'INVENTORY_SHORTAGE'
+          ? Boolean(order.inventory_shortage_at)
+          : filter === 'PAYMENT_EXPIRED'
           ? order.status === 'CANCELLED' && order.payment_outcome === 'expired'
           : filter === 'PAYMENT_FAILED'
             ? order.status === 'CANCELLED' && order.payment_outcome === 'failed'
@@ -207,7 +226,7 @@ export default function AdminOrders() {
               : order.status === filter)
       const matchesDate = dateFilter === 'ALL'
         || (dateFilter === 'TODAY' ? createdAt >= todayStart : createdAt >= weekStart)
-      const haystack = [order.id, address.full_name, address.phone, address.email, address.city]
+      const haystack = [order.order_number, order.id, address.full_name, address.phone, address.email, address.city]
         .filter(Boolean)
         .join(' ')
         .toLocaleLowerCase('he')
@@ -229,7 +248,7 @@ export default function AdminOrders() {
     try {
       const updated = await api.patch<Order>(`/admin/orders/${order.id}/status`, { status }, token)
       setOrders((current) => current.map((item) => item.id === order.id ? updated : item))
-      setNotice(`הזמנה #${order.id.slice(0, 8)} עודכנה לסטטוס “${STATUS_LABELS[status]}”`)
+      setNotice(`הזמנה #${order.order_number} עודכנה לסטטוס “${STATUS_LABELS[status]}”`)
     } catch (err) {
       if (err instanceof ApiError && err.status === 401) {
         logout()
@@ -255,7 +274,7 @@ export default function AdminOrders() {
   const downloadCsv = () => {
     const header = ['מספר הזמנה', 'תאריך', 'שם לקוח', 'טלפון', 'אימייל', 'עיר', 'סטטוס', 'סכום']
     const rows = visibleOrders.map((order) => [
-      order.id,
+      order.order_number,
       formatDate(order.created_at),
       order.shipping_address?.full_name,
       order.shipping_address?.phone,
@@ -285,6 +304,7 @@ export default function AdminOrders() {
         <SummaryCard label="ממתינות לטיפול" value={(statusCounts.PAID + statusCounts.PROCESSING).toLocaleString('he-IL')} tone="attention" />
         <SummaryCard label="נשלחו או נמסרו" value={(statusCounts.SHIPPED + statusCounts.DELIVERED).toLocaleString('he-IL')} tone="positive" />
         <SummaryCard label="הכנסות מהזמנות פעילות" value={formatMoney(activeRevenue)} />
+        <SummaryCard label="חריגות מלאי לטיפול" value={inventoryShortageCount.toLocaleString('he-IL')} tone={inventoryShortageCount ? 'danger' : ''} />
       </section>
 
       <section className="admin-orders__payment-policy" aria-label="מדיניות תשלומים שלא הושלמו">
@@ -328,6 +348,9 @@ export default function AdminOrders() {
         <button type="button" className={filter === 'PAYMENT_FAILED' ? 'is-active' : ''} onClick={() => setFilter('PAYMENT_FAILED')}>
           התשלום נכשל <span>{paymentOutcomeCounts.failed}</span>
         </button>
+        <button type="button" className={filter === 'INVENTORY_SHORTAGE' ? 'is-active' : ''} onClick={() => setFilter('INVENTORY_SHORTAGE')}>
+          חריגות מלאי <span>{inventoryShortageCount}</span>
+        </button>
       </div>
 
       {notice && <p className="admin-orders__notice admin-orders__notice--success">{notice}</p>}
@@ -341,10 +364,14 @@ export default function AdminOrders() {
             const address = order.shipping_address || {}
             const isOpen = expandedId === order.id
             return (
-              <article className={`admin-orders__card ${isOpen ? 'is-open' : ''}`} key={order.id}>
+              <article className={`admin-orders__card ${isOpen ? 'is-open' : ''}${order.inventory_shortage_at ? ' has-inventory-shortage' : ''}`} key={order.id}>
                 <button type="button" className="admin-orders__row" onClick={() => setExpandedId(isOpen ? null : order.id)} aria-expanded={isOpen}>
                   <span className="admin-orders__chevron" aria-hidden="true">⌄</span>
-                  <span className="admin-orders__identity"><strong>{address.full_name || 'ללא שם'}</strong><small>#{order.id.slice(0, 8)} · {address.phone || 'ללא טלפון'}</small></span>
+                  <span className="admin-orders__identity">
+                    <strong>{address.full_name || 'ללא שם'}</strong>
+                    <small>#{order.order_number} · {address.phone || 'ללא טלפון'}</small>
+                    {order.inventory_shortage_at && <em>חריגת מלאי — נדרש קשר עם הלקוחה</em>}
+                  </span>
                   <span className="admin-orders__row-date">{formatDate(order.created_at)}</span>
                   <span className={`admin-orders__badge admin-orders__badge--${orderStatusTone(order)}`}>{orderStatusLabel(order)}</span>
                   <strong className="admin-orders__row-total">{formatMoney(order.total_snapshot)}</strong>
@@ -352,6 +379,24 @@ export default function AdminOrders() {
 
                 {isOpen && (
                   <div className="admin-orders__detail">
+                    {order.inventory_shortage_at && (
+                      <section className="admin-orders__inventory-warning" role="alert">
+                        <div>
+                          <strong>התשלום אושר, אך חסר מלאי להזמנה</strong>
+                          <p>יש ליצור קשר עם הלקוחה ולתאם מועד אספקה או פתרון חלופי.</p>
+                          {!!order.inventory_shortage_details?.length && (
+                            <ul>
+                              {order.inventory_shortage_details.map((shortage, index) => (
+                                <li key={`${shortage.inventory_item_id || shortage.sku || 'shortage'}-${index}`}>
+                                  {shortage.product_name || 'מוצר'} · מק״ט {shortage.sku || 'לא זמין'} · חסרות {shortage.shortage_quantity} יחידות
+                                </li>
+                              ))}
+                            </ul>
+                          )}
+                        </div>
+                        {address.phone && <a href={`tel:${address.phone}`}>חיוג ללקוחה</a>}
+                      </section>
+                    )}
                     <div className="admin-orders__detail-grid">
                       <DetailSection title="פרטי לקוח">
                         <DetailLine label="שם" value={address.full_name} />
@@ -395,7 +440,7 @@ export default function AdminOrders() {
                     <footer className="admin-orders__actions">
                       <label><span>עדכון סטטוס</span><select value={order.status} disabled={statusSaving === order.id} onChange={(event) => handleStatusChange(order, event.target.value as OrderStatus)}>{STATUS_ORDER.map((status) => <option key={status} value={status}>{status === 'CANCELLED' && order.payment_outcome ? orderStatusLabel(order) : STATUS_LABELS[status]}</option>)}</select></label>
                       {statusSaving === order.id && <span className="admin-orders__saving">שומר…</span>}
-                      <button type="button" className="admin-orders__copy" onClick={() => copyOrderId(order.id)}>{copiedId === order.id ? 'הועתק' : 'העתקת מספר הזמנה'}</button>
+                      <button type="button" className="admin-orders__copy" onClick={() => copyOrderId(String(order.order_number))}>{copiedId === String(order.order_number) ? 'הועתק' : 'העתקת מספר הזמנה'}</button>
                     </footer>
                   </div>
                 )}

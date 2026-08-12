@@ -1,4 +1,14 @@
-export type ProductType = 'KITCHEN' | 'ACCESSORY' | 'COMPONENT'
+export type ProductType = 'KITCHEN' | 'CABINET' | 'ACCESSORY' | 'COMPONENT'
+
+export type ImageFit = 'cover' | 'contain'
+
+export type ImageDisplaySettings = {
+  fit: ImageFit
+  positionX: number
+  positionY: number
+}
+
+export type ImageDisplayMap = Record<string, ImageDisplaySettings>
 
 export type ProductVariant = {
   id: string
@@ -13,6 +23,14 @@ export type ProductVariant = {
   attributes: Record<string, unknown>
   is_active: boolean
   sort_order: number
+  inventory_tracking: boolean
+  initial_stock: number
+  stock_quantity: number
+  reserved_quantity: number
+  available_quantity: number
+  low_stock_threshold: number
+  allow_preorder: boolean
+  in_stock: boolean
 }
 
 export type Category = {
@@ -36,6 +54,14 @@ export type CatalogProduct = {
   original_price?: number | null
   category?: Category | null
   installation_pdf_url?: string | null
+  sku?: string | null
+  inventory_tracking: boolean
+  stock_quantity: number
+  reserved_quantity: number
+  available_quantity: number
+  low_stock_threshold: number
+  allow_preorder: boolean
+  in_stock: boolean
 }
 
 export type AdminProduct = {
@@ -49,12 +75,35 @@ export type AdminProduct = {
   original_price: number | null
   category_name?: string | null
   primary_image?: string | null
+  sku?: string | null
+  inventory_tracking: boolean
+  available_quantity: number
+  in_stock: boolean
 }
 
 export type AdminProductDetail = CatalogProduct & {
   category_id: string | null
   regular_price: number | null
+  initial_stock: number
   variants: ProductVariant[]
+}
+
+export type InventoryItem = {
+  inventory_item_id: string | null
+  item_type: 'product' | 'variant'
+  product_id: string
+  variant_id: string | null
+  product_name: string
+  variant_label: string | null
+  sku: string | null
+  is_tracked: boolean
+  initial_quantity: number
+  stock_quantity: number
+  reserved_quantity: number
+  available_quantity: number
+  low_stock_threshold: number
+  allow_preorder: boolean
+  status: 'untracked' | 'out' | 'low' | 'available' | 'preorder'
 }
 
 export type ConfiguratorProduct = {

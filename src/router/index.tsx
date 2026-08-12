@@ -3,6 +3,7 @@ import Layout from "../components/Layout";
 import Home from "../pages/Home";
 import Configurator from "../pages/Configurator";
 import Catalog from "../pages/Catalog";
+import SingleProducts from "../pages/SingleProducts";
 import ProductDetail from "../pages/ProductDetail";
 import Accessories from "../pages/Accessories";
 import AccessoryDetail from "../pages/AccessoryDetail";
@@ -26,6 +27,7 @@ import AdminOrders from "../pages/AdminOrders";
 import AdminProducts from "../pages/AdminProducts";
 import AdminProductEditor from "../pages/AdminProductEditor";
 import AdminContent from "../pages/AdminContent";
+import AdminInventory from "../pages/AdminInventory";
 
 const router = createBrowserRouter([
   {
@@ -40,6 +42,10 @@ const router = createBrowserRouter([
       // Kitchen catalog
       { path: "catalog", element: <Catalog /> },
       { path: "catalog/:productId", element: <ProductDetail /> },
+
+      // Standalone cabinet units
+      { path: "single-products", element: <SingleProducts /> },
+      { path: "single-products/:productId", element: <ProductDetail /> },
 
       // Complementary products (accessories)
       { path: "accessories", element: <Accessories /> },
@@ -83,6 +89,7 @@ const router = createBrowserRouter([
               { path: "products", element: <AdminProducts /> },
               { path: "products/:productId", element: <AdminProductEditor /> },
               { path: "prices", element: <AdminPrices /> },
+              { path: "inventory", element: <AdminInventory /> },
               { path: "orders", element: <AdminOrders /> },
               { path: "content", element: <AdminContent /> },
             ],

@@ -329,7 +329,7 @@ export default function Cart() {
 
           {paymentError && <p className="cart-page__payment-error" role="alert">{paymentError}</p>}
 
-          {!isFormValid && (
+          {!isFormValid && !!cartItems.length && (
             <div className="cart-page__validation-hint" id="checkout-requirements" role="status" aria-live="polite">
               <strong>כדי להמשיך לתשלום יש להשלים:</strong>
               <ul>

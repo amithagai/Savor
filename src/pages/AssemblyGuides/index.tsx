@@ -6,6 +6,7 @@ import type { CatalogProduct, ProductType } from '../../types/catalog'
 
 const PRODUCT_TYPE_LABELS: Record<ProductType, string> = {
   KITCHEN: 'מטבח',
+  CABINET: 'יחידת ארון',
   ACCESSORY: 'מוצר משלים',
   COMPONENT: 'רכיב',
 }

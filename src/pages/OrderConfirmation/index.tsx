@@ -7,7 +7,7 @@ import { api } from '../../lib/api'
 import styles from '../Checkout/styles.module.css'
 
 type OrderStatus = 'CREATED' | 'PAID' | 'PROCESSING' | 'SHIPPED' | 'DELIVERED' | 'CANCELLED'
-type Order = { id: string; status: OrderStatus }
+type Order = { id: string; order_number: number; status: OrderStatus }
 
 const MAX_STATUS_CHECKS = 15
 
@@ -16,6 +16,7 @@ export default function OrderConfirmation() {
   const orderId = searchParams.get('order_id')
   const { clearCart } = useCart()
   const [state, setState] = useState<'checking' | 'paid' | 'error'>('checking')
+  const [orderNumber, setOrderNumber] = useState<number | null>(null)
 
   useEffect(() => {
     let cancelled = false
@@ -29,6 +30,7 @@ export default function OrderConfirmation() {
       try {
         const order = await api.get<Order>(`/orders/${orderId}`)
         if (cancelled) return
+        setOrderNumber(order.order_number)
         if (order.status === 'PAID' || ['PROCESSING', 'SHIPPED', 'DELIVERED'].includes(order.status)) {
           clearCart()
           setState('paid')
@@ -64,7 +66,7 @@ export default function OrderConfirmation() {
         <>
           <h1>תודה שרכשתם ב־SAVOR!</h1>
           <p>התשלום אושר וההזמנה נקלטה. הקבלה תישלח אליכם בדקות הקרובות.</p>
-          <p className={styles.reference}>מספר הזמנה: {orderId}</p>
+          <p className={styles.reference}>מספר הזמנה: {orderNumber}</p>
           <Link className={styles.link} to="/">חזרה לעמוד הבית</Link>
         </>
       )}
@@ -72,7 +74,7 @@ export default function OrderConfirmation() {
         <>
           <h1>עדיין לא התקבל אישור תשלום</h1>
           <p>העגלה נשמרה. אם חויבתם, אל תנסו לשלם שוב ופנו אלינו עם מספר ההזמנה.</p>
-          {orderId && <p className={styles.reference}>מספר הזמנה: {orderId}</p>}
+          {orderNumber && <p className={styles.reference}>מספר הזמנה: {orderNumber}</p>}
           <Link className={styles.link} to="/cart">חזרה לעגלה</Link>
         </>
       )}

@@ -18,6 +18,11 @@ type VariantDraft = {
   sku: string
   price: string
   sale_price: string
+  inventory_tracking: boolean
+  initial_stock: string
+  stock_quantity: string
+  low_stock_threshold: string
+  allow_preorder: boolean
   model_url: string
   thumbnail_url: string
   is_active: boolean
@@ -31,6 +36,11 @@ const emptyDraft: VariantDraft = {
   sku: '',
   price: '',
   sale_price: '',
+  inventory_tracking: true,
+  initial_stock: '0',
+  stock_quantity: '0',
+  low_stock_threshold: '5',
+  allow_preorder: false,
   model_url: '',
   thumbnail_url: '',
   is_active: false,
@@ -45,6 +55,11 @@ function toDraft(variant: ProductVariant): VariantDraft {
     sku: variant.sku,
     price: String(variant.price),
     sale_price: String(variant.sale_price ?? ''),
+    inventory_tracking: variant.inventory_tracking,
+    initial_stock: String(variant.initial_stock),
+    stock_quantity: String(variant.stock_quantity),
+    low_stock_threshold: String(variant.low_stock_threshold),
+    allow_preorder: variant.allow_preorder,
     model_url: variant.model_url,
     thumbnail_url: variant.thumbnail_url || '',
     is_active: variant.is_active,
@@ -87,12 +102,19 @@ export default function AdminProductVariants({ productId, token, variants, onCha
     const draft = drafts[key]
     const price = Number(draft.price)
     const salePrice = draft.sale_price.trim() ? Number(draft.sale_price) : null
+    const initialStock = Number(draft.initial_stock)
+    const stockQuantity = Number(draft.stock_quantity)
+    const lowStockThreshold = Number(draft.low_stock_threshold)
     if (!draft.color_id || !draft.color_label || !draft.sku || !draft.model_url || !Number.isFinite(price) || price <= 0) {
       setError('יש למלא צבע, שם צבע, מק״ט, מחיר ומודל GLB')
       return
     }
     if (salePrice != null && (!Number.isFinite(salePrice) || salePrice <= 0 || salePrice >= price)) {
       setError('מחיר המבצע חייב להיות נמוך מהמחיר הרגיל')
+      return
+    }
+    if (![initialStock, stockQuantity, lowStockThreshold].every((value) => Number.isInteger(value) && value >= 0)) {
+      setError('כמויות המלאי חייבות להיות מספרים שלמים ולא שליליים')
       return
     }
     setBusy(`${key}-save`)
@@ -103,6 +125,11 @@ export default function AdminProductVariants({ productId, token, variants, onCha
       sku: draft.sku.trim(),
       price,
       sale_price: salePrice,
+      inventory_tracking: draft.inventory_tracking,
+      initial_stock: initialStock,
+      stock_quantity: stockQuantity,
+      low_stock_threshold: lowStockThreshold,
+      allow_preorder: draft.allow_preorder,
       model_url: draft.model_url,
       thumbnail_url: draft.thumbnail_url || null,
       attributes: { color_hex: draft.color_hex },
@@ -188,6 +215,15 @@ export default function AdminProductVariants({ productId, token, variants, onCha
                   <label className="admin-product-editor__field">מחיר מבצע (אופציונלי)
                     <div className="admin-product-editor__price-input"><input type="number" min="1" value={draft.sale_price} onChange={(event) => setDraftField(key, 'sale_price', event.target.value)} placeholder="ללא מבצע" /><span>₪</span></div>
                   </label>
+                  <label className="admin-product-editor__field">כמות התחלתית
+                    <input type="number" min="0" step="1" value={draft.initial_stock} onChange={(event) => { setDraftField(key, 'initial_stock', event.target.value); if (key === 'new') setDraftField(key, 'stock_quantity', event.target.value) }} />
+                  </label>
+                  <label className="admin-product-editor__field">מלאי נוכחי
+                    <input type="number" min="0" step="1" value={draft.stock_quantity} onChange={(event) => setDraftField(key, 'stock_quantity', event.target.value)} />
+                  </label>
+                  <label className="admin-product-editor__field">התראת מלאי נמוך
+                    <input type="number" min="0" step="1" value={draft.low_stock_threshold} onChange={(event) => setDraftField(key, 'low_stock_threshold', event.target.value)} />
+                  </label>
                   <label className="admin-product-editor__field">צבע לתצוגה
                     <input type="color" value={draft.color_hex} onChange={(event) => setDraftField(key, 'color_hex', event.target.value)} />
                   </label>
@@ -210,10 +246,20 @@ export default function AdminProductVariants({ productId, token, variants, onCha
                 </div>
 
                 <div className="admin-variant__footer">
-                  <label className="admin-product-editor__toggle">
-                    <input type="checkbox" checked={draft.is_active} onChange={(event) => setDraftField(key, 'is_active', event.target.checked)} />
-                    <span>{draft.is_active ? 'מפורסם בקונפיגורטור' : 'טיוטה'}</span>
-                  </label>
+                  <div className="admin-variant__toggles">
+                    <label className="admin-product-editor__toggle">
+                      <input type="checkbox" checked={draft.is_active} onChange={(event) => setDraftField(key, 'is_active', event.target.checked)} />
+                      <span>{draft.is_active ? 'מפורסם בקונפיגורטור' : 'טיוטה'}</span>
+                    </label>
+                    <label className="admin-product-editor__toggle">
+                      <input type="checkbox" checked={draft.inventory_tracking} onChange={(event) => setDraftField(key, 'inventory_tracking', event.target.checked)} />
+                      <span>מעקב מלאי</span>
+                    </label>
+                    <label className="admin-product-editor__toggle">
+                      <input type="checkbox" checked={draft.allow_preorder} onChange={(event) => setDraftField(key, 'allow_preorder', event.target.checked)} />
+                      <span>Pre-order</span>
+                    </label>
+                  </div>
                   <div>
                     {variant && <button type="button" className="admin-variant__delete" disabled={busy !== ''} onClick={() => remove(variant)}>מחיקה</button>}
                     <button type="button" className="admin-product-editor__primary" disabled={busy !== ''} onClick={() => save(key)}>

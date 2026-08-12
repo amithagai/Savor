@@ -113,6 +113,11 @@ export default function AdminLayout() {
               מחירים
             </NavLink>
           </li>
+          <li>
+            <NavLink to="/admin/inventory" className={navLinkClass}>
+              מלאי
+            </NavLink>
+          </li>
         </ul>
 
         <div className="admin__account-actions">

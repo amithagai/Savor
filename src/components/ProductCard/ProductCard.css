@@ -114,6 +114,10 @@
   color: #4c7d42;
 }
 
+.savor-product-card__button:disabled { opacity: .55; cursor: not-allowed; }
+.savor-product-card__stock { color: #a52b2b; font-size: 14px; font-weight: 800; margin-bottom: 10px; }
+.savor-product-card__stock--preorder { color: #7a6423; }
+
 .savor-product-card__prices {
   display: flex;
   align-items: baseline;

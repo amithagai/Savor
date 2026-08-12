@@ -3,8 +3,9 @@ import { Link, useNavigate, useParams } from 'react-router-dom'
 
 import './AdminProductEditor.css'
 import { ApiError, api } from '../../lib/api'
+import { DEFAULT_IMAGE_DISPLAY, IMAGE_DISPLAY_ATTRIBUTE, parseImageDisplayMap } from '../../lib/imageDisplay'
 import { useAdminAuth } from '../../context/useAdminAuth'
-import type { AdminProductDetail, Category, ProductType, ProductVariant } from '../../types/catalog'
+import type { AdminProductDetail, Category, ImageDisplayMap, ImageDisplaySettings, ProductType, ProductVariant } from '../../types/catalog'
 import AdminProductVariants from './AdminProductVariants'
 
 type FormState = {
@@ -21,6 +22,11 @@ type FormState = {
   material: string
   delivery_days: string
   sku: string
+  inventory_tracking: boolean
+  initial_stock: string
+  stock_quantity: string
+  low_stock_threshold: string
+  allow_preorder: boolean
   configurator_enabled: boolean
   configurator_category: string
   configurator_subtitle: string
@@ -28,13 +34,15 @@ type FormState = {
   height_cm: string
   depth_cm: string
   images: string[]
+  image_display: ImageDisplayMap
   installation_pdf_url: string
   is_active: boolean
 }
 
 const emptyForm: FormState = {
   name: '', slug: '', description: '', product_type: 'KITCHEN', category_id: '', price: '', sale_price: '',
-  size: '', model: '', color: '', material: '', delivery_days: '14', sku: '', images: [],
+  size: '', model: '', color: '', material: '', delivery_days: '14', sku: '', images: [], image_display: {},
+  inventory_tracking: true, initial_stock: '0', stock_quantity: '0', low_stock_threshold: '5', allow_preorder: false,
   configurator_enabled: false, configurator_category: 'תחתונים', configurator_subtitle: '',
   width_cm: '', height_cm: '', depth_cm: '', installation_pdf_url: '', is_active: false,
 }
@@ -59,7 +67,12 @@ function detailToForm(product: AdminProductDetail): FormState {
     color: String(attr.color ?? ''),
     material: String(attr.material ?? ''),
     delivery_days: String(attr.delivery_days ?? ''),
-    sku: String(attr.sku ?? ''),
+    sku: String(product.sku ?? attr.sku ?? ''),
+    inventory_tracking: product.inventory_tracking,
+    initial_stock: String(product.initial_stock ?? 0),
+    stock_quantity: String(product.stock_quantity ?? 0),
+    low_stock_threshold: String(product.low_stock_threshold ?? 5),
+    allow_preorder: product.allow_preorder,
     configurator_enabled: Boolean(attr.configurator_enabled),
     configurator_category: String(attr.configurator_category ?? 'תחתונים'),
     configurator_subtitle: String(attr.configurator_subtitle ?? ''),
@@ -67,6 +80,7 @@ function detailToForm(product: AdminProductDetail): FormState {
     height_cm: String(attr.height_cm ?? ''),
     depth_cm: String(attr.depth_cm ?? ''),
     images: product.images || [],
+    image_display: parseImageDisplayMap(attr[IMAGE_DISPLAY_ATTRIBUTE]),
     installation_pdf_url: product.installation_pdf_url || '',
     is_active: product.is_active,
   }
@@ -125,25 +139,19 @@ export default function AdminProductEditor() {
         const result = await api.upload<{ url: string }>('/admin/media', file, token)
         urls.push(result.url)
       }
-      setField('images', [...form.images, ...urls].slice(0, 20))
+      setForm((current) => {
+        const images = [...current.images, ...urls].slice(0, 20)
+        const imageDisplay = { ...current.image_display }
+        images.forEach((image) => {
+          imageDisplay[image] ??= { ...DEFAULT_IMAGE_DISPLAY }
+        })
+        return { ...current, images, image_display: imageDisplay }
+      })
+      setSaved(false)
     } catch (err) {
       setError(err instanceof ApiError ? err.message : 'העלאת התמונות נכשלה')
     } finally {
       setUploading(false)
-    }
-  }
-
-  const uploadInstallationPdf = async (file: File | undefined) => {
-    if (!file) return
-    setUploadingPdf(true)
-    setError('')
-    try {
-      const result = await api.upload<{ url: string }>('/admin/media', file, token)
-      setField('installation_pdf_url', result.url)
-    } catch (err) {
-      setError(err instanceof ApiError ? err.message : 'העלאת חוברת ההרכבה נכשלה')
-    } finally {
-      setUploadingPdf(false)
     }
   }
 
@@ -153,6 +161,31 @@ export default function AdminProductEditor() {
     const next = [...form.images]
     ;[next[index], next[target]] = [next[target], next[index]]
     setField('images', next)
+  }
+
+  const updateImageDisplay = (image: string, patch: Partial<ImageDisplaySettings>) => {
+    setForm((current) => ({
+      ...current,
+      image_display: {
+        ...current.image_display,
+        [image]: { ...DEFAULT_IMAGE_DISPLAY, ...current.image_display[image], ...patch },
+      },
+    }))
+    setSaved(false)
+  }
+
+  const removeImage = (index: number) => {
+    setForm((current) => {
+      const image = current.images[index]
+      const imageDisplay = { ...current.image_display }
+      if (image) delete imageDisplay[image]
+      return {
+        ...current,
+        images: current.images.filter((_, imageIndex) => imageIndex !== index),
+        image_display: imageDisplay,
+      }
+    })
+    setSaved(false)
   }
 
   const createCategory = async () => {
@@ -174,6 +207,9 @@ export default function AdminProductEditor() {
     setError('')
     const price = Number(form.price)
     const salePrice = form.sale_price.trim() ? Number(form.sale_price) : null
+    const initialStock = Number(form.initial_stock)
+    const stockQuantity = Number(form.stock_quantity)
+    const lowStockThreshold = Number(form.low_stock_threshold)
     if (!form.name.trim() || !form.slug.trim() || !Number.isFinite(price) || price <= 0) {
       setError('יש למלא שם, כתובת מוצר ומחיר תקין')
       return
@@ -182,10 +218,27 @@ export default function AdminProductEditor() {
       setError('מחיר המבצע חייב להיות נמוך מהמחיר הרגיל')
       return
     }
+    if (form.inventory_tracking && !form.sku.trim()) {
+      setError('יש להזין מק״ט כאשר ניהול המלאי פעיל')
+      return
+    }
+    if (![initialStock, stockQuantity, lowStockThreshold].every((value) => Number.isInteger(value) && value >= 0)) {
+      setError('כמויות המלאי חייבות להיות מספרים שלמים ולא שליליים')
+      return
+    }
     setSaving(true)
+    const imageDisplay = Object.fromEntries(
+      form.images.map((image) => [image, form.image_display[image] ?? DEFAULT_IMAGE_DISPLAY]),
+    )
     const payload = {
       name: form.name.trim(), slug: form.slug.trim(), description: form.description.trim() || null,
       product_type: form.product_type, category_id: form.category_id || null, price, sale_price: salePrice,
+      sku: form.sku.trim() || null,
+      inventory_tracking: form.inventory_tracking,
+      initial_stock: initialStock,
+      stock_quantity: stockQuantity,
+      low_stock_threshold: lowStockThreshold,
+      allow_preorder: form.allow_preorder,
       attributes: {
         size: form.size.trim(), model: form.model.trim(), color: form.color.trim(),
         material: form.material.trim(), delivery_days: Number(form.delivery_days) || null, sku: form.sku.trim(),
@@ -195,6 +248,7 @@ export default function AdminProductEditor() {
         width_cm: Number(form.width_cm) || null,
         height_cm: Number(form.height_cm) || null,
         depth_cm: Number(form.depth_cm) || null,
+        [IMAGE_DISPLAY_ATTRIBUTE]: imageDisplay,
       },
       images: form.images, installation_pdf_url: form.installation_pdf_url.trim() || null,
       is_active: publish ?? form.is_active,
@@ -211,6 +265,20 @@ export default function AdminProductEditor() {
       setError(err instanceof ApiError ? err.message : 'שמירת המוצר נכשלה')
     } finally {
       setSaving(false)
+    }
+  }
+
+  const uploadInstallationPdf = async (file: File | undefined) => {
+    if (!file) return
+    setUploadingPdf(true)
+    setError('')
+    try {
+      const result = await api.upload<{ url: string }>('/admin/media', file, token)
+      setField('installation_pdf_url', result.url)
+    } catch (err) {
+      setError(err instanceof ApiError ? err.message : 'העלאת חוברת ההרכבה נכשלה')
+    } finally {
+      setUploadingPdf(false)
     }
   }
 
@@ -259,7 +327,7 @@ export default function AdminProductEditor() {
             <div className="admin-product-editor__grid">
               <label className="admin-product-editor__field">סוג
                 <select value={form.product_type} onChange={(e) => setField('product_type', e.target.value as ProductType)}>
-                  <option value="KITCHEN">מטבח</option><option value="ACCESSORY">מוצר משלים</option><option value="COMPONENT">רכיב לקונפיגורטור</option>
+                  <option value="KITCHEN">מטבח</option><option value="CABINET">מוצר בודד (יחידת ארון)</option><option value="ACCESSORY">מוצר משלים</option><option value="COMPONENT">רכיב לקונפיגורטור</option>
                 </select>
               </label>
               <label className="admin-product-editor__field">מחיר
@@ -281,16 +349,40 @@ export default function AdminProductEditor() {
 
           <section className="admin-product-editor__card">
             <h2>תמונות</h2>
-            <p className="admin-product-editor__hint">התמונה הראשונה משמשת כתמונה הראשית. ניתן להעלות עד 20 תמונות.</p>
+            <p className="admin-product-editor__hint">התמונה הראשונה משמשת כתמונה הראשית. לכל תמונה ניתן לבחור אם למלא את המסגרת או להציג אותה בשלמותה, ולכוון את המיקום שלה.</p>
             <label className={`admin-product-editor__dropzone ${uploading ? 'admin-product-editor__dropzone--busy' : ''}`}>
               <input type="file" accept="image/jpeg,image/png,image/webp,image/avif" multiple disabled={uploading} onChange={(e) => uploadFiles(e.target.files)} />
               <strong>{uploading ? 'מעלה תמונות…' : 'לחצו לבחירת תמונות'}</strong><span>JPG, PNG, WebP או AVIF · עד 12MB</span>
             </label>
             {form.images.length > 0 && <div className="admin-product-editor__images">
-              {form.images.map((image, index) => <div className="admin-product-editor__image" key={`${image}-${index}`}>
-                <img src={image} alt="" />{index === 0 && <span>ראשית</span>}
-                <div><button type="button" disabled={index === 0} onClick={() => moveImage(index, -1)} aria-label="הזזת תמונה ימינה">→</button><button type="button" disabled={index === form.images.length - 1} onClick={() => moveImage(index, 1)} aria-label="הזזת תמונה שמאלה">←</button><button type="button" onClick={() => setField('images', form.images.filter((_, imageIndex) => imageIndex !== index))} aria-label="מחיקת תמונה">×</button></div>
-              </div>)}
+              {form.images.map((image, index) => {
+                const display = form.image_display[image] ?? DEFAULT_IMAGE_DISPLAY
+                return <div className="admin-product-editor__image" key={`${image}-${index}`}>
+                  <div className="admin-product-editor__image-preview">
+                    <img src={image} alt={`תצוגה מקדימה לתמונה ${index + 1}`} style={{ objectFit: display.fit, objectPosition: `${display.positionX}% ${display.positionY}%` }} />
+                    {index === 0 && <span className="admin-product-editor__image-primary">ראשית</span>}
+                    <div className="admin-product-editor__image-actions">
+                      <button type="button" disabled={index === 0} onClick={() => moveImage(index, -1)} aria-label="הזזת תמונה ימינה">→</button>
+                      <button type="button" disabled={index === form.images.length - 1} onClick={() => moveImage(index, 1)} aria-label="הזזת תמונה שמאלה">←</button>
+                      <button type="button" onClick={() => removeImage(index)} aria-label="מחיקת תמונה">×</button>
+                    </div>
+                  </div>
+                  <div className="admin-product-editor__image-settings">
+                    <span>התאמה למסגרת</span>
+                    <div className="admin-product-editor__image-fit" role="group" aria-label={`התאמת תמונה ${index + 1} למסגרת`}>
+                      <button type="button" className={display.fit === 'cover' ? 'admin-product-editor__image-fit--active' : ''} aria-pressed={display.fit === 'cover'} onClick={() => updateImageDisplay(image, { fit: 'cover' })}>מילוי המסגרת</button>
+                      <button type="button" className={display.fit === 'contain' ? 'admin-product-editor__image-fit--active' : ''} aria-pressed={display.fit === 'contain'} onClick={() => updateImageDisplay(image, { fit: 'contain' })}>תמונה מלאה</button>
+                    </div>
+                    <label>מיקום אופקי
+                      <input dir="ltr" type="range" min="0" max="100" step="1" value={display.positionX} onChange={(event) => updateImageDisplay(image, { positionX: Number(event.target.value) })} />
+                    </label>
+                    <label>מיקום אנכי
+                      <input dir="ltr" type="range" min="0" max="100" step="1" value={display.positionY} onChange={(event) => updateImageDisplay(image, { positionY: Number(event.target.value) })} />
+                    </label>
+                    <button type="button" className="admin-product-editor__image-center" onClick={() => updateImageDisplay(image, { positionX: 50, positionY: 50 })}>מרכוז התמונה</button>
+                  </div>
+                </div>
+              })}
             </div>}
           </section>
 
@@ -302,8 +394,34 @@ export default function AdminProductEditor() {
               <label className="admin-product-editor__field">צבע<input value={form.color} onChange={(e) => setField('color', e.target.value)} /></label>
               <label className="admin-product-editor__field">חומר / גימור<input value={form.material} onChange={(e) => setField('material', e.target.value)} /></label>
               <label className="admin-product-editor__field">זמן אספקה בימים<input type="number" min="0" value={form.delivery_days} onChange={(e) => setField('delivery_days', e.target.value)} /></label>
-              <label className="admin-product-editor__field">מק״ט<input value={form.sku} onChange={(e) => setField('sku', e.target.value)} /></label>
             </div>
+          </section>
+
+          <section className="admin-product-editor__card">
+            <h2>ניהול מלאי</h2>
+            <label className="admin-product-editor__toggle admin-product-editor__field--full">
+              <input type="checkbox" checked={form.inventory_tracking} onChange={(e) => setField('inventory_tracking', e.target.checked)} />
+              <span>מעקב מלאי פעיל למוצר</span>
+            </label>
+            <div className="admin-product-editor__grid">
+              <label className="admin-product-editor__field">מק״ט
+                <input dir="ltr" value={form.sku} onChange={(e) => setField('sku', e.target.value)} placeholder="SKU-001" />
+              </label>
+              <label className="admin-product-editor__field">כמות התחלתית
+                <input type="number" min="0" step="1" value={form.initial_stock} onChange={(e) => { setField('initial_stock', e.target.value); if (isNew) setField('stock_quantity', e.target.value) }} />
+              </label>
+              <label className="admin-product-editor__field">מלאי נוכחי
+                <input type="number" min="0" step="1" value={form.stock_quantity} onChange={(e) => setField('stock_quantity', e.target.value)} />
+              </label>
+              <label className="admin-product-editor__field">התראת מלאי נמוך
+                <input type="number" min="0" step="1" value={form.low_stock_threshold} onChange={(e) => setField('low_stock_threshold', e.target.value)} />
+              </label>
+            </div>
+            <label className="admin-product-editor__toggle admin-product-editor__field--full">
+              <input type="checkbox" checked={form.allow_preorder} onChange={(e) => setField('allow_preorder', e.target.checked)} />
+              <span>לאפשר Pre-order גם כשהמלאי מגיע ל־0</span>
+            </label>
+            <p className="admin-product-editor__hint">כניסות סחורה שוטפות מומלץ לעדכן במסך „מלאי”. שינוי הכמות כאן יירשם כתיקון ידני.</p>
           </section>
 
           <section className="admin-product-editor__card">
@@ -313,12 +431,13 @@ export default function AdminProductEditor() {
               <span>המוצר זמין לניהול בקונפיגורטור</span>
             </label>
             <div className="admin-product-editor__grid">
-              <label className="admin-product-editor__field">סוג ארון
+              <label className="admin-product-editor__field">סוג פריט
                 <select value={form.configurator_category} onChange={(e) => setField('configurator_category', e.target.value)}>
                   <option value="תחתונים">תחתונים</option>
                   <option value="עליונים">עליונים</option>
                   <option value="גבוהים">גבוהים</option>
                   <option value="כיור">כיור</option>
+                  <option value="ברז">ברז</option>
                 </select>
               </label>
               <label className="admin-product-editor__field">תיאור חזית
@@ -353,7 +472,7 @@ export default function AdminProductEditor() {
           </section>
           <section className="admin-product-editor__card">
             <h2>כתובת המוצר</h2>
-            <label className="admin-product-editor__field"><span className="admin-product-editor__ltr">/catalog/</span><input dir="ltr" value={form.slug} onChange={(e) => setField('slug', toSlug(e.target.value))} /></label>
+            <label className="admin-product-editor__field"><span className="admin-product-editor__ltr">{form.product_type === 'CABINET' ? '/single-products/' : form.product_type === 'ACCESSORY' ? '/accessories/' : '/catalog/'}</span><input dir="ltr" value={form.slug} onChange={(e) => setField('slug', toSlug(e.target.value))} /></label>
             <p className="admin-product-editor__hint">אותיות אנגליות, מספרים ומקפים בלבד.</p>
           </section>
           <section className="admin-product-editor__card">

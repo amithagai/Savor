@@ -5,7 +5,7 @@ import './AdminPrices.css'
 import { ApiError, api } from '../../lib/api'
 import { useAdminAuth } from '../../context/useAdminAuth'
 
-type ProductType = 'KITCHEN' | 'ACCESSORY' | 'COMPONENT'
+type ProductType = 'KITCHEN' | 'CABINET' | 'ACCESSORY' | 'COMPONENT'
 
 type AdminProduct = {
   id: string
@@ -20,6 +20,7 @@ type AdminProduct = {
 
 const TYPE_LABELS: Record<ProductType, string> = {
   KITCHEN: 'מטבח',
+  CABINET: 'מוצר בודד',
   ACCESSORY: 'אביזר',
   COMPONENT: 'רכיב',
 }

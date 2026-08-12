@@ -61,15 +61,19 @@
   font-size: 14px;
   font-weight: 500;
   color: var(--text);
-  transition: opacity 0.18s;
+  opacity: 0.6;
 }
 
 .navbar__nav-link:hover {
-  opacity: 0.6;
+  font-weight: 500;
+
+  opacity: 1;
+  transition: opacity 0.18s;
 }
 
 .navbar__nav-link--kitchens {
   font-weight: 500;
+  transform: opacity 0.18s;
 }
 
 .navbar__kitchens-menu {

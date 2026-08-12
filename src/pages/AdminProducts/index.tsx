@@ -8,6 +8,7 @@ import type { AdminProduct, ProductType } from '../../types/catalog'
 
 const TYPE_LABELS: Record<ProductType, string> = {
   KITCHEN: 'מטבח',
+  CABINET: 'מוצר בודד',
   ACCESSORY: 'מוצר משלים',
   COMPONENT: 'רכיב לקונפיגורטור',
 }

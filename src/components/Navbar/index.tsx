@@ -8,7 +8,7 @@ import HeartIcon from '../HeartIcon'
 const navLinks = [
   { label: 'מטבחים', to: '/catalog' },
   { label: 'כלי תכנון', to: '/configurator' },
-  { label: 'מוצרים בודדים', to: '/accessories' },
+  { label: 'מוצרים בודדים', to: '/single-products' },
   { label: 'מוצרים משלימים', to: '/accessories' },
   { label: 'צור קשר', to: '/contact' },
 ]

@@ -5,6 +5,7 @@ import '../Catalog/Catalog.css'
 import './Accessories.css'
 import { useCart } from '../../context/useCart'
 import { api } from '../../lib/api'
+import { getImageDisplaySettings } from '../../lib/imageDisplay'
 import type { CatalogProduct } from '../../types/catalog'
 
 export default function Accessories() {
@@ -25,7 +26,7 @@ export default function Accessories() {
   const visibleProducts = selectedCategory === 'הכל' ? products : products.filter((product) => product.category?.name === selectedCategory)
 
   const addProduct = (product: CatalogProduct) => {
-    if (product.current_price == null) return
+    if (product.current_price == null || (!product.in_stock && !product.allow_preorder)) return
     addToCart({ id: product.id, name: product.name, category: product.category?.name, price: product.current_price, image: product.images[0], quantity: 1 })
   }
 
@@ -47,8 +48,11 @@ export default function Accessories() {
           name={product.name}
           subtitle={product.category?.name || 'מוצר משלים'}
           image={product.images[0]}
+          imageDisplay={getImageDisplaySettings(product.attributes, product.images[0], { fit: 'cover', positionX: 50, positionY: 50 })}
           price={product.current_price}
           originalPrice={product.original_price}
+          inStock={product.in_stock}
+          allowPreorder={product.allow_preorder}
           productHref={`/accessories/${product.slug}`}
           onAddToCart={() => addProduct(product)}
         />) : <p className="catalog-page__empty">עדיין אין מוצרים בקטגוריה הזאת.</p>}

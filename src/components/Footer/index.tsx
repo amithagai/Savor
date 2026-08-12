@@ -35,7 +35,8 @@ export default function Footer() {
   return (
     <>
       <footer className="footer">
-        <div className="footer__main">
+        <div className="footer__inner">
+          <div className="footer__main">
           {/* Logo — rightmost in RTL */}
           <div>
             <div className="footer__logo">
@@ -90,11 +91,12 @@ export default function Footer() {
               <EmnailInput handleChange={handleChange} email={email} />
             </div>
           </div>
-        </div>
+          </div>
 
-        <div className="footer__bottom">
-          <span>{content?.copyright || '© 2026 כל הזכויות שמורות לסאבור מטבחים'}</span>
-          <a href="/admin/login" className="footer__admin-link">כניסת מנהלים</a>
+          <div className="footer__bottom">
+            <span>{content?.copyright || '© 2026 כל הזכויות שמורות לסאבור מטבחים'}</span>
+            <a href="/admin/login" className="footer__admin-link">כניסת מנהלים</a>
+          </div>
         </div>
       </footer>
 

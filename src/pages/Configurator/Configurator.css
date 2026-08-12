@@ -426,6 +426,9 @@
   background: #f7fdf4;
 }
 
+.cfg__product--out { opacity: .58; cursor: not-allowed; }
+.cfg__product--out:hover { border-color: #D4DDE5; background: var(--white); }
+
 .cfg__product-img {
   width: 52px;
   height: 52px;
@@ -477,6 +480,8 @@
   letter-spacing: 0.7px;
   color: #59625d;
 }
+
+.cfg__product-stock { color: #a52b2b; font-size: 10px; font-weight: 800; }
 
 .cfg__product-heart {
   width: 22px;
@@ -988,19 +993,6 @@
 .cfg__extra-icon--sink {
   border: 2px solid currentColor;
   border-radius: 2px 2px 6px 6px;
-}
-
-.cfg__extra-icon--faucet::before {
-  content: '';
-  position: absolute;
-  right: 2px;
-  bottom: 0;
-  width: 7px;
-  height: 10px;
-  border: 2px solid currentColor;
-  border-left: 0;
-  border-bottom: 0;
-  border-radius: 0 7px 0 0;
 }
 
 .cfg__extras-help {

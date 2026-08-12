@@ -1,19 +1,29 @@
 import './ProductCard.css'
 import { Link } from 'react-router-dom'
+import type { ImageDisplaySettings } from '../../types/catalog'
 
 type ProductCardProps = {
   name: string
   subtitle: string
   image?: string
+  imageDisplay?: ImageDisplaySettings
   price?: number | null
   originalPrice?: number | null
+  inStock?: boolean
+  allowPreorder?: boolean
   productHref?: string
   onAddToCart: () => void
 }
 
-export default function ProductCard({ name, subtitle, image, price, originalPrice, productHref, onAddToCart }: ProductCardProps) {
+export default function ProductCard({ name, subtitle, image, imageDisplay, price, originalPrice, inStock = true, allowPreorder = false, productHref, onAddToCart }: ProductCardProps) {
   const media = image ? (
-    <img src={image} alt={name} className="savor-product-card__image" loading="lazy" />
+    <img
+      src={image}
+      alt={name}
+      className="savor-product-card__image"
+      loading="lazy"
+      style={imageDisplay ? { objectFit: imageDisplay.fit, objectPosition: `${imageDisplay.positionX}% ${imageDisplay.positionY}%` } : undefined}
+    />
   ) : (
     <div className="savor-product-card__placeholder">{name}</div>
   )
@@ -29,8 +39,10 @@ export default function ProductCard({ name, subtitle, image, price, originalPric
           <strong className="savor-product-card__price">{price.toLocaleString('he-IL')} ₪</strong>
           {originalPrice != null && <del className="savor-product-card__original-price">{originalPrice.toLocaleString('he-IL')} ₪</del>}
         </div>}
-        <button className="savor-product-card__button" onClick={onAddToCart}>
-          הוסף לסל
+        {!inStock && <span className="savor-product-card__stock">אזל מהמלאי</span>}
+        {allowPreorder && !inStock && <span className="savor-product-card__stock savor-product-card__stock--preorder">זמין להזמנה מוקדמת</span>}
+        <button className="savor-product-card__button" onClick={onAddToCart} disabled={!inStock && !allowPreorder}>
+          {!inStock && !allowPreorder ? 'אזל מהמלאי' : allowPreorder && !inStock ? 'הזמנה מוקדמת' : 'הוסף לסל'}
         </button>
       </div>
     </article>
