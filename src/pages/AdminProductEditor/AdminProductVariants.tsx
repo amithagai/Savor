@@ -4,6 +4,9 @@ import { ApiError, api } from '../../lib/api'
 import type { ProductVariant } from '../../types/catalog'
 import AdminModelPreview from './AdminModelPreview'
 
+const MAX_GLB_FILE_SIZE_BYTES = 30 * 1024 * 1024
+const GLB_FILE_TOO_LARGE_MESSAGE = 'הקובץ גדול מדי. ניתן להעלות מודל GLB בגודל של עד 30MB.'
+
 type Props = {
   productId: string
   token: string | null
@@ -86,6 +89,10 @@ export default function AdminProductVariants({ productId, token, variants, onCha
 
   const upload = async (key: string, kind: 'model_url' | 'thumbnail_url', file?: File) => {
     if (!file) return
+    if (kind === 'model_url' && file.size > MAX_GLB_FILE_SIZE_BYTES) {
+      setError(GLB_FILE_TOO_LARGE_MESSAGE)
+      return
+    }
     setBusy(`${key}-${kind}`)
     setError('')
     try {
@@ -236,7 +243,7 @@ export default function AdminProductVariants({ productId, token, variants, onCha
                   <label className="admin-variant__upload">
                     <input type="file" accept=".glb,model/gltf-binary" disabled={busy !== ''} onChange={(event) => upload(key, 'model_url', event.target.files?.[0])} />
                     <strong>{busy === `${key}-model_url` ? 'מעלה מודל…' : draft.model_url ? 'החלפת מודל GLB' : 'העלאת מודל GLB'}</strong>
-                    <span>מודל מלא עד 30MB</span>
+                    <span>קובץ מקור עד 30MB; קבצים מעל 10MB יידחסו בשרת</span>
                   </label>
                   <label className="admin-variant__upload admin-variant__upload--thumb">
                     <input type="file" accept="image/jpeg,image/png,image/webp,image/avif" disabled={busy !== ''} onChange={(event) => upload(key, 'thumbnail_url', event.target.files?.[0])} />
