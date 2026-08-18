@@ -5,6 +5,7 @@ import { useNavigate } from 'react-router-dom'
 import './AdminOrders.css'
 import { useAdminAuth } from '../../context/useAdminAuth'
 import { ApiError, api } from '../../lib/api'
+import { adminLoginPath } from '../../lib/adminRoutes'
 
 type OrderStatus = 'CREATED' | 'PAID' | 'PROCESSING' | 'SHIPPED' | 'DELIVERED' | 'CANCELLED'
 type PaymentOutcome = 'expired' | 'failed'
@@ -170,7 +171,7 @@ export default function AdminOrders() {
       } catch (err) {
         if (err instanceof ApiError && err.status === 401) {
           logout()
-          navigate('/admin/login')
+          navigate(adminLoginPath())
           return
         }
         if (!cancelled) setError('טעינת ההזמנות נכשלה')
@@ -252,7 +253,7 @@ export default function AdminOrders() {
     } catch (err) {
       if (err instanceof ApiError && err.status === 401) {
         logout()
-        navigate('/admin/login')
+        navigate(adminLoginPath())
         return
       }
       setError('עדכון סטטוס ההזמנה נכשל')

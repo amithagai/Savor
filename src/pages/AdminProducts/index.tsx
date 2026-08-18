@@ -3,6 +3,7 @@ import { Link, useNavigate } from 'react-router-dom'
 
 import './AdminProducts.css'
 import { ApiError, api } from '../../lib/api'
+import { adminLoginPath } from '../../lib/adminRoutes'
 import { useAdminAuth } from '../../context/useAdminAuth'
 import type { AdminProduct, ProductType } from '../../types/catalog'
 
@@ -28,7 +29,7 @@ export default function AdminProducts() {
       .catch((err) => {
         if (err instanceof ApiError && err.status === 401) {
           logout()
-          navigate('/admin/login')
+          navigate(adminLoginPath())
           return
         }
         setError('טעינת המוצרים נכשלה')

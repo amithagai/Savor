@@ -4,6 +4,7 @@ import { useNavigate } from 'react-router-dom'
 import './AdminContent.css'
 import { useAdminAuth } from '../../context/useAdminAuth'
 import { ApiError, api } from '../../lib/api'
+import { adminLoginPath } from '../../lib/adminRoutes'
 import { DEFAULT_SIZE_GUIDE_CONTENT, normalizeSizeGuideContent } from '../../lib/sizeGuide'
 import type {
   ContactContent,
@@ -44,7 +45,7 @@ export default function AdminContent() {
   const handleError = useCallback((error: unknown, fallback: string) => {
     if (error instanceof ApiError && error.status === 401) {
       logout()
-      navigate('/admin/login')
+      navigate(adminLoginPath())
       return
     }
     setNotice({ tone: 'error', text: fallback })

@@ -3,6 +3,7 @@ import { Link, useNavigate, useParams } from 'react-router-dom'
 
 import './AdminProductEditor.css'
 import { ApiError, api } from '../../lib/api'
+import { adminLoginPath } from '../../lib/adminRoutes'
 import { DEFAULT_IMAGE_DISPLAY, IMAGE_DISPLAY_ATTRIBUTE, parseImageDisplayMap } from '../../lib/imageDisplay'
 import { useAdminAuth } from '../../context/useAdminAuth'
 import type { AdminProductDetail, Category, ImageDisplayMap, ImageDisplaySettings, ProductType, ProductVariant } from '../../types/catalog'
@@ -115,7 +116,7 @@ export default function AdminProductEditor() {
         .catch((err) => {
           if (err instanceof ApiError && err.status === 401) {
             logout()
-            navigate('/admin/login')
+            navigate(adminLoginPath())
             return
           }
           setError('טעינת המוצר נכשלה')

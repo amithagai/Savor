@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom'
 
 import './AdminPrices.css'
 import { ApiError, api } from '../../lib/api'
+import { adminLoginPath } from '../../lib/adminRoutes'
 import { useAdminAuth } from '../../context/useAdminAuth'
 
 type ProductType = 'KITCHEN' | 'CABINET' | 'ACCESSORY' | 'COMPONENT'
@@ -50,7 +51,7 @@ export default function AdminPrices() {
       } catch (err) {
         if (err instanceof ApiError && err.status === 401) {
           logout()
-          navigate('/admin/login')
+          navigate(adminLoginPath())
           return
         }
         setError('טעינת המוצרים נכשלה')
@@ -88,7 +89,7 @@ export default function AdminPrices() {
     } catch (err) {
       if (err instanceof ApiError && err.status === 401) {
         logout()
-        navigate('/admin/login')
+        navigate(adminLoginPath())
         return
       }
       setError('שמירת המחיר נכשלה')

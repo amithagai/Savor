@@ -5,6 +5,7 @@ import { NavLink, Outlet, useNavigate } from 'react-router-dom'
 import './AdminLayout.css'
 import savorLogo from '../../assets/savor-logo.png'
 import { ApiError, api } from '../../lib/api'
+import { adminLoginPath } from '../../lib/adminRoutes'
 import { useAdminAuth } from '../../context/useAdminAuth'
 
 export default function AdminLayout() {
@@ -19,7 +20,7 @@ export default function AdminLayout() {
 
   const handleLogout = () => {
     logout()
-    navigate('/admin/login')
+    navigate(adminLoginPath())
   }
 
   const closePasswordDialog = () => {
@@ -64,7 +65,7 @@ export default function AdminLayout() {
         token,
       )
       logout()
-      navigate('/admin/login?password_changed=1', { replace: true })
+      navigate(adminLoginPath('?password_changed=1'), { replace: true })
     } catch (error) {
       if (error instanceof ApiError && error.status === 400) {
         setPasswordError('הסיסמה הנוכחית שהוזנה אינה נכונה')
@@ -72,7 +73,7 @@ export default function AdminLayout() {
         setPasswordError('הסיסמה החדשה אינה עומדת בדרישות')
       } else if (error instanceof ApiError && (error.status === 401 || error.status === 403)) {
         logout()
-        navigate('/admin/login', { replace: true })
+        navigate(adminLoginPath(), { replace: true })
       } else {
         setPasswordError('לא הצלחנו לשנות את הסיסמה. נסו שוב')
       }

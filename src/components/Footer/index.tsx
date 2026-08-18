@@ -95,7 +95,6 @@ export default function Footer() {
 
           <div className="footer__bottom">
             <span>{content?.copyright || '© 2026 כל הזכויות שמורות לסאבור מטבחים'}</span>
-            <a href="/admin/login" className="footer__admin-link">כניסת מנהלים</a>
           </div>
         </div>
       </footer>

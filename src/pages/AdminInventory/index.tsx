@@ -3,6 +3,7 @@ import { Link, useNavigate } from 'react-router-dom'
 
 import './AdminInventory.css'
 import { ApiError, api } from '../../lib/api'
+import { adminLoginPath } from '../../lib/adminRoutes'
 import { useAdminAuth } from '../../context/useAdminAuth'
 import type { InventoryItem } from '../../types/catalog'
 
@@ -31,7 +32,7 @@ export default function AdminInventory() {
       .catch((loadError) => {
         if (loadError instanceof ApiError && loadError.status === 401) {
           logout()
-          navigate('/admin/login')
+          navigate(adminLoginPath())
           return
         }
         setError('טעינת המלאי נכשלה')

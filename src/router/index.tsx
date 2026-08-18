@@ -28,6 +28,7 @@ import AdminProducts from "../pages/AdminProducts";
 import AdminProductEditor from "../pages/AdminProductEditor";
 import AdminContent from "../pages/AdminContent";
 import AdminInventory from "../pages/AdminInventory";
+import { ADMIN_LOGIN_PATH } from "../lib/adminRoutes";
 
 const router = createBrowserRouter([
   {
@@ -71,6 +72,15 @@ const router = createBrowserRouter([
 
   // Admin area — separate shell, no storefront Navbar/Footer
   {
+    path: ADMIN_LOGIN_PATH,
+    element: (
+      <AdminAuthProvider>
+        <AdminLogin />
+      </AdminAuthProvider>
+    ),
+  },
+
+  {
     path: "/admin",
     element: (
       <AdminAuthProvider>
@@ -78,7 +88,6 @@ const router = createBrowserRouter([
       </AdminAuthProvider>
     ),
     children: [
-      { path: "login", element: <AdminLogin /> },
       {
         element: <ProtectedAdminRoute />,
         children: [
