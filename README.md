@@ -94,14 +94,17 @@ src/
 
 ## Environment Variables
 
-Create a `.env` file in the project root (see `.env` for the current template):
+Create a `.env` file in the project root for local development:
 
 ```env
-# Add your environment variables here, e.g.:
-# VITE_API_URL=http://localhost:8000
+VITE_API_URL=http://localhost:8000
 ```
 
 All variables exposed to the browser must be prefixed with `VITE_`.
+
+In production, set `VITE_API_URL=https://<railway-api-domain>` in Vercel for
+the Production environment and redeploy. The Railway backend must include the
+Vercel production/custom domains in its `ALLOWED_ORIGINS` JSON array.
 
 ---
 
