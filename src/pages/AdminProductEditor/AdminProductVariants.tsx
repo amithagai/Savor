@@ -7,6 +7,17 @@ import AdminModelPreview from './AdminModelPreview'
 const MAX_MODEL_FILE_SIZE_BYTES = 30 * 1024 * 1024
 const MODEL_FILE_TOO_LARGE_MESSAGE = 'הקובץ גדול מדי. ניתן להעלות מודל בגודל של עד 30MB.'
 const INVALID_MODEL_FILE_MESSAGE = 'יש להעלות קובץ GLB או חבילת OBJ בפורמט ZIP.'
+const REQUIRED_VARIANT_FIELDS_MESSAGE = 'יש למלא צבע, שם צבע, מק״ט, מחיר ומודל תלת־ממד'
+const INVALID_COLOR_ID_MESSAGE = 'מזהה הצבע צריך להיות באנגלית, למשל cream או cream-white'
+const INVALID_SALE_PRICE_MESSAGE = 'מחיר המבצע חייב להיות נמוך מהמחיר הרגיל'
+const INVALID_STOCK_MESSAGE = 'כמויות המלאי חייבות להיות מספרים שלמים ולא שליליים'
+const CLIENT_VALIDATION_MESSAGES = new Set([
+  REQUIRED_VARIANT_FIELDS_MESSAGE,
+  INVALID_COLOR_ID_MESSAGE,
+  INVALID_SALE_PRICE_MESSAGE,
+  INVALID_STOCK_MESSAGE,
+])
+const COLOR_ID_PATTERN = /^[a-z0-9]+(?:-[a-z0-9]+)*$/
 
 type Props = {
   productId: string
@@ -31,6 +42,10 @@ type VariantDraft = {
   thumbnail_url: string
   is_active: boolean
   sort_order: string
+}
+
+function normalizeColorId(value: string) {
+  return value.trim().toLowerCase().replace(/\s+/g, '-')
 }
 
 const emptyDraft: VariantDraft = {
@@ -77,6 +92,7 @@ export default function AdminProductVariants({ productId, token, variants, onCha
   const [error, setError] = useState('')
 
   const setDraftField = <K extends keyof VariantDraft>(key: string, field: K, value: VariantDraft[K]) => {
+    setError((current) => CLIENT_VALIDATION_MESSAGES.has(current) ? '' : current)
     setDrafts((current) => ({
       ...current,
       [key]: {
@@ -113,27 +129,32 @@ export default function AdminProductVariants({ productId, token, variants, onCha
 
   const save = async (key: string) => {
     const draft = drafts[key]
+    const colorId = normalizeColorId(draft.color_id)
     const price = Number(draft.price)
     const salePrice = draft.sale_price.trim() ? Number(draft.sale_price) : null
     const initialStock = Number(draft.initial_stock)
     const stockQuantity = Number(draft.stock_quantity)
     const lowStockThreshold = Number(draft.low_stock_threshold)
     if (!draft.color_id || !draft.color_label || !draft.sku || !draft.model_url || !Number.isFinite(price) || price <= 0) {
-      setError('יש למלא צבע, שם צבע, מק״ט, מחיר ומודל תלת־ממד')
+      setError(REQUIRED_VARIANT_FIELDS_MESSAGE)
+      return
+    }
+    if (!COLOR_ID_PATTERN.test(colorId)) {
+      setError(INVALID_COLOR_ID_MESSAGE)
       return
     }
     if (salePrice != null && (!Number.isFinite(salePrice) || salePrice <= 0 || salePrice >= price)) {
-      setError('מחיר המבצע חייב להיות נמוך מהמחיר הרגיל')
+      setError(INVALID_SALE_PRICE_MESSAGE)
       return
     }
     if (![initialStock, stockQuantity, lowStockThreshold].every((value) => Number.isInteger(value) && value >= 0)) {
-      setError('כמויות המלאי חייבות להיות מספרים שלמים ולא שליליים')
+      setError(INVALID_STOCK_MESSAGE)
       return
     }
     setBusy(`${key}-save`)
     setError('')
     const payload = {
-      color_id: draft.color_id.trim().toLowerCase(),
+      color_id: colorId,
       color_label: draft.color_label.trim(),
       sku: draft.sku.trim(),
       price,
@@ -214,7 +235,16 @@ export default function AdminProductVariants({ productId, token, variants, onCha
               <div className="admin-variant__fields">
                 <div className="admin-product-editor__grid">
                   <label className="admin-product-editor__field">מזהה צבע
-                    <input dir="ltr" value={draft.color_id} onChange={(event) => setDraftField(key, 'color_id', event.target.value.replace(/[^a-z0-9-]/g, ''))} placeholder="cream" />
+                    <input
+                      dir="ltr"
+                      value={draft.color_id}
+                      onChange={(event) => setDraftField(key, 'color_id', event.target.value)}
+                      onBlur={(event) => setDraftField(key, 'color_id', normalizeColorId(event.target.value))}
+                      placeholder="cream או cream-white"
+                      autoCapitalize="none"
+                      spellCheck={false}
+                    />
+                    <small className="admin-product-editor__field-hint">באנגלית; אותיות גדולות ורווחים יומרו אוטומטית</small>
                   </label>
                   <label className="admin-product-editor__field">שם צבע
                     <input value={draft.color_label} onChange={(event) => setDraftField(key, 'color_label', event.target.value)} placeholder="CREAM" />
