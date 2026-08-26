@@ -321,34 +321,64 @@
 .gallery {
   display: flex;
   flex-direction: column;
-  gap: 6px;
+  gap: 24px;
   padding: 0 60px 64px;
 }
 
 .gallery__top {
+  container-type: inline-size;
   direction: ltr;
   display: grid;
-  grid-template-columns: repeat(3, 1fr);
-  gap: 6px;
+  grid-template-columns: 36.83fr 47.82fr 15.35fr;
+  gap: 24px;
 }
 
 .gallery__img-wrap {
   position: relative;
+  overflow: hidden;
+  border-radius: 24px;
 }
 
-.gallery__img-bg {
+.gallery__slice-image,
+.gallery__bottom-image {
   position: absolute;
-  inset: 0;
-  overflow: hidden;
-  border-radius: 16px;
+  display: block;
+  max-width: none;
+  user-select: none;
+  pointer-events: none;
 }
 
 .gallery__top .gallery__img-wrap {
-  aspect-ratio: 4/3;
+  height: clamp(200px, 18vw, 244px);
+}
+
+.gallery__slice-image {
+  top: 0;
+  width: 100cqw;
+  height: auto;
+}
+
+.gallery__top .gallery__img-wrap:nth-child(1) .gallery__slice-image {
+  left: 0;
+}
+
+.gallery__top .gallery__img-wrap:nth-child(2) .gallery__slice-image {
+  left: calc(-36.83cqw - 6px);
+}
+
+.gallery__top .gallery__img-wrap:nth-child(3) .gallery__slice-image {
+  left: calc(-84.65cqw - 7px);
 }
 
 .gallery__bottom {
-  height: 380px;
+  height: clamp(330px, 29.5vw, 404px);
+}
+
+.gallery__bottom-image {
+  left: 0;
+  bottom: -8%;
+  width: 100%;
+  height: auto;
 }
 
 .gallery__hotspot {
@@ -381,16 +411,10 @@
   flex-direction: column;
   gap: 2px;
   z-index: 5;
-  bottom: 16px;
-  left: 16px;
-  min-width: 140px;
+  min-width: 130px;
+  max-width: 190px;
   direction: rtl;
-}
-
-.gallery__tooltip--left {
-  left: auto;
-  right: 16px;
-  bottom: 20%;
+  transform: translate(calc(-100% - 18px), -8px);
 }
 
 .gallery__tooltip strong {
@@ -605,22 +629,48 @@
 
   /* ─── Gallery ──────────────────────────────────── */
   .gallery {
+    gap: 10px;
     padding: 0 20px 40px;
+  }
+
+  .gallery__top {
+    gap: 10px;
+    grid-template-columns: 36.83fr 47.82fr 15.35fr;
+  }
+
+  .gallery__top .gallery__img-wrap {
+    height: 120px;
+    border-radius: 14px;
+  }
+
+  .gallery__top .gallery__img-wrap:nth-child(2) .gallery__slice-image {
+    left: calc(-36.83cqw - 3px);
+  }
+
+  .gallery__top .gallery__img-wrap:nth-child(3) .gallery__slice-image {
+    left: calc(-84.65cqw - 3px);
   }
 
   .gallery__bottom {
     height: 220px;
+    border-radius: 14px;
   }
 
   /* Tooltip can't hang past a narrow tile's edge on mobile — keep it
      inside the tile's own width and let the text wrap instead. */
   .gallery__top .gallery__tooltip {
-    left: 6px;
+    left: 6px !important;
     right: 6px;
+    top: auto !important;
     min-width: 0;
     bottom: 8px;
     padding: 10px 12px;
     font-size: 12px;
+    transform: none;
+  }
+
+  .gallery__bottom .gallery__tooltip {
+    max-width: min(170px, 50vw);
   }
 
   /* ─── Testimonials ─────────────────────────────── */
