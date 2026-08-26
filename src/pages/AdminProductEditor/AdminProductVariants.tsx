@@ -4,9 +4,9 @@ import { ApiError, api } from '../../lib/api'
 import type { ProductVariant } from '../../types/catalog'
 import AdminModelPreview from './AdminModelPreview'
 
-const MAX_GLB_FILE_SIZE_BYTES = 30 * 1024 * 1024
-const GLB_FILE_TOO_LARGE_MESSAGE = 'הקובץ גדול מדי. ניתן להעלות מודל GLB בגודל של עד 30MB.'
-const INVALID_GLB_FILE_MESSAGE = 'יש להעלות קובץ GLB בלבד.'
+const MAX_MODEL_FILE_SIZE_BYTES = 30 * 1024 * 1024
+const MODEL_FILE_TOO_LARGE_MESSAGE = 'הקובץ גדול מדי. ניתן להעלות מודל בגודל של עד 30MB.'
+const INVALID_MODEL_FILE_MESSAGE = 'יש להעלות קובץ GLB או חבילת OBJ בפורמט ZIP.'
 
 type Props = {
   productId: string
@@ -90,12 +90,13 @@ export default function AdminProductVariants({ productId, token, variants, onCha
 
   const upload = async (key: string, kind: 'model_url' | 'thumbnail_url', file?: File) => {
     if (!file) return
-    if (kind === 'model_url' && !file.name.toLowerCase().endsWith('.glb')) {
-      setError(INVALID_GLB_FILE_MESSAGE)
+    const modelSuffix = file.name.toLowerCase().split('.').pop()
+    if (kind === 'model_url' && !['glb', 'zip'].includes(modelSuffix || '')) {
+      setError(INVALID_MODEL_FILE_MESSAGE)
       return
     }
-    if (kind === 'model_url' && file.size > MAX_GLB_FILE_SIZE_BYTES) {
-      setError(GLB_FILE_TOO_LARGE_MESSAGE)
+    if (kind === 'model_url' && file.size > MAX_MODEL_FILE_SIZE_BYTES) {
+      setError(MODEL_FILE_TOO_LARGE_MESSAGE)
       return
     }
     setBusy(`${key}-${kind}`)
@@ -118,7 +119,7 @@ export default function AdminProductVariants({ productId, token, variants, onCha
     const stockQuantity = Number(draft.stock_quantity)
     const lowStockThreshold = Number(draft.low_stock_threshold)
     if (!draft.color_id || !draft.color_label || !draft.sku || !draft.model_url || !Number.isFinite(price) || price <= 0) {
-      setError('יש למלא צבע, שם צבע, מק״ט, מחיר ומודל GLB')
+      setError('יש למלא צבע, שם צבע, מק״ט, מחיר ומודל תלת־ממד')
       return
     }
     if (salePrice != null && (!Number.isFinite(salePrice) || salePrice <= 0 || salePrice >= price)) {
@@ -194,7 +195,7 @@ export default function AdminProductVariants({ productId, token, variants, onCha
       <div className="admin-variants__heading">
         <div>
           <h2>דגמי הקונפיגורטור לפי צבע</h2>
-          <p className="admin-product-editor__hint">כל צבע הוא וריאציה מלאה עם מחיר, מק״ט וקובץ GLB משלו.</p>
+          <p className="admin-product-editor__hint">כל צבע הוא וריאציה מלאה עם מחיר, מק״ט ומודל משלו. ניתן להעלות GLB או ZIP המכיל OBJ, MTL וטקסטורות.</p>
         </div>
         <span>{variants.length} וריאציות</span>
       </div>
@@ -246,9 +247,9 @@ export default function AdminProductVariants({ productId, token, variants, onCha
 
                 <div className="admin-variant__uploads">
                   <label className="admin-variant__upload">
-                    <input type="file" accept=".glb,model/gltf-binary" disabled={busy !== ''} onChange={(event) => upload(key, 'model_url', event.target.files?.[0])} />
-                    <strong>{busy === `${key}-model_url` ? 'מעלה מודל…' : draft.model_url ? 'החלפת מודל GLB' : 'העלאת מודל GLB'}</strong>
-                    <span>קובץ GLB עצמאי בלבד, עד 30MB</span>
+                    <input type="file" accept=".glb,.zip,model/gltf-binary,application/zip" disabled={busy !== ''} onChange={(event) => upload(key, 'model_url', event.target.files?.[0])} />
+                    <strong>{busy === `${key}-model_url` ? 'מעבד ומעלה מודל…' : draft.model_url ? 'החלפת מודל' : 'העלאת מודל'}</strong>
+                    <span>GLB, או ZIP עם OBJ + MTL + טקסטורות, עד 30MB</span>
                   </label>
                   <label className="admin-variant__upload admin-variant__upload--thumb">
                     <input type="file" accept="image/jpeg,image/png,image/webp,image/avif" disabled={busy !== ''} onChange={(event) => upload(key, 'thumbnail_url', event.target.files?.[0])} />
