@@ -11,6 +11,7 @@ import type {
   ContentPageData,
   FooterContent,
   HomeContent,
+  SeoContent,
   SizeGuideContent,
   SiteContentResponse,
 } from '../../types/content'
@@ -26,6 +27,28 @@ const PAGE_LABELS: Record<string, string> = {
   'size-guide': 'מדריך מידות',
 }
 
+const DEFAULT_SEO_CONTENT: SeoContent = {
+  site_title: 'Savor Kitchens',
+  meta_description: '',
+  favicon_url: '',
+}
+
+function getImageDimensions(file: File) {
+  return new Promise<{ width: number; height: number }>((resolve, reject) => {
+    const objectUrl = URL.createObjectURL(file)
+    const image = new Image()
+    image.onload = () => {
+      URL.revokeObjectURL(objectUrl)
+      resolve({ width: image.naturalWidth, height: image.naturalHeight })
+    }
+    image.onerror = () => {
+      URL.revokeObjectURL(objectUrl)
+      reject(new Error('Invalid image'))
+    }
+    image.src = objectUrl
+  })
+}
+
 export default function AdminContent() {
   const { token, logout } = useAdminAuth()
   const navigate = useNavigate()
@@ -36,6 +59,7 @@ export default function AdminContent() {
   const [selectedPageSlug, setSelectedPageSlug] = useState('')
   const [footer, setFooter] = useState<SiteContentResponse<FooterContent> | null>(null)
   const [contact, setContact] = useState<SiteContentResponse<ContactContent> | null>(null)
+  const [seo, setSeo] = useState<SiteContentResponse<SeoContent> | null>(null)
   const [sizeGuide, setSizeGuide] = useState<SiteContentResponse<SizeGuideContent> | null>(null)
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState<ContentTab | null>(null)
@@ -52,6 +76,11 @@ export default function AdminContent() {
   }, [logout, navigate])
 
   useEffect(() => {
+    const seoRequest = api.get<SiteContentResponse<SeoContent>>('/admin/content/site/seo', token)
+      .catch((error) => {
+        if (error instanceof ApiError && error.status === 404) return null
+        throw error
+      })
     const sizeGuideRequest = api.get<SiteContentResponse<SizeGuideContent>>('/admin/content/site/size-guide', token)
       .catch((error) => {
         if (error instanceof ApiError && error.status === 404) return null
@@ -65,8 +94,9 @@ export default function AdminContent() {
       api.get<SiteContentResponse<ContactContent>>('/admin/content/site/contact', token),
       api.get<CatalogProduct[]>('/catalog/kitchens?limit=100'),
       sizeGuideRequest,
+      seoRequest,
     ])
-      .then(([homeContent, contentPages, footerContent, contactContent, catalogProducts, sizeGuideContent]) => {
+      .then(([homeContent, contentPages, footerContent, contactContent, catalogProducts, sizeGuideContent, seoContent]) => {
         const defaultProducts = catalogProducts.filter((product) => product.attributes.featured).slice(0, 3)
         setHome({
           ...homeContent,
@@ -83,6 +113,13 @@ export default function AdminContent() {
         setSelectedPageSlug(contentPages[0]?.slug || '')
         setFooter(footerContent)
         setContact(contactContent)
+        setSeo(seoContent || {
+          id: '',
+          key: 'seo',
+          data: DEFAULT_SEO_CONTENT,
+          is_published: true,
+          updated_at: '',
+        })
         const sizeGuidePage = contentPages.find((page) => page.slug === 'size-guide')
         setSizeGuide(sizeGuideContent
           ? { ...sizeGuideContent, data: normalizeSizeGuideContent(sizeGuideContent.data) }
@@ -175,6 +212,24 @@ export default function AdminContent() {
     }
   }
 
+  const uploadFavicon = async (file: File) => {
+    setNotice(null)
+    try {
+      const { width, height } = await getImageDimensions(file)
+      if (width !== height || width < 48) {
+        setNotice({ tone: 'error', text: 'יש להעלות אייקון ריבועי בגודל 48×48 פיקסלים לפחות.' })
+        return
+      }
+    } catch {
+      setNotice({ tone: 'error', text: 'לא ניתן לקרוא את קובץ האייקון. נסו קובץ PNG, JPG או WebP.' })
+      return
+    }
+
+    await uploadImage(file, 'favicon', (favicon_url) => {
+      setSeo((current) => current ? { ...current, data: { ...current.data, favicon_url } } : current)
+    })
+  }
+
   const saveHome = async () => {
     if (!home) return
     setSaving('home')
@@ -229,11 +284,11 @@ export default function AdminContent() {
   }
 
   const saveSite = async () => {
-    if (!footer || !contact) return
+    if (!footer || !contact || !seo) return
     setSaving('site')
     setNotice(null)
     try {
-      const [savedFooter, savedContact] = await Promise.all([
+      const [savedFooter, savedContact, savedSeo] = await Promise.all([
         api.put<SiteContentResponse<FooterContent>>(
           '/admin/content/site/footer',
           { data: footer.data, is_published: footer.is_published },
@@ -244,10 +299,16 @@ export default function AdminContent() {
           { data: contact.data, is_published: contact.is_published },
           token,
         ),
+        api.put<SiteContentResponse<SeoContent>>(
+          '/admin/content/site/seo',
+          { data: seo.data, is_published: true },
+          token,
+        ),
       ])
       setFooter(savedFooter)
       setContact(savedContact)
-      setNotice({ tone: 'success', text: 'פרטי האתר נשמרו בהצלחה' })
+      setSeo(savedSeo)
+      setNotice({ tone: 'success', text: 'פרטי האתר נשמרו בהצלחה. עדכון התוצאה ב־Google עשוי להימשך מספר ימים או שבועות.' })
     } catch (error) {
       handleError(error, 'שמירת פרטי האתר נכשלה')
     } finally {
@@ -506,8 +567,37 @@ export default function AdminContent() {
         </div>
       )}
 
-      {tab === 'site' && footer && contact && (
+      {tab === 'site' && footer && contact && seo && (
         <div className="admin-content__workspace">
+          <section className="admin-content__card">
+            <div className="admin-content__section-heading">
+              <div>
+                <h2>Google ו־SEO</h2>
+                <p>הכותרת, התיאור והאייקון שמייצגים את האתר במנועי חיפוש ובדפדפן</p>
+              </div>
+            </div>
+            <div className="admin-content__grid">
+              <Field
+                label="שם האתר"
+                value={seo.data.site_title}
+                onChange={(site_title) => setSeo({ ...seo, data: { ...seo.data, site_title } })}
+              />
+              <TextAreaField
+                label={`תיאור האתר למנועי חיפוש (${seo.data.meta_description.length}/160)`}
+                rows={4}
+                value={seo.data.meta_description}
+                onChange={(meta_description) => setSeo({ ...seo, data: { ...seo.data, meta_description: meta_description.slice(0, 160) } })}
+              />
+            </div>
+            <ImageField
+              label="כתובת אייקון האתר"
+              value={seo.data.favicon_url}
+              uploading={uploading === 'favicon'}
+              onChange={(favicon_url) => setSeo({ ...seo, data: { ...seo.data, favicon_url } })}
+              onUpload={uploadFavicon}
+            />
+            <p className="admin-content__hint">יש להעלות תמונה ריבועית בגודל 48×48 פיקסלים לפחות. מומלץ להשתמש ב־PNG ברור ובעל ניגודיות גבוהה.</p>
+          </section>
           <section className="admin-content__card">
             <div className="admin-content__section-heading">
               <div><h2>פוטר האתר</h2><p>מידע קבוע שמופיע בתחתית כל עמוד</p></div>
