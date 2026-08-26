@@ -1,4 +1,4 @@
-import { useEffect, useState, type FC } from 'react'
+import { useCallback, useEffect, useState, type FC } from 'react'
 import { useNavigate } from 'react-router-dom'
 import './Configurator.css'
 import HeartIcon from '../../components/HeartIcon'
@@ -355,13 +355,17 @@ export default function Configurator() {
     navigate('/cart')
   }
 
-  function setCabinetPosition(key: string, xCm: number) {
+  const setCabinetPosition = useCallback((key: string, xCm: number) => {
     setCabinetPositions(prev => ({ ...prev, [key]: xCm }))
-  }
+  }, [])
 
-  function setAccessoryPosition(id: KitchenAccessoryId, xCm: number) {
+  const setCabinetPositionUpdates = useCallback((updates: CabinetPositions) => {
+    setCabinetPositions(prev => ({ ...prev, ...updates }))
+  }, [])
+
+  const setAccessoryPosition = useCallback((id: KitchenAccessoryId, xCm: number) => {
     setAccessories(prev => ({ ...prev, [id]: xCm }))
-  }
+  }, [])
 
   function applyWallLength() {
     const parsed = Number(wallLength)
@@ -589,7 +593,7 @@ export default function Configurator() {
                 cartItems={cabinetCartItems}
                 wallLengthCm={appliedWallLength}
                 positions={cabinetPositions}
-                onPositionChange={setCabinetPosition}
+                onPositionsChange={setCabinetPositionUpdates}
                 accessories={visibleAccessories}
                 onAccessoryPositionChange={setAccessoryPosition}
               />
@@ -617,7 +621,9 @@ export default function Configurator() {
               </button>
             ))}
           </div>
-          <div className="cfg__drag-hint">גררו ארונות וברזים למיקום הרצוי</div>
+          <div className="cfg__drag-hint">
+            {viewMode === '3D' ? 'בחרו סיבוב או הזזה, ואז גררו בתצוגה' : 'גררו ארונות וברזים למיקום הרצוי'}
+          </div>
         </div>
 
         {/* LEFT panel: shopping list (RTL end — last in DOM) */}
