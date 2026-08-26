@@ -1,4 +1,4 @@
-import { Component, Suspense, useEffect, useMemo, useState, type ErrorInfo, type ReactNode } from 'react'
+import { Component, Suspense, useCallback, useEffect, useMemo, useRef, useState, type ErrorInfo, type ReactNode } from 'react'
 import { Canvas, type ThreeEvent } from '@react-three/fiber'
 import { Edges, Environment, Html, Line, OrbitControls, Text, useGLTF } from '@react-three/drei'
 import {
@@ -23,6 +23,7 @@ import {
   PLINTH_HEIGHT_CM,
   PLINTH_RECESS_CM,
   type AccessoryPositions,
+  type CabinetLayout,
   type CabinetLayoutItem,
   type CabinetPositions,
   type CategorySpec,
@@ -34,10 +35,12 @@ type Props = {
   cartItems: CabinetLayoutItem[]
   wallLengthCm?: number | null
   positions: CabinetPositions
-  onPositionChange: (key: string, xCm: number) => void
+  onPositionsChange: (positions: CabinetPositions) => void
   accessories: AccessoryPositions
   onAccessoryPositionChange: (id: KitchenAccessoryId, xCm: number) => void
 }
+
+type InteractionMode = 'orbit' | 'move'
 
 const CM = 0.01
 const GAP_M = 0.01
@@ -131,7 +134,7 @@ function RealCabinetModel({ url, width }: {
       const mesh = node as Mesh
       if (mesh.isMesh) {
         mesh.castShadow = true
-        mesh.receiveShadow = true
+        mesh.receiveShadow = false
       }
     })
     return clone
@@ -176,7 +179,7 @@ function Cabinet({ x, width, spec, color, subtitle, modelUrl, active, dragHandle
   subtitle: string
   modelUrl?: string
   active: boolean
-  dragHandlers: DragHandlers
+  dragHandlers?: DragHandlers
 }) {
   const height = spec.height * CM
   const depth = spec.depth * CM
@@ -184,7 +187,7 @@ function Cabinet({ x, width, spec, color, subtitle, modelUrl, active, dragHandle
   const fallback = <ProceduralCabinet width={width} height={height} depth={depth} color={color} subtitle={subtitle} />
 
   return (
-    <group position={[x, elevation, 0]} {...dragHandlers}>
+    <group position={[x, elevation, 0]} {...(dragHandlers ?? {})}>
       {modelUrl ? (
         <CabinetModelErrorBoundary key={modelUrl} fallback={fallback}>
           <RealCabinetModel url={modelUrl} width={width} />
@@ -245,11 +248,11 @@ function Plinth({ run }: { run: CounterRun }) {
   )
 }
 
-function Sink({ x, active, dragHandlers }: { x: number; active: boolean; dragHandlers: DragHandlers }) {
+function Sink({ x, active, dragHandlers }: { x: number; active: boolean; dragHandlers?: DragHandlers }) {
   const top = COUNTERTOP_HEIGHT_CM * CM + 0.037
   const z = COUNTERTOP_DEPTH_CM * CM * 0.57
   return (
-    <group position={[x, top, z]} {...dragHandlers}>
+    <group position={[x, top, z]} {...(dragHandlers ?? {})}>
       <mesh castShadow>
         <boxGeometry args={[0.52, 0.018, 0.42]} />
         <meshStandardMaterial color="#aeb3b4" metalness={0.72} roughness={0.22} />
@@ -269,11 +272,11 @@ function Sink({ x, active, dragHandlers }: { x: number; active: boolean; dragHan
   )
 }
 
-function Faucet({ x, active, dragHandlers }: { x: number; active: boolean; dragHandlers: DragHandlers }) {
+function Faucet({ x, active, dragHandlers }: { x: number; active: boolean; dragHandlers?: DragHandlers }) {
   const top = COUNTERTOP_HEIGHT_CM * CM + 0.045
   const metal = <meshStandardMaterial color="#aeb4b6" metalness={0.86} roughness={0.17} />
   return (
-    <group position={[x, top, 0.12]} {...dragHandlers}>
+    <group position={[x, top, 0.12]} {...(dragHandlers ?? {})}>
       <mesh position={[0, 0.16, 0]} castShadow>
         <cylinderGeometry args={[0.018, 0.022, 0.32, 18]} />
         {metal}
@@ -304,10 +307,67 @@ type DragState = {
   offsetM: number
 }
 
-function ConfiguratorScene({ cartItems, wallLengthCm, positions, onPositionChange, accessories, onAccessoryPositionChange }: Props) {
-  const layout = useMemo(() => buildCabinetLayout(cartItems, positions), [cartItems, positions])
+type SceneProps = Props & {
+  interactionMode: InteractionMode
+  layout: CabinetLayout
+}
+
+type PendingDragUpdate = {
+  cabinetPositions?: CabinetPositions
+  accessory?: { id: KitchenAccessoryId; xCm: number }
+}
+
+function useDragUpdateScheduler(
+  onPositionsChange: Props['onPositionsChange'],
+  onAccessoryPositionChange: Props['onAccessoryPositionChange'],
+) {
+  const pendingUpdate = useRef<PendingDragUpdate>({})
+  const updateFrame = useRef<number | null>(null)
+
+  const commitPendingUpdate = useCallback(() => {
+    updateFrame.current = null
+    const pending = pendingUpdate.current
+    pendingUpdate.current = {}
+    if (pending.cabinetPositions && Object.keys(pending.cabinetPositions).length > 0) {
+      onPositionsChange(pending.cabinetPositions)
+    }
+    if (pending.accessory) {
+      onAccessoryPositionChange(pending.accessory.id, pending.accessory.xCm)
+    }
+  }, [onAccessoryPositionChange, onPositionsChange])
+
+  const scheduleUpdate = useCallback((update: PendingDragUpdate) => {
+    pendingUpdate.current = {
+      cabinetPositions: update.cabinetPositions
+        ? { ...pendingUpdate.current.cabinetPositions, ...update.cabinetPositions }
+        : pendingUpdate.current.cabinetPositions,
+      accessory: update.accessory ?? pendingUpdate.current.accessory,
+    }
+    if (updateFrame.current == null) {
+      updateFrame.current = requestAnimationFrame(commitPendingUpdate)
+    }
+  }, [commitPendingUpdate])
+
+  const flushPendingUpdate = useCallback(() => {
+    if (updateFrame.current == null) return
+    cancelAnimationFrame(updateFrame.current)
+    commitPendingUpdate()
+  }, [commitPendingUpdate])
+
+  useEffect(() => () => {
+    if (updateFrame.current != null) cancelAnimationFrame(updateFrame.current)
+  }, [])
+
+  return { flushPendingUpdate, scheduleUpdate }
+}
+
+function ConfiguratorScene({ layout, wallLengthCm, onPositionsChange, accessories, onAccessoryPositionChange, interactionMode }: SceneProps) {
   const dragPlane = useMemo(() => new Plane(new Vector3(0, 0, 1), 0), [])
   const [drag, setDrag] = useState<DragState | null>(null)
+  const { flushPendingUpdate, scheduleUpdate } = useDragUpdateScheduler(
+    onPositionsChange,
+    onAccessoryPositionChange,
+  )
   const activeKey = drag ? `${drag.type}-${drag.key}` : null
 
   const designWidthCm = Math.max(wallLengthCm ?? 0, layout.floorEnd, layout.wallEnd, 150)
@@ -354,9 +414,19 @@ function ConfiguratorScene({ cartItems, wallLengthCm, positions, onPositionChang
         rawX,
         designWidthCm,
       )
-      Object.entries(updates).forEach(([key, x]) => onPositionChange(key, Math.round(x)))
+      const roundedUpdates = Object.fromEntries(
+        Object.entries(updates).map(([key, x]) => [key, Math.round(x)]),
+      )
+      if (Object.keys(roundedUpdates).length > 0) {
+        scheduleUpdate({ cabinetPositions: roundedUpdates })
+      }
     } else {
-      onAccessoryPositionChange(drag.key as KitchenAccessoryId, Math.round(clampAccessoryX(rawX, drag.widthCm)))
+      scheduleUpdate({
+        accessory: {
+          id: drag.key as KitchenAccessoryId,
+          xCm: Math.round(clampAccessoryX(rawX, drag.widthCm)),
+        },
+      })
     }
   }
 
@@ -365,15 +435,16 @@ function ConfiguratorScene({ cartItems, wallLengthCm, positions, onPositionChang
     event.stopPropagation()
     const target = event.target as unknown as { releasePointerCapture?: (pointerId: number) => void }
     target.releasePointerCapture?.(event.pointerId)
+    flushPendingUpdate()
     setDrag(null)
   }
 
   function handlers(type: DragState['type'], key: string, xCm: number, widthCm: number): DragHandlers {
     return {
       onPointerDown: event => startDrag(event, type, key, xCm, widthCm),
-      onPointerMove: moveDrag,
-      onPointerUp: endDrag,
-      onPointerCancel: endDrag,
+      onPointerMove: event => moveDrag(event),
+      onPointerUp: event => endDrag(event),
+      onPointerCancel: event => endDrag(event),
     }
   }
 
@@ -407,7 +478,7 @@ function ConfiguratorScene({ cartItems, wallLengthCm, positions, onPositionChang
             subtitle={item.subtitle}
             modelUrl={item.modelUrl ?? getModelUrl(item.modelSlug, item.colorId)}
             active={activeKey === `cabinet-${key}`}
-            dragHandlers={handlers('cabinet', key, x, width)}
+            dragHandlers={interactionMode === 'move' ? handlers('cabinet', key, x, width) : undefined}
           />
         ))}
         {layout.counterRuns.map((run, index) => <Countertop key={`counter-${index}`} run={run} />)}
@@ -422,21 +493,21 @@ function ConfiguratorScene({ cartItems, wallLengthCm, positions, onPositionChang
             subtitle={item.subtitle}
             modelUrl={item.modelUrl ?? getModelUrl(item.modelSlug, item.colorId)}
             active={activeKey === `cabinet-${key}`}
-            dragHandlers={handlers('cabinet', key, x, width)}
+            dragHandlers={interactionMode === 'move' ? handlers('cabinet', key, x, width) : undefined}
           />
         ))}
         {accessories.sink != null && layout.counterRuns.length > 0 && (
           <Sink
             x={accessories.sink * CM}
             active={activeKey === 'accessory-sink'}
-            dragHandlers={handlers('accessory', 'sink', accessories.sink, 52)}
+            dragHandlers={interactionMode === 'move' ? handlers('accessory', 'sink', accessories.sink, 52) : undefined}
           />
         )}
         {accessories.faucet != null && layout.counterRuns.length > 0 && (
           <Faucet
             x={accessories.faucet * CM}
             active={activeKey === 'accessory-faucet'}
-            dragHandlers={handlers('accessory', 'faucet', accessories.faucet, 8)}
+            dragHandlers={interactionMode === 'move' ? handlers('accessory', 'faucet', accessories.faucet, 8) : undefined}
           />
         )}
       </group>
@@ -448,9 +519,7 @@ function ConfiguratorScene({ cartItems, wallLengthCm, positions, onPositionChang
         target={[0, 0.95, 0.2]}
         minDistance={1.8}
         maxDistance={10}
-        minAzimuthAngle={-Math.PI / 2.25}
-        maxAzimuthAngle={Math.PI / 2.25}
-        minPolarAngle={Math.PI * 0.2}
+        minPolarAngle={Math.PI * 0.08}
         maxPolarAngle={Math.PI * 0.49}
         enablePan={false}
       />
@@ -460,20 +529,45 @@ function ConfiguratorScene({ cartItems, wallLengthCm, positions, onPositionChang
 }
 
 export default function KitchenModelViewer(props: Props) {
-  const layout = buildCabinetLayout(props.cartItems, props.positions)
+  const [interactionMode, setInteractionMode] = useState<InteractionMode>('orbit')
+  const layout = useMemo(
+    () => buildCabinetLayout(props.cartItems, props.positions),
+    [props.cartItems, props.positions],
+  )
   const designWidthM = Math.max(props.wallLengthCm ?? 0, layout.floorEnd, layout.wallEnd, 150) * CM
 
   return (
-    <Canvas
-      shadows
-      dpr={[1, 2]}
-      gl={{ antialias: true, toneMapping: ACESFilmicToneMapping }}
-      onCreated={({ gl }) => { gl.toneMappingExposure = 0.78 }}
-      camera={{ position: [designWidthM * 0.58, 1.5, designWidthM * 1.05 + 2], fov: 45 }}
-    >
-      <Suspense fallback={<ModelLoadingFallback />}>
-        <ConfiguratorScene {...props} />
-      </Suspense>
-    </Canvas>
+    <div className="cfg3d__viewer">
+      <div className="cfg3d__interaction-toggle" role="group" aria-label="מצב שליטה בתצוגת תלת־ממד">
+        <button
+          type="button"
+          className={`cfg3d__interaction-btn${interactionMode === 'orbit' ? ' cfg3d__interaction-btn--active' : ''}`}
+          aria-pressed={interactionMode === 'orbit'}
+          onClick={() => setInteractionMode('orbit')}
+        >
+          סיבוב 360°
+        </button>
+        <button
+          type="button"
+          className={`cfg3d__interaction-btn${interactionMode === 'move' ? ' cfg3d__interaction-btn--active' : ''}`}
+          aria-pressed={interactionMode === 'move'}
+          onClick={() => setInteractionMode('move')}
+        >
+          הזזת פריטים
+        </button>
+      </div>
+      <Canvas
+        shadows="basic"
+        frameloop="demand"
+        dpr={[1, 1.5]}
+        gl={{ antialias: true, toneMapping: ACESFilmicToneMapping, powerPreference: 'high-performance' }}
+        onCreated={({ gl }) => { gl.toneMappingExposure = 0.78 }}
+        camera={{ position: [designWidthM * 0.58, 1.5, designWidthM * 1.05 + 2], fov: 45 }}
+      >
+        <Suspense fallback={<ModelLoadingFallback />}>
+          <ConfiguratorScene {...props} layout={layout} interactionMode={interactionMode} />
+        </Suspense>
+      </Canvas>
+    </div>
   )
 }
