@@ -632,6 +632,7 @@ export default function AdminContent() {
             </div>
             <Field label="כותרת" value={contact.data.title} onChange={(title) => setContact({ ...contact, data: { ...contact.data, title } })} />
             <Field label="כותרת משנה" value={contact.data.subtitle} onChange={(subtitle) => setContact({ ...contact, data: { ...contact.data, subtitle } })} />
+            <Field label="כתובת מייל ליצירת קשר" value={contact.data.email || ''} dir="ltr" type="email" onChange={(email) => setContact({ ...contact, data: { ...contact.data, email } })} />
             <Field label="הודעת הצלחה" value={contact.data.success_message} onChange={(success_message) => setContact({ ...contact, data: { ...contact.data, success_message } })} />
           </section>
           <SaveBar label="שמירת פרטי האתר" saving={saving === 'site'} onClick={saveSite} />
@@ -641,8 +642,8 @@ export default function AdminContent() {
   )
 }
 
-function Field({ label, value, onChange, dir }: { label: string; value: string; onChange: (value: string) => void; dir?: 'ltr' | 'rtl' }) {
-  return <label className="admin-content__field"><span>{label}</span><input value={value} dir={dir} onChange={(event) => onChange(event.target.value)} /></label>
+function Field({ label, value, onChange, dir, type = 'text' }: { label: string; value: string; onChange: (value: string) => void; dir?: 'ltr' | 'rtl'; type?: 'text' | 'email' }) {
+  return <label className="admin-content__field"><span>{label}</span><input type={type} value={value} dir={dir} onChange={(event) => onChange(event.target.value)} /></label>
 }
 
 function TextAreaField({ label, value, rows, onChange }: { label: string; value: string; rows: number; onChange: (value: string) => void }) {
