@@ -19,6 +19,7 @@
 .admin-product-editor__card h2 { font-size: 16px; margin-bottom: 16px; }
 .admin-product-editor__grid { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
 .admin-product-editor__field { display: flex; flex-direction: column; gap: 7px; font-size: 12px; font-weight: 700; color: #555; }
+.admin-product-editor__field-hint { color: var(--text-muted); font-size: 10px; font-weight: 400; }
 .admin-product-editor__field--full { margin-bottom: 16px; }
 .admin-product-editor__field input, .admin-product-editor__field textarea, .admin-product-editor__field select, .admin-product-editor__category-form input { width: 100%; border: 1px solid var(--border); border-radius: 10px; padding: 10px 12px; font: inherit; color: var(--text); background: white; resize: vertical; }
 .admin-product-editor__field input:focus, .admin-product-editor__field textarea:focus, .admin-product-editor__field select:focus { border-color: var(--green); outline: none; }
