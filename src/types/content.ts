@@ -3,6 +3,7 @@ export type ContentPageData = {
   slug: string
   title: string
   body: string
+  image_url?: string | null
   language: string
   meta_description?: string | null
   is_published: boolean

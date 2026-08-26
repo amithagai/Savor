@@ -205,6 +205,7 @@ export default function AdminContent() {
           slug: selectedPage.slug,
           title: selectedPage.title,
           body: selectedPage.body,
+          image_url: selectedPage.image_url?.trim() || null,
           language: selectedPage.language,
           meta_description: selectedPage.meta_description || null,
           is_published: selectedPage.is_published,
@@ -453,6 +454,15 @@ export default function AdminContent() {
                 <label className="admin-content__toggle"><input type="checkbox" checked={selectedPage.is_published} onChange={(event) => changeSelectedPage({ is_published: event.target.checked })} />מפורסם באתר</label>
               </div>
               <Field label="כותרת העמוד" value={selectedPage.title} onChange={(title) => changeSelectedPage({ title })} />
+              {selectedPage.slug === 'about' ? (
+                <ImageField
+                  label="תמונת עמוד אודות"
+                  value={selectedPage.image_url || ''}
+                  uploading={uploading === 'page-about'}
+                  onChange={(image_url) => changeSelectedPage({ image_url })}
+                  onUpload={(file) => uploadImage(file, 'page-about', (image_url) => changeSelectedPage({ image_url }))}
+                />
+              ) : null}
               {selectedPage.slug === 'size-guide' && sizeGuide ? (
                 <div className="admin-content__guide-editor">
                   <div className="admin-content__guide-intro">
@@ -556,7 +566,7 @@ function ImageField({ label, value, uploading, onChange, onUpload }: { label: st
         <Field label={label} value={value} dir="ltr" onChange={onChange} />
         <label className={`admin-content__upload ${uploading ? 'is-disabled' : ''}`}>
           {uploading ? 'מעלה…' : 'העלאת תמונה'}
-          <input type="file" accept="image/jpeg,image/png,image/webp" disabled={uploading} onChange={(event) => { const file = event.target.files?.[0]; event.target.value = ''; if (file) onUpload(file) }} />
+          <input type="file" accept="image/jpeg,image/png,image/webp,image/avif" disabled={uploading} onChange={(event) => { const file = event.target.files?.[0]; event.target.value = ''; if (file) onUpload(file) }} />
         </label>
       </div>
     </div>
