@@ -18,6 +18,12 @@ export type SiteContentResponse<T> = {
   updated_at: string
 }
 
+export type SeoContent = {
+  site_title: string
+  meta_description: string
+  favicon_url: string
+}
+
 export type Hotspot = { top: string; left: string; label: string; detail: string }
 
 export type HomeContent = {
