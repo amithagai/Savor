@@ -114,14 +114,6 @@
   background: var(--white);
 }
 
-.cart-page__item-swatch {
-  width: 20px;
-  height: 20px;
-  border-radius: 50%;
-  background: linear-gradient(135deg, #d8d2cb, #bfb8ae);
-  flex-shrink: 0;
-}
-
 .cart-page__item-image {
   flex-shrink: 0;
   width: 90px;
@@ -165,6 +157,22 @@
   accent-color: var(--green);
   width: 18px;
   height: 18px;
+}
+
+.cart-page__service-summary {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  padding: 13px 15px;
+  border-radius: 12px;
+  background: #f3f7ef;
+  color: var(--text);
+  font-size: 13px;
+  line-height: 1.5;
+}
+
+.cart-page__service-summary strong {
+  color: var(--signup-button);
 }
 
 /* Form column (customer details + payment) */

@@ -3,19 +3,12 @@ import type { ChangeEvent, FormEvent } from 'react'
 import { useNavigate, useSearchParams } from 'react-router-dom'
 import { useCart } from '../../context/useCart'
 import { api, ApiError } from '../../lib/api'
-import { colorSwatchStyleOf } from '../Configurator/colors'
+import { formatServiceFee, quoteCartServiceFees } from '../../lib/serviceFees'
 import './Cart.css'
 
 const QUANTITY_OPTIONS = Array.from({ length: 10 }, (_, index) => index + 1)
 
 type DeliveryMethod = 'pickup' | 'delivery'
-
-const DELIVERY_FEES: Record<DeliveryMethod, number> = {
-  pickup: 0,
-  delivery: 400,
-}
-
-const INSTALLATION_FEE = 500
 
 type FormState = {
   fullName: string
@@ -68,10 +61,11 @@ export default function Cart() {
     [cartItems]
   )
 
-  const deliveryFee = DELIVERY_FEES[deliveryMethod]
-  const installationFee = wantsInstallation ? INSTALLATION_FEE : 0
-  // Installation is paid directly to the installer and is not part of checkout.
-  const total = itemsTotal + deliveryFee
+  const serviceQuote = useMemo(() => quoteCartServiceFees(cartItems), [cartItems])
+  const deliveryFee = deliveryMethod === 'delivery' ? serviceQuote.deliveryFee : 0
+  const installationFee = wantsInstallation ? serviceQuote.installationFee : 0
+  // Delivery and installation are paid directly to their providers.
+  const total = itemsTotal
 
   const checkoutIssues = useMemo(() => {
     const issues: string[] = []
@@ -165,8 +159,6 @@ export default function Cart() {
             {cartItems.map((item) => {
               const subtitle = [item.category, item.size, item.variant].filter(Boolean).join(' · ')
               const lineId = item.lineId ?? item.id
-              const swatchStyle = colorSwatchStyleOf(item.variant, item.name, item.swatchColor)
-
               return (
                 <li key={lineId} className="cart-page__item">
                   <button
@@ -202,11 +194,6 @@ export default function Cart() {
                           </option>
                         ))}
                       </select>
-                      <span
-                        className="cart-page__item-swatch"
-                        style={swatchStyle}
-                        aria-hidden="true"
-                      />
                     </div>
                   </div>
                 </li>
@@ -216,7 +203,7 @@ export default function Cart() {
         )}
 
         {cartItems.length > 0 && (
-          <p className="cart-page__subtotal">סך הכל {formatPrice(total)} ₪</p>
+          <p className="cart-page__subtotal">סך הכל מוצרים {formatPrice(total)} ₪</p>
         )}
 
         <div className="cart-page__delivery">
@@ -237,7 +224,8 @@ export default function Cart() {
               checked={deliveryMethod === 'delivery'}
               onChange={() => setDeliveryMethod('delivery')}
             />
-            משלוח עד הבית בתוספת {formatPrice(DELIVERY_FEES.delivery)} ₪
+            משלוח עד הבית: {formatServiceFee(serviceQuote.deliveryFee, serviceQuote.requiresManualQuote)}
+            {' — תשלום נפרד לשליח'}
           </label>
 
           <label className="cart-page__delivery-option">
@@ -246,9 +234,16 @@ export default function Cart() {
               checked={wantsInstallation}
               onChange={(event) => setWantsInstallation(event.target.checked)}
             />
-            התקנה בבית הלקוח (תשלום למתקין): {formatPrice(INSTALLATION_FEE)} ₪
-            {installationFee > 0 && ' — לא נכלל בסכום לתשלום באתר'}
+            התקנה בבית הלקוח: {formatServiceFee(serviceQuote.installationFee, serviceQuote.requiresManualQuote)}
+            {' — תשלום נפרד למתקין'}
           </label>
+          {(deliveryMethod === 'delivery' || wantsInstallation) && (
+            <div className="cart-page__service-summary" role="status">
+              <strong>תשלומים נפרדים שאינם נכללים בתשלום באתר</strong>
+              {deliveryMethod === 'delivery' && <span>לשליח: {formatServiceFee(deliveryFee, serviceQuote.requiresManualQuote)}</span>}
+              {wantsInstallation && <span>למתקין: {formatServiceFee(installationFee, serviceQuote.requiresManualQuote)}</span>}
+            </div>
+          )}
         </div>
       </section>
 
@@ -329,7 +324,7 @@ export default function Cart() {
             </span>
           </label>
 
-          <p className="cart-page__total">סך הכל לתשלום: {formatPrice(total)} ₪</p>
+          <p className="cart-page__total">סך הכל לתשלום באתר: {formatPrice(total)} ₪</p>
 
           {paymentError && <p className="cart-page__payment-error" role="alert">{paymentError}</p>}
 

@@ -27,7 +27,7 @@ export default function Accessories() {
 
   const addProduct = (product: CatalogProduct) => {
     if (product.current_price == null || (!product.in_stock && !product.allow_preorder)) return
-    addToCart({ id: product.id, name: product.name, category: product.category?.name, price: product.current_price, image: product.images[0], quantity: 1 })
+    addToCart({ id: product.id, name: product.name, category: product.category?.name, price: product.current_price, image: product.images[0], productType: product.product_type, quantity: 1 })
   }
 
   return (
