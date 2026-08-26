@@ -62,6 +62,7 @@ export type ContactContent = {
   title: string
   subtitle: string
   success_message: string
+  email?: string
 }
 
 export type SizeGuideStep = {

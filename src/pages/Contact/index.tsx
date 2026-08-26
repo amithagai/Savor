@@ -14,6 +14,7 @@ export default function Contact() {
   const { data: content } = useSiteContent<ContactContent>('contact')
   const [form, setForm] = useState<FormState>(emptyForm)
   const [status, setStatus] = useState<Status>('idle')
+  const contactEmail = content?.email?.trim()
 
   const handleChange = (event: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
     setForm((previous) => ({ ...previous, [event.target.name]: event.target.value }))
@@ -49,7 +50,9 @@ export default function Contact() {
             <p>
               טלפון משרד: <a href="tel:0555565617" dir="ltr">055-556-5617</a>
             </p>
-            <p>מייל:</p>
+            {contactEmail ? (
+              <p>מייל: <a href={`mailto:${contactEmail}`} dir="ltr">{contactEmail}</a></p>
+            ) : null}
             <p>כתובת לאיסוף עצמי: מומנטום - שדרות טום לנטוס 10, נתניה</p>
           </address>
 
