@@ -54,6 +54,18 @@
     font-size: 28px;
   }
 
+  .catalog-page__filters {
+    flex-wrap: nowrap;
+    margin-inline: -16px;
+    padding: 0 16px 4px;
+    overflow-x: auto;
+    scrollbar-width: none;
+  }
+
+  .catalog-page__filters::-webkit-scrollbar { display: none; }
+
+  .catalog-page__filter { flex: 0 0 auto; white-space: nowrap; }
+
   .catalog-page__grid {
     grid-template-columns: 1fr;
     gap: 20px;

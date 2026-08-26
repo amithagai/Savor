@@ -320,6 +320,7 @@ export default function Configurator() {
       price: item.price,
       image: item.thumbnailUrl,
       swatchColor: knownColorHexOf(item.colorId, item.colorLabel) || item.colorHex || colorHexOf(item.colorId, item.colorLabel),
+      productType: 'CABINET',
     })))
     navigate('/cart')
   }

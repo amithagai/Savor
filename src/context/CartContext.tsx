@@ -1,4 +1,5 @@
 import { createContext } from 'react'
+import type { ProductType } from '../types/catalog'
 
 export type CartItem = {
   id: number | string
@@ -12,6 +13,7 @@ export type CartItem = {
   price: number
   image?: string
   swatchColor?: string
+  productType?: ProductType
 }
 
 export type CartContextType = {
