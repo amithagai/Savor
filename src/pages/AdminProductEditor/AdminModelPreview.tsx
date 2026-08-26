@@ -4,12 +4,10 @@ import { Environment, OrbitControls, useGLTF } from '@react-three/drei'
 import {
   ACESFilmicToneMapping,
   Box3,
-  EdgesGeometry,
-  LineBasicMaterial,
-  LineSegments,
   type Mesh,
   Vector3,
 } from 'three'
+import { addSketchUpModelOutlines } from '../../lib/modelOutlines'
 
 function Model({ url }: { url: string }) {
   const { scene } = useGLTF(url)
@@ -31,41 +29,7 @@ function Model({ url }: { url: string }) {
     return { object, scale }
   }, [scene])
 
-  useEffect(() => {
-    const outlines: LineSegments[] = []
-
-    normalized.object.traverse(node => {
-      const mesh = node as Mesh
-      if (!mesh.isMesh) return
-
-      // SketchUp-style outlines keep shallow, light-colored door details
-      // legible without changing the uploaded model or its materials.
-      const outline = new LineSegments(
-        new EdgesGeometry(mesh.geometry, 5),
-        new LineBasicMaterial({
-          color: '#343530',
-          transparent: true,
-          opacity: 0.58,
-          depthWrite: false,
-        }),
-      )
-      outline.renderOrder = 1
-      mesh.add(outline)
-      outlines.push(outline)
-    })
-
-    return () => {
-      outlines.forEach(outline => {
-        outline.removeFromParent()
-        outline.geometry.dispose()
-        if (Array.isArray(outline.material)) {
-          outline.material.forEach(material => material.dispose())
-        } else {
-          outline.material.dispose()
-        }
-      })
-    }
-  }, [normalized.object])
+  useEffect(() => addSketchUpModelOutlines(normalized.object), [normalized.object])
 
   return (
     <group scale={normalized.scale}>
