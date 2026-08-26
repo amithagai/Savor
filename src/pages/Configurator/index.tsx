@@ -12,6 +12,8 @@ import { availableColorsFor } from './modelCatalog'
 import type { AccessoryPositions, CabinetCategory, CabinetPositions, KitchenAccessoryId } from './cabinetLayout'
 import { api } from '../../lib/api'
 import type { ConfiguratorProduct } from '../../types/catalog'
+import { useSiteContent } from '../../hooks/useSiteContent'
+import type { FooterContent } from '../../types/content'
 
 type ConfiguratorCategory = CabinetCategory | 'ברז'
 
@@ -73,9 +75,50 @@ const INITIAL_CART: CartItem[] = [
   { ...FALLBACK_PRODUCTS[1], qty: 1, colorId: 'cream', colorLabel: 'CREAM', price: FALLBACK_PRODUCTS[1].price },
   { ...FALLBACK_PRODUCTS[2], qty: 1, colorId: 'cream', colorLabel: 'CREAM', price: FALLBACK_PRODUCTS[2].price },
 ]
+
+const DEFAULT_WHATSAPP_PHONE = '972509072335'
+
+function normalizeWhatsAppPhone(value?: string | null) {
+  let digits = (value || '').replace(/\D/g, '')
+  if (digits.startsWith('0')) digits = `972${digits.slice(1)}`
+  return /^\d{10,15}$/.test(digits) ? digits : null
+}
+
+function phoneFromWhatsAppUrl(value?: string | null) {
+  if (!value) return null
+  try {
+    const url = new URL(value)
+    const match = url.hostname.toLowerCase() === 'wa.me' ? url.pathname.match(/^\/(\d+)\/?$/) : null
+    return normalizeWhatsAppPhone(match?.[1])
+  } catch {
+    return null
+  }
+}
+
+function buildWhatsAppPlanMessage(cartItems: CartItem[], wallLengthCm: number | null) {
+  const itemLines = cartItems.length > 0
+    ? cartItems.map((item) => (
+        `• ${item.name} — צבע ${item.colorLabel} — כמות ${item.qty} — ${(item.price * item.qty).toLocaleString('he-IL')} ₪`
+      ))
+    : ['• לא נבחרו פריטים']
+  const total = cartItems.reduce((sum, item) => sum + item.price * item.qty, 0)
+
+  return [
+    'שלום, בניתי תכנון מטבח באתר Savor:',
+    '',
+    `אורך הקיר: ${wallLengthCm != null ? `${wallLengthCm.toLocaleString('he-IL')} ס״מ` : 'לא הוגדר'}`,
+    '',
+    'הפריטים שבחרתי:',
+    ...itemLines,
+    '',
+    `סה״כ משוער: ${total.toLocaleString('he-IL')} ₪`,
+    '',
+    'אשמח לקבל ייעוץ לגבי התכנון.',
+  ].join('\n')
+}
 interface ActionButtonProps {
   resetAll: () => void
-  onContact: () => void
+  contactHref: string
   onBuy: () => void
   buyDisabled: boolean
 }
@@ -157,12 +200,14 @@ const TotalPrice: FC<{ cartItems: Array<CartItem> }> = ({ cartItems }) => {
   )
 }
 
-export const ActionButton: FC<ActionButtonProps> = ({ resetAll, onContact, onBuy, buyDisabled }) => {
+export const ActionButton: FC<ActionButtonProps> = ({ resetAll, contactHref, onBuy, buyDisabled }) => {
 
   return (
     <div className="cfg__cart-footer">
       <button className="cfg__reset-btn" onClick={resetAll}>איפוס</button>
-      <button className="cfg__outline-btn" onClick={onContact}>שמירת תכנון ויצרות קשר</button>
+      <a className="cfg__outline-btn cfg__contact-link" href={contactHref} target="_blank" rel="noopener noreferrer">
+        שמירת תכנון ויצירת קשר
+      </a>
       <button
         className="cfg__buy-btn"
         onClick={onBuy}
@@ -175,28 +220,9 @@ export const ActionButton: FC<ActionButtonProps> = ({ resetAll, onContact, onBuy
   )
 }
 
-const ContactPopup: FC<{ open: boolean; onClose: () => void }> = ({ open, onClose }) => {
-  const navigate = useNavigate()
-
-  if (!open) return null
-
-  return (
-    <div className="cfg__contact-popup" role="dialog" aria-modal="true">
-      <button className="cfg__contact-close" onClick={onClose} aria-label="סגור">×</button>
-      <h3 className="cfg__contact-title">שמירת תכנון ויצירת קשר</h3>
-      <p className="cfg__contact-text">בואו לדבר איתי ולהתייעץ בנוגע לעיצוב שלכם :)</p>
-      <div className="cfg__contact-actions">
-        <button className="cfg__outline-btn" onClick={onClose}>לא עכשיו, תודה</button>
-        <button className="cfg__buy-btn" onClick={() => { onClose(); navigate('/contact') }}>
-          יצירת קשר
-        </button>
-      </div>
-    </div>
-  )
-}
-
 export default function Configurator() {
   const navigate = useNavigate()
+  const { data: footerContent } = useSiteContent<FooterContent>('footer')
   const [wallLength, setWallLength] = useState('')
   const [appliedWallLength, setAppliedWallLength] = useState<number | null>(null)
   const [selectedCategories, setSelectedCategories] = useState<ConfiguratorCategory[]>(['תחתונים'])
@@ -208,7 +234,6 @@ export default function Configurator() {
   const [viewMode, setViewMode] = useState<'2D' | '3D'>('3D')
   const [howOpen, setHowOpen] = useState(true)
   const [catMenuOpen, setCatMenuOpen] = useState(false)
-  const [contactOpen, setContactOpen] = useState(false)
   const { isInWishlist, toggleWishlist } = useWishlist()
   const { addItemsToCart } = useCart()
 
@@ -250,6 +275,11 @@ export default function Configurator() {
   }
   const exceedsWall = appliedWallLength != null && totalCabinetWidth > appliedWallLength
   const canBuyKitchen = cartItems.length > 0 && cartItems.every((item) => Boolean(item.variantId))
+  const whatsappPhone = normalizeWhatsAppPhone(footerContent?.whatsapp_phone)
+    || phoneFromWhatsAppUrl(footerContent?.whatsapp_url)
+    || DEFAULT_WHATSAPP_PHONE
+  const whatsappMessage = buildWhatsAppPlanMessage(cartItems, appliedWallLength)
+  const whatsappContactHref = `https://wa.me/${whatsappPhone}?text=${encodeURIComponent(whatsappMessage)}`
 
   function toggleCategory(cat: ConfiguratorCategory) {
     setSelectedCategories(prev => {
@@ -476,7 +506,7 @@ export default function Configurator() {
         <div className="cfg__actions cfg__actions--desktop">
           <ActionButton
             resetAll={resetAll}
-            onContact={() => setContactOpen(true)}
+            contactHref={whatsappContactHref}
             onBuy={buyKitchen}
             buyDisabled={!canBuyKitchen}
           />
@@ -643,7 +673,7 @@ export default function Configurator() {
           <div className="cfg__actions cfg__actions--mobile">
             <ActionButton
               resetAll={resetAll}
-              onContact={() => setContactOpen(true)}
+              contactHref={whatsappContactHref}
               onBuy={buyKitchen}
               buyDisabled={!canBuyKitchen}
             />
@@ -652,7 +682,6 @@ export default function Configurator() {
 
       </div>
 
-      <ContactPopup open={contactOpen} onClose={() => setContactOpen(false)} />
     </div>
   )
 }

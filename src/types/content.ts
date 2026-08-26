@@ -52,6 +52,7 @@ export type FooterContent = {
   hours: string
   pickup_address: string
   whatsapp_url: string
+  whatsapp_phone?: string
   instagram_url: string
   copyright: string
 }
