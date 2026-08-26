@@ -520,6 +520,7 @@ export default function AdminContent() {
               <Field label="שעות פעילות" value={footer.data.hours} onChange={(hours) => setFooter({ ...footer, data: { ...footer.data, hours } })} />
               <Field label="כתובת לאיסוף" value={footer.data.pickup_address} onChange={(pickup_address) => setFooter({ ...footer, data: { ...footer.data, pickup_address } })} />
               <Field label="קישור WhatsApp" value={footer.data.whatsapp_url} dir="ltr" onChange={(whatsapp_url) => setFooter({ ...footer, data: { ...footer.data, whatsapp_url } })} />
+              <Field label="מספר WhatsApp לקבלת תכנונים (בפורמט בינלאומי)" value={footer.data.whatsapp_phone || ''} dir="ltr" onChange={(whatsapp_phone) => setFooter({ ...footer, data: { ...footer.data, whatsapp_phone } })} />
               <Field label="קישור Instagram" value={footer.data.instagram_url} dir="ltr" onChange={(instagram_url) => setFooter({ ...footer, data: { ...footer.data, instagram_url } })} />
               <Field label="שורת זכויות יוצרים" value={footer.data.copyright} onChange={(copyright) => setFooter({ ...footer, data: { ...footer.data, copyright } })} />
             </div>
