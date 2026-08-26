@@ -90,6 +90,7 @@ export default function ProductDetail() {
       price: product.current_price,
       image: product.images[0],
       swatchColor: knownColorHexOf(String(product.attributes.model || ''), String(product.attributes.color || ''), product.name, product.slug),
+      productType: product.product_type,
       quantity,
     })
   }

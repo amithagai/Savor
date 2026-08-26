@@ -18,6 +18,7 @@ type FormState = {
   price: string
   sale_price: string
   size: string
+  layout: string
   model: string
   color: string
   material: string
@@ -42,7 +43,7 @@ type FormState = {
 
 const emptyForm: FormState = {
   name: '', slug: '', description: '', product_type: 'KITCHEN', category_id: '', price: '', sale_price: '',
-  size: '', model: '', color: '', material: '', delivery_days: '14', sku: '', images: [], image_display: {},
+  size: '', layout: 'straight', model: '', color: '', material: '', delivery_days: '14', sku: '', images: [], image_display: {},
   inventory_tracking: true, initial_stock: '0', stock_quantity: '0', low_stock_threshold: '5', allow_preorder: false,
   configurator_enabled: false, configurator_category: 'תחתונים', configurator_subtitle: '',
   width_cm: '', height_cm: '', depth_cm: '', installation_pdf_url: '', is_active: false,
@@ -64,6 +65,7 @@ function detailToForm(product: AdminProductDetail): FormState {
     price: String(product.regular_price ?? product.current_price ?? ''),
     sale_price: product.original_price != null ? String(product.current_price ?? '') : '',
     size: String(attr.size ?? ''),
+    layout: String(attr.layout ?? 'straight'),
     model: String(attr.model ?? ''),
     color: String(attr.color ?? ''),
     material: String(attr.material ?? ''),
@@ -241,7 +243,7 @@ export default function AdminProductEditor() {
       low_stock_threshold: lowStockThreshold,
       allow_preorder: form.allow_preorder,
       attributes: {
-        size: form.size.trim(), model: form.model.trim(), color: form.color.trim(),
+        size: form.size.trim(), layout: form.layout, model: form.model.trim(), color: form.color.trim(),
         material: form.material.trim(), delivery_days: Number(form.delivery_days) || null, sku: form.sku.trim(),
         configurator_enabled: form.configurator_enabled,
         configurator_category: form.configurator_category,
@@ -391,6 +393,12 @@ export default function AdminProductEditor() {
             <h2>מידע טכני</h2>
             <div className="admin-product-editor__grid">
               <label className="admin-product-editor__field">מידה<input value={form.size} onChange={(e) => setField('size', e.target.value)} placeholder="1.5 מטר" /></label>
+              <label className="admin-product-editor__field">מבנה המטבח
+                <select value={form.layout} onChange={(e) => setField('layout', e.target.value)}>
+                  <option value="straight">ישר</option>
+                  <option value="corner">פינתי</option>
+                </select>
+              </label>
               <label className="admin-product-editor__field">דגם<input value={form.model} onChange={(e) => setField('model', e.target.value)} placeholder="CREAM" /></label>
               <label className="admin-product-editor__field">צבע<input value={form.color} onChange={(e) => setField('color', e.target.value)} /></label>
               <label className="admin-product-editor__field">חומר / גימור<input value={form.material} onChange={(e) => setField('material', e.target.value)} /></label>

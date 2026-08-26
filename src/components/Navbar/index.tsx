@@ -14,11 +14,12 @@ const navLinks = [
 ]
 
 const kitchenGroups = [
-  { label: 'מטבחים 1.5 מטר', size: '1.5 מטר' },
-  { label: 'מטבחים 2 מטר', size: '2 מטר' },
-  { label: 'מטבחים 2.1 מטר', size: '2.1 מטר' },
-  { label: 'מטבחים 2.6 מטר', size: '2.6 מטר' },
-  { label: 'מטבחים 3.2 מטר', size: '3.2 מטר' },
+  { label: 'מטבחים 1.5 מטר', to: '/catalog?size=1.5%20מטר' },
+  { label: 'מטבחים 2 מטר', to: '/catalog?size=2%20מטר' },
+  { label: 'מטבחים 2.1 מטר', to: '/catalog?size=2.1%20מטר' },
+  { label: 'מטבחים 2.6 מטר', to: '/catalog?size=2.6%20מטר' },
+  { label: 'מטבחים 3.2 מטר', to: '/catalog?size=3.2%20מטר' },
+  { label: 'מטבחים פינתיים', to: '/catalog?layout=corner' },
 ]
 
 const mobileFlatLinks = navLinks.filter((link) => link.label !== 'מטבחים')
@@ -99,7 +100,7 @@ export default function Navbar() {
                 {kitchenGroups.map((group) => (
                   <Link
                     key={group.label}
-                    to={`/catalog?size=${encodeURIComponent(group.size)}`}
+                    to={group.to}
                     className="navbar__kitchens-menu-link"
                     role="menuitem"
                     onClick={(event) => event.currentTarget.blur()}
@@ -239,7 +240,7 @@ export default function Navbar() {
                   {kitchenGroups.map((group) => (
                     <Link
                       key={group.label}
-                      to={`/catalog?size=${encodeURIComponent(group.size)}`}
+                      to={group.to}
                       className="navbar__mobile-subgroup-toggle"
                       onClick={closeMenu}
                     >
