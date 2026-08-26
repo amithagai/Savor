@@ -5,13 +5,11 @@ import {
   ACESFilmicToneMapping,
   Box3,
   Color,
-  EdgesGeometry,
-  LineBasicMaterial,
-  LineSegments,
   type Mesh,
   Plane,
   Vector3,
 } from 'three'
+import { addSketchUpModelOutlines } from '../../lib/modelOutlines'
 import { getModelUrl } from './modelCatalog'
 import { colorHexOf } from './colors'
 import {
@@ -139,42 +137,7 @@ function RealCabinetModel({ url, width }: {
     return clone
   }, [scene, width])
 
-  useEffect(() => {
-    const outlines: LineSegments[] = []
-
-    cloned.traverse(node => {
-      const mesh = node as Mesh
-      if (!mesh.isMesh) return
-
-      // Keep shallow door frames readable when a light uploaded model is
-      // shown at configurator scale, without giving it a heavy CAD outline.
-      const outline = new LineSegments(
-        new EdgesGeometry(mesh.geometry, 12),
-        new LineBasicMaterial({
-          color: '#4f504b',
-          transparent: true,
-          opacity: 0.24,
-          depthWrite: false,
-          toneMapped: false,
-        }),
-      )
-      outline.renderOrder = 1
-      mesh.add(outline)
-      outlines.push(outline)
-    })
-
-    return () => {
-      outlines.forEach(outline => {
-        outline.removeFromParent()
-        outline.geometry.dispose()
-        if (Array.isArray(outline.material)) {
-          outline.material.forEach(material => material.dispose())
-        } else {
-          outline.material.dispose()
-        }
-      })
-    }
-  }, [cloned])
+  useEffect(() => addSketchUpModelOutlines(cloned), [cloned])
 
   return <primitive object={cloned} />
 }
