@@ -112,6 +112,7 @@ export type ConfiguratorProduct = {
   name: string
   description?: string | null
   attributes: Record<string, unknown>
+  images: string[]
   category?: Category | null
   variants: ProductVariant[]
 }
