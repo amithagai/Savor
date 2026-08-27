@@ -600,10 +600,10 @@
   pointer-events: none;
 }
 
-.cfg3d__interaction-toggle {
+.cfg3d__interaction-toggle,
+.cfg3d__style-toggle {
   position: absolute;
   top: 12px;
-  right: 12px;
   z-index: 3;
   display: flex;
   gap: 2px;
@@ -613,6 +613,14 @@
   background: rgba(255, 255, 255, 0.92);
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
   direction: rtl;
+}
+
+.cfg3d__interaction-toggle {
+  right: 12px;
+}
+
+.cfg3d__style-toggle {
+  left: 12px;
 }
 
 .cfg3d__interaction-btn {
@@ -1060,6 +1068,12 @@
     top: 48px;
     right: 50%;
     transform: translateX(50%);
+  }
+
+  .cfg3d__style-toggle {
+    top: 10px;
+    left: 50%;
+    transform: translateX(-50%);
   }
 
 .cfg__outline-btn { 
