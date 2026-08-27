@@ -16,12 +16,14 @@ import { addSketchUpModelOutlines } from '../../lib/modelOutlines'
 import {
   buildCabinetLayout,
   cabinetDragPositionUpdates,
+  COUNTERTOP_DEPTH_CM,
   COUNTERTOP_HEIGHT_CM,
   type AccessoryPositions,
   type CabinetLayout,
   type CabinetLayoutItem,
   type CabinetPositions,
   type CategorySpec,
+  type CounterRun,
   type KitchenAccessoryId,
 } from './cabinetLayout'
 
@@ -33,6 +35,7 @@ type Props = {
   onPositionsChange: (positions: CabinetPositions) => void
   accessories: AccessoryPositions
   onAccessoryPositionChange: (id: KitchenAccessoryId, xCm: number) => void
+  showCountertop: boolean
 }
 
 type InteractionMode = 'orbit' | 'move'
@@ -213,6 +216,21 @@ function WallGuide({ startX, lengthM, exceeds }: { startX: number; lengthM: numb
   )
 }
 
+function Countertop({ run }: { run: CounterRun }) {
+  const width = (run.end - run.start) * CM
+  const x = (run.start + run.end) * CM / 2
+  const height = COUNTERTOP_HEIGHT_CM * CM
+  const depth = COUNTERTOP_DEPTH_CM * CM
+  if (width <= 0) return null
+
+  return (
+    <mesh position={[x, height + 0.015, depth / 2]} castShadow>
+      <boxGeometry args={[width, 0.03, depth]} />
+      <meshBasicMaterial color="#d8d1c6" toneMapped={false} />
+    </mesh>
+  )
+}
+
 function UploadedFaucet({ x, width, modelUrl, showOutlines, dragHandlers }: {
   x: number
   width: number
@@ -298,7 +316,7 @@ function useDragUpdateScheduler(
   return { flushPendingUpdate, scheduleUpdate }
 }
 
-function ConfiguratorScene({ layout, faucetItems = [], wallLengthCm, onPositionsChange, accessories, onAccessoryPositionChange, interactionMode }: SceneProps) {
+function ConfiguratorScene({ layout, faucetItems = [], wallLengthCm, onPositionsChange, accessories, onAccessoryPositionChange, interactionMode, showCountertop }: SceneProps) {
   const dragPlane = useMemo(() => new Plane(new Vector3(0, 0, 1), 0), [])
   const [drag, setDrag] = useState<DragState | null>(null)
   const { flushPendingUpdate, scheduleUpdate } = useDragUpdateScheduler(
@@ -475,6 +493,9 @@ function ConfiguratorScene({ layout, faucetItems = [], wallLengthCm, onPositions
       </group>
 
       <group position={[offsetX, 0, 0]}>
+        {showCountertop && layout.counterRuns.map((run, index) => (
+          <Countertop key={`countertop-${index}`} run={run} />
+        ))}
         {floorRow.map(({ item, x, xM, width, widthM, spec, key }) => (
           <Cabinet
             key={key}

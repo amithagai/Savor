@@ -114,6 +114,12 @@
   background: var(--white);
 }
 
+.cart-page__fixed-quantity {
+  color: #667069;
+  font-size: 13px;
+  font-weight: 600;
+}
+
 .cart-page__item-image {
   flex-shrink: 0;
   width: 90px;
