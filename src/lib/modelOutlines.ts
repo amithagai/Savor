@@ -14,7 +14,11 @@ const SKETCHUP_EDGE_OPACITY = 0.68
 const SKETCHUP_EDGE_THRESHOLD_DEGREES = 2.5
 const SURFACE_OFFSET_SCALE = 1.001
 
-export function addSketchUpModelOutlines(root: Object3D) {
+type SketchUpOutlineOptions = {
+  shouldOutlineMesh?: (mesh: Mesh) => boolean
+}
+
+export function addSketchUpModelOutlines(root: Object3D, options: SketchUpOutlineOptions = {}) {
   const edgeGeometries: EdgesGeometry[] = []
   const meshToRoot = new Matrix4()
 
@@ -23,7 +27,7 @@ export function addSketchUpModelOutlines(root: Object3D) {
 
   root.traverse(node => {
     const mesh = node as Mesh
-    if (!mesh.isMesh) return
+    if (!mesh.isMesh || options.shouldOutlineMesh?.(mesh) === false) return
 
     const geometry = new EdgesGeometry(mesh.geometry, SKETCHUP_EDGE_THRESHOLD_DEGREES)
     if (geometry.attributes.position.count === 0) {

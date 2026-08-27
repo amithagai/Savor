@@ -3,6 +3,9 @@ import { Canvas, type ThreeEvent } from '@react-three/fiber'
 import { Edges, Html, Line, OrbitControls, Text, useGLTF } from '@react-three/drei'
 import {
   Box3,
+  type Material,
+  MeshBasicMaterial,
+  type MeshStandardMaterial,
   NoToneMapping,
   SRGBColorSpace,
   type Mesh,
@@ -41,6 +44,36 @@ type InteractionMode = 'orbit' | 'move'
 const CM = 0.01
 const GAP_M = 0.01
 
+function createSketchUpDisplayMaterial(source: Material) {
+  const standard = source as MeshStandardMaterial
+  if (!standard.isMeshStandardMaterial) return source.clone()
+
+  const display = new MeshBasicMaterial({
+    alphaMap: standard.alphaMap,
+    alphaTest: standard.alphaTest,
+    color: standard.color,
+    colorWrite: standard.colorWrite,
+    depthTest: standard.depthTest,
+    depthWrite: standard.depthWrite,
+    fog: standard.fog,
+    map: standard.map,
+    opacity: standard.opacity,
+    side: standard.side,
+    toneMapped: false,
+    transparent: standard.transparent,
+    vertexColors: standard.vertexColors,
+    wireframe: standard.wireframe,
+  })
+  display.name = source.name
+  display.userData = { ...source.userData }
+  return display
+}
+
+function isGoldAccentMesh(mesh: Mesh) {
+  const materials = Array.isArray(mesh.material) ? mesh.material : [mesh.material]
+  return materials.length > 0 && materials.every(material => material.name.toLowerCase().includes('gold'))
+}
+
 function ModelLoadingFallback() {
   return (
     <Html center>
@@ -58,8 +91,9 @@ function RealCabinetModel({ url, width, showOutlines }: {
   showOutlines: boolean
 }) {
   const { scene } = useGLTF(url)
-  const cloned = useMemo(() => {
+  const normalized = useMemo(() => {
     const clone = scene.clone(true)
+    const displayMaterials = new Set<Material>()
     // The source GLBs are authored with their doors on the maximum-Z side,
     // which already faces the configurator camera. Keep that orientation;
     // rotating the complete model would expose its plain rear panel instead.
@@ -77,19 +111,31 @@ function RealCabinetModel({ url, width, showOutlines }: {
     clone.traverse(node => {
       const mesh = node as Mesh
       if (mesh.isMesh) {
+        const sourceMaterials = Array.isArray(mesh.material) ? mesh.material : [mesh.material]
+        const replacements = sourceMaterials.map(createSketchUpDisplayMaterial)
+        replacements.forEach(material => displayMaterials.add(material))
+        mesh.material = Array.isArray(mesh.material) ? replacements : replacements[0]
         mesh.castShadow = true
         mesh.receiveShadow = false
       }
     })
-    return clone
+    return { displayMaterials, object: clone }
   }, [scene, width])
 
   useEffect(() => {
     if (!showOutlines) return
-    return addSketchUpModelOutlines(cloned)
-  }, [cloned, showOutlines])
+    return addSketchUpModelOutlines(normalized.object, {
+      // Thin gold handles already carry a baked SketchUp texture. A full edge
+      // overlay covers that texture at configurator scale and makes it black.
+      shouldOutlineMesh: mesh => !isGoldAccentMesh(mesh),
+    })
+  }, [normalized, showOutlines])
 
-  return <primitive object={cloned} />
+  useEffect(() => () => {
+    normalized.displayMaterials.forEach(material => material.dispose())
+  }, [normalized])
+
+  return <primitive object={normalized.object} />
 }
 
 class CabinetModelErrorBoundary extends Component<
