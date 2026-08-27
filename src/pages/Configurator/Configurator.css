@@ -600,8 +600,7 @@
   pointer-events: none;
 }
 
-.cfg3d__interaction-toggle,
-.cfg3d__style-toggle {
+.cfg3d__interaction-toggle {
   position: absolute;
   top: 12px;
   z-index: 3;
@@ -617,10 +616,6 @@
 
 .cfg3d__interaction-toggle {
   right: 12px;
-}
-
-.cfg3d__style-toggle {
-  left: 12px;
 }
 
 .cfg3d__interaction-btn {
@@ -1065,15 +1060,9 @@
   }
 
   .cfg3d__interaction-toggle {
-    top: 48px;
+    top: 10px;
     right: 50%;
     transform: translateX(50%);
-  }
-
-  .cfg3d__style-toggle {
-    top: 10px;
-    left: 50%;
-    transform: translateX(-50%);
   }
 
 .cfg__outline-btn { 
