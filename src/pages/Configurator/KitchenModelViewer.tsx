@@ -387,7 +387,7 @@ function ConfiguratorScene({ layout, faucetItems = [], wallLengthCm, onPositions
 
       <mesh position={[0, 1.3, -0.03]} receiveShadow>
         <planeGeometry args={[roomWidth, 2.6]} />
-        <meshStandardMaterial color="#fffdf8" roughness={0.95} />
+        <meshBasicMaterial color="#ffffff" toneMapped={false} />
       </mesh>
 
       <mesh
@@ -396,7 +396,7 @@ function ConfiguratorScene({ layout, faucetItems = [], wallLengthCm, onPositions
         receiveShadow
       >
         <planeGeometry args={[roomDepth, 2.6]} />
-        <meshStandardMaterial color="#fffdf8" roughness={0.95} />
+        <meshBasicMaterial color="#ffffff" toneMapped={false} />
       </mesh>
 
       <mesh
@@ -405,7 +405,7 @@ function ConfiguratorScene({ layout, faucetItems = [], wallLengthCm, onPositions
         receiveShadow
       >
         <planeGeometry args={[roomDepth, 2.6]} />
-        <meshStandardMaterial color="#fffdf8" roughness={0.95} />
+        <meshBasicMaterial color="#ffffff" toneMapped={false} />
       </mesh>
 
       <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, -0.001, 0]} receiveShadow>
