@@ -62,7 +62,7 @@ const emptyDraft: VariantDraft = {
   allow_preorder: false,
   model_url: '',
   thumbnail_url: '',
-  is_active: false,
+  is_active: true,
   sort_order: '0',
 }
 
@@ -216,7 +216,7 @@ export default function AdminProductVariants({ productId, token, variants, onCha
       <div className="admin-variants__heading">
         <div>
           <h2>דגמי הקונפיגורטור לפי צבע</h2>
-          <p className="admin-product-editor__hint">כל צבע הוא וריאציה מלאה עם מחיר, מק״ט ומודל משלו. ניתן להעלות GLB או ZIP המכיל OBJ, MTL וטקסטורות.</p>
+          <p className="admin-product-editor__hint">כל צבע הוא וריאציה מלאה עם מחיר, מק״ט ומודל משלו. ניתן להעלות GLB או ZIP המכיל OBJ, MTL וטקסטורות. וריאציה חדשה מתפרסמת בקונפיגורטור כברירת מחדל.</p>
         </div>
         <span>{variants.length} וריאציות</span>
       </div>

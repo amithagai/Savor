@@ -121,10 +121,24 @@ function variantsFor(product: CabinetProduct): CabinetProductVariant[] {
   return product.variants ?? []
 }
 
+function configuratorWidth(attributes: Record<string, unknown>) {
+  const explicitWidth = Number(attributes.width_cm)
+  if (Number.isFinite(explicitWidth) && explicitWidth > 0) return explicitWidth
+
+  const size = String(attributes.size || '').trim().replace(',', '.')
+  const centimeters = size.match(/(\d+(?:\.\d+)?)\s*(?:ס[״"]?מ|cm)(?:\s|$)/i)
+  if (centimeters) return Number(centimeters[1])
+
+  const meters = size.match(/(\d+(?:\.\d+)?)\s*(?:מטר|m)(?:\s|$)/i)
+  if (meters) return Number(meters[1]) * 100
+
+  return Number.NaN
+}
+
 function configuratorProductFromApi(product: ConfiguratorProduct): CabinetProduct | null {
   const attributes = product.attributes || {}
   const category = String(attributes.configurator_category || '') as ConfiguratorCategory
-  const width = Number(attributes.width_cm)
+  const width = configuratorWidth(attributes)
   const primaryImageUrl = product.images?.[0] || undefined
   if (!CATEGORIES.includes(category) || !Number.isFinite(width) || width <= 0) return null
   const variants = product.variants.filter((variant) => Boolean(variant.model_url?.trim())).map((variant) => ({
