@@ -4,6 +4,8 @@ import { Edges, Environment, Html, Line, OrbitControls, Text, useGLTF } from '@r
 import {
   ACESFilmicToneMapping,
   Box3,
+  NoToneMapping,
+  SRGBColorSpace,
   type Mesh,
   Plane,
   Vector3,
@@ -36,6 +38,7 @@ type Props = {
 }
 
 type InteractionMode = 'orbit' | 'move'
+type ModelViewStyle = 'original' | 'sketchup'
 
 const CM = 0.01
 const GAP_M = 0.01
@@ -51,9 +54,10 @@ function ModelLoadingFallback() {
   )
 }
 
-function RealCabinetModel({ url, width }: {
+function RealCabinetModel({ url, width, showOutlines }: {
   url: string
   width: number
+  showOutlines: boolean
 }) {
   const { scene } = useGLTF(url)
   const cloned = useMemo(() => {
@@ -82,7 +86,10 @@ function RealCabinetModel({ url, width }: {
     return clone
   }, [scene, width])
 
-  useEffect(() => addSketchUpModelOutlines(cloned), [cloned])
+  useEffect(() => {
+    if (!showOutlines) return
+    return addSketchUpModelOutlines(cloned)
+  }, [cloned, showOutlines])
 
   return <primitive object={cloned} />
 }
@@ -113,12 +120,13 @@ type DragHandlers = {
   onPointerCancel: (event: ThreeEvent<PointerEvent>) => void
 }
 
-function Cabinet({ x, width, spec, modelUrl, active, dragHandlers }: {
+function Cabinet({ x, width, spec, modelUrl, active, showOutlines, dragHandlers }: {
   x: number
   width: number
   spec: CategorySpec
   modelUrl?: string
   active: boolean
+  showOutlines: boolean
   dragHandlers?: DragHandlers
 }) {
   const height = spec.height * CM
@@ -135,7 +143,7 @@ function Cabinet({ x, width, spec, modelUrl, active, dragHandlers }: {
       {modelUrl ? (
         <CabinetModelErrorBoundary key={modelUrl} fallback={unavailable}>
           <>
-            <RealCabinetModel url={modelUrl} width={width} />
+            <RealCabinetModel url={modelUrl} width={width} showOutlines={showOutlines} />
             {active && (
               <mesh position={[0, height / 2, depth / 2]}>
                 <boxGeometry args={[width + 0.035, height + 0.035, depth + 0.035]} />
@@ -194,10 +202,11 @@ function Plinth({ run }: { run: CounterRun }) {
   )
 }
 
-function UploadedFaucet({ x, width, modelUrl, dragHandlers }: {
+function UploadedFaucet({ x, width, modelUrl, showOutlines, dragHandlers }: {
   x: number
   width: number
   modelUrl?: string
+  showOutlines: boolean
   dragHandlers?: DragHandlers
 }) {
   const top = COUNTERTOP_HEIGHT_CM * CM + 0.045
@@ -210,7 +219,7 @@ function UploadedFaucet({ x, width, modelUrl, dragHandlers }: {
     <group position={[x, top, 0.12]} {...(dragHandlers ?? {})}>
       {modelUrl ? (
         <CabinetModelErrorBoundary key={modelUrl} fallback={unavailable}>
-          <RealCabinetModel url={modelUrl} width={width} />
+          <RealCabinetModel url={modelUrl} width={width} showOutlines={showOutlines} />
         </CabinetModelErrorBoundary>
       ) : unavailable}
     </group>
@@ -226,6 +235,7 @@ type DragState = {
 
 type SceneProps = Props & {
   interactionMode: InteractionMode
+  viewStyle: ModelViewStyle
   layout: CabinetLayout
 }
 
@@ -278,7 +288,7 @@ function useDragUpdateScheduler(
   return { flushPendingUpdate, scheduleUpdate }
 }
 
-function ConfiguratorScene({ layout, faucetItems = [], wallLengthCm, onPositionsChange, accessories, onAccessoryPositionChange, interactionMode }: SceneProps) {
+function ConfiguratorScene({ layout, faucetItems = [], wallLengthCm, onPositionsChange, accessories, onAccessoryPositionChange, interactionMode, viewStyle }: SceneProps) {
   const dragPlane = useMemo(() => new Plane(new Vector3(0, 0, 1), 0), [])
   const [drag, setDrag] = useState<DragState | null>(null)
   const { flushPendingUpdate, scheduleUpdate } = useDragUpdateScheduler(
@@ -372,9 +382,9 @@ function ConfiguratorScene({ layout, faucetItems = [], wallLengthCm, onPositions
   return (
     <>
       <color attach="background" args={['#f4f1eb']} />
-      <ambientLight intensity={0.42} />
-      <directionalLight position={[3, 5, 4]} intensity={1.12} castShadow />
-      <directionalLight position={[-3, 2, 1]} intensity={0.26} />
+      <ambientLight intensity={viewStyle === 'original' ? 0.72 : 0.42} />
+      <directionalLight position={[3, 5, 4]} intensity={viewStyle === 'original' ? 0.92 : 1.12} castShadow />
+      <directionalLight position={[-3, 2, 1]} intensity={viewStyle === 'original' ? 0.18 : 0.26} />
 
       <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, -0.001, 0]} receiveShadow>
         <planeGeometry args={[20, 20]} />
@@ -394,6 +404,7 @@ function ConfiguratorScene({ layout, faucetItems = [], wallLengthCm, onPositions
             spec={spec}
             modelUrl={item.modelUrl}
             active={activeKey === `cabinet-${key}`}
+            showOutlines={viewStyle === 'sketchup'}
             dragHandlers={interactionMode === 'move' ? handlers('cabinet', key, x, width) : undefined}
           />
         ))}
@@ -407,6 +418,7 @@ function ConfiguratorScene({ layout, faucetItems = [], wallLengthCm, onPositions
             spec={spec}
             modelUrl={item.modelUrl}
             active={activeKey === `cabinet-${key}`}
+            showOutlines={viewStyle === 'sketchup'}
             dragHandlers={interactionMode === 'move' ? handlers('cabinet', key, x, width) : undefined}
           />
         ))}
@@ -415,6 +427,7 @@ function ConfiguratorScene({ layout, faucetItems = [], wallLengthCm, onPositions
             x={accessories.faucet * CM}
             width={uploadedFaucet.width * CM}
             modelUrl={uploadedFaucet.modelUrl}
+            showOutlines={viewStyle === 'sketchup'}
             dragHandlers={interactionMode === 'move' ? handlers('accessory', 'faucet', accessories.faucet, 8) : undefined}
           />
         )}
@@ -431,13 +444,14 @@ function ConfiguratorScene({ layout, faucetItems = [], wallLengthCm, onPositions
         maxPolarAngle={Math.PI * 0.49}
         enablePan={false}
       />
-      <Environment preset="studio" environmentIntensity={0.38} />
+      {viewStyle === 'sketchup' && <Environment preset="studio" environmentIntensity={0.38} />}
     </>
   )
 }
 
 export default function KitchenModelViewer(props: Props) {
   const [interactionMode, setInteractionMode] = useState<InteractionMode>('orbit')
+  const [viewStyle, setViewStyle] = useState<ModelViewStyle>('original')
   const layout = useMemo(
     () => buildCabinetLayout(props.cartItems, props.positions),
     [props.cartItems, props.positions],
@@ -446,6 +460,26 @@ export default function KitchenModelViewer(props: Props) {
 
   return (
     <div className="cfg3d__viewer">
+      <div className="cfg3d__style-toggle" role="group" aria-label="סגנון תצוגת המודל">
+        <button
+          type="button"
+          className={`cfg3d__interaction-btn${viewStyle === 'original' ? ' cfg3d__interaction-btn--active' : ''}`}
+          aria-pressed={viewStyle === 'original'}
+          onClick={() => setViewStyle('original')}
+          title="מציג את החומרים והטקסטורות כפי שנשמרו בקובץ"
+        >
+          מקורי
+        </button>
+        <button
+          type="button"
+          className={`cfg3d__interaction-btn${viewStyle === 'sketchup' ? ' cfg3d__interaction-btn--active' : ''}`}
+          aria-pressed={viewStyle === 'sketchup'}
+          onClick={() => setViewStyle('sketchup')}
+          title="מוסיף קווי מתאר ותאורת סטודיו מבלי לשנות את המודל"
+        >
+          SketchUp
+        </button>
+      </div>
       <div className="cfg3d__interaction-toggle" role="group" aria-label="מצב שליטה בתצוגת תלת־ממד">
         <button
           type="button"
@@ -465,15 +499,23 @@ export default function KitchenModelViewer(props: Props) {
         </button>
       </div>
       <Canvas
+        key={viewStyle}
         shadows="basic"
         frameloop="demand"
         dpr={[1, 1.5]}
-        gl={{ antialias: true, toneMapping: ACESFilmicToneMapping, powerPreference: 'high-performance' }}
-        onCreated={({ gl }) => { gl.toneMappingExposure = 0.78 }}
+        gl={{
+          antialias: true,
+          toneMapping: viewStyle === 'original' ? NoToneMapping : ACESFilmicToneMapping,
+          powerPreference: 'high-performance',
+        }}
+        onCreated={({ gl }) => {
+          gl.outputColorSpace = SRGBColorSpace
+          gl.toneMappingExposure = viewStyle === 'original' ? 1 : 0.78
+        }}
         camera={{ position: [designWidthM * 0.58, 1.5, designWidthM * 1.05 + 2], fov: 45 }}
       >
         <Suspense fallback={<ModelLoadingFallback />}>
-          <ConfiguratorScene {...props} layout={layout} interactionMode={interactionMode} />
+          <ConfiguratorScene {...props} layout={layout} interactionMode={interactionMode} viewStyle={viewStyle} />
         </Suspense>
       </Canvas>
     </div>
