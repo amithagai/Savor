@@ -390,10 +390,6 @@ function ConfiguratorScene({ layout, faucetItems = [], wallLengthCm, onPositions
         <planeGeometry args={[20, 20]} />
         <meshStandardMaterial color="#e3ddd3" roughness={0.92} />
       </mesh>
-      <mesh position={[0, 1.3, -0.03]} receiveShadow>
-        <planeGeometry args={[Math.max(totalSpan + 1, 3), 2.6]} />
-        <meshStandardMaterial color="#fffdf8" roughness={0.95} />
-      </mesh>
 
       <group position={[offsetX, 0, 0]}>
         {floorRow.map(({ item, x, xM, width, widthM, spec, key }) => (
