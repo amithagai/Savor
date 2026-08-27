@@ -1,9 +1,9 @@
 import { Component, Suspense, useCallback, useEffect, useMemo, useRef, useState, type ErrorInfo, type ReactNode } from 'react'
 import { Canvas, type ThreeEvent } from '@react-three/fiber'
-import { Edges, Environment, Html, Line, OrbitControls, Text, useGLTF } from '@react-three/drei'
+import { Edges, Html, Line, OrbitControls, Text, useGLTF } from '@react-three/drei'
 import {
-  ACESFilmicToneMapping,
   Box3,
+  NoToneMapping,
   SRGBColorSpace,
   type Mesh,
   Plane,
@@ -381,9 +381,14 @@ function ConfiguratorScene({ layout, faucetItems = [], wallLengthCm, onPositions
   return (
     <>
       <color attach="background" args={['#ffffff']} />
-      <ambientLight intensity={0.42} />
-      <directionalLight position={[3, 5, 4]} intensity={1.12} castShadow />
-      <directionalLight position={[-3, 2, 1]} intensity={0.26} />
+      {/*
+        Uploaded SketchUp materials already contain their intended display colors.
+        Neutral, mostly ambient lighting keeps those colors distinct instead of
+        tinting and compressing them through a photographic studio environment.
+      */}
+      <ambientLight color="#ffffff" intensity={2.3} />
+      <directionalLight color="#ffffff" position={[3, 5, 4]} intensity={0.06} castShadow />
+      <directionalLight color="#ffffff" position={[-3, 2, 1]} intensity={0.01} />
 
       <mesh position={[0, 1.3, -0.03]} receiveShadow>
         <planeGeometry args={[roomWidth, 2.6]} />
@@ -505,7 +510,6 @@ function ConfiguratorScene({ layout, faucetItems = [], wallLengthCm, onPositions
         maxPolarAngle={Math.PI * 0.49}
         enablePan={false}
       />
-      <Environment preset="studio" environmentIntensity={0.38} />
     </>
   )
 }
@@ -544,12 +548,12 @@ export default function KitchenModelViewer(props: Props) {
         dpr={[1, 1.5]}
         gl={{
           antialias: true,
-          toneMapping: ACESFilmicToneMapping,
+          toneMapping: NoToneMapping,
           powerPreference: 'high-performance',
         }}
         onCreated={({ gl }) => {
           gl.outputColorSpace = SRGBColorSpace
-          gl.toneMappingExposure = 0.78
+          gl.toneMappingExposure = 1
         }}
         camera={{ position: [designWidthM * 0.58, 1.5, designWidthM * 1.05 + 2], fov: 45 }}
       >
