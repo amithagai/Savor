@@ -43,6 +43,10 @@ type CabinetProductVariant = {
 
 type CartItem = CabinetProduct & CabinetProductVariant & { qty: number }
 
+function variantKeyOf(variant: Pick<CabinetProductVariant, 'variantId' | 'colorId'>) {
+  return variant.variantId || variant.colorId
+}
+
 const CATEGORIES: ConfiguratorCategory[] = ['עליונים', 'גבוהים', 'תחתונים', 'כיור', 'ברז']
 
 const HOW_STEPS = [
@@ -206,7 +210,7 @@ export default function Configurator() {
   const [wallLength, setWallLength] = useState('')
   const [appliedWallLength, setAppliedWallLength] = useState<number | null>(null)
   const [selectedCategories, setSelectedCategories] = useState<ConfiguratorCategory[]>(['תחתונים'])
-  const [selectedColors, setSelectedColors] = useState<string[]>(['latte', 'timber'])
+  const [selectedColors, setSelectedColors] = useState<string[]>(() => COLORS.map((color) => color.id))
   const [products, setProducts] = useState<CabinetProduct[]>([])
   const [catalogStatus, setCatalogStatus] = useState<'loading' | 'ready' | 'error'>('loading')
   const [cartItems, setCartItems] = useState<CartItem[]>([])
@@ -282,11 +286,12 @@ export default function Configurator() {
   function addToCart(product: CabinetProduct, variant: CabinetProductVariant) {
     if (variant.inStock === false && !variant.allowPreorder) return
     setCartItems(prev => {
-      const existing = prev.find(item => item.id === product.id && item.colorId === variant.colorId)
+      const variantKey = variantKeyOf(variant)
+      const existing = prev.find(item => item.id === product.id && variantKeyOf(item) === variantKey)
       if (existing) {
         if (variant.inventoryTracking && !variant.allowPreorder && existing.qty >= (variant.availableQuantity ?? 0)) return prev
         return prev.map(item =>
-          item.id === product.id && item.colorId === variant.colorId
+          item.id === product.id && variantKeyOf(item) === variantKey
             ? { ...item, ...variant, qty: item.qty + 1 }
             : item
         )
@@ -295,12 +300,12 @@ export default function Configurator() {
     })
   }
 
-  function setQty(id: string, colorId: string, qty: number) {
+  function setQty(id: string, variantKey: string, qty: number) {
     if (qty <= 0) {
-      setCartItems(prev => prev.filter(item => !(item.id === id && item.colorId === colorId)))
+      setCartItems(prev => prev.filter(item => !(item.id === id && variantKeyOf(item) === variantKey)))
     } else {
       setCartItems(prev => prev.map(item => {
-        if (item.id !== id || item.colorId !== colorId) return item
+        if (item.id !== id || variantKeyOf(item) !== variantKey) return item
         const maximum = item.inventoryTracking && !item.allowPreorder ? item.availableQuantity ?? 0 : 10
         return { ...item, qty: Math.min(qty, maximum) }
       }))
@@ -518,7 +523,7 @@ export default function Configurator() {
             {filteredProducts.flatMap(product => variantsFor(product)
               .filter((variant) => selectedColors.includes(colorIdOf(variant.colorId, variant.colorLabel)))
               .map(variant => {
-              const wishlistId = `${product.id}-${variant.colorId}`
+              const wishlistId = `${product.id}-${variantKeyOf(variant)}`
               return (
                 <div
                   key={wishlistId}
@@ -622,7 +627,7 @@ export default function Configurator() {
               <p className="cfg__cart-empty">לחצו על מוצר כדי להוסיף</p>
             )}
             {cartItems.map(item => (
-              <div key={`${item.id}-${item.colorId}`} className="cfg__cart-item">
+              <div key={`${item.id}-${variantKeyOf(item)}`} className="cfg__cart-item">
                 <div className="cfg__ci-info">
                   <span className="cfg__ci-name">{item.name}</span>
                   <span className="cfg__ci-sub">{item.subtitle} · {item.colorLabel}</span>
@@ -634,7 +639,7 @@ export default function Configurator() {
                       className="cfg__qty-select"
                       value={item.qty}
                       aria-label={`כמות עבור ${item.name}`}
-                      onChange={e => setQty(item.id, item.colorId, Number(e.target.value))}
+                      onChange={e => setQty(item.id, variantKeyOf(item), Number(e.target.value))}
                     >
                       {Array.from({ length: Math.max(1, item.inventoryTracking && !item.allowPreorder ? Math.min(10, item.availableQuantity ?? 0) : 10) }, (_, index) => index + 1).map(n => (
                         <option key={n} value={n}>{n}</option>
@@ -644,7 +649,7 @@ export default function Configurator() {
                   <button
                     type="button"
                     className="cfg__ci-decrease"
-                    onClick={() => setQty(item.id, item.colorId, item.qty - 1)}
+                    onClick={() => setQty(item.id, variantKeyOf(item), item.qty - 1)}
                     aria-label={item.qty === 1 ? `הסרת ${item.name}` : `הפחתת כמות ${item.name}`}
                     title={item.qty === 1 ? 'הסרת מוצר' : 'הפחתת כמות'}
                   >
