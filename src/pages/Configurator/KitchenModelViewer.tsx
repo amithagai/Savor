@@ -380,7 +380,7 @@ function ConfiguratorScene({ layout, faucetItems = [], wallLengthCm, onPositions
 
   return (
     <>
-      <color attach="background" args={['#f4f1eb']} />
+      <color attach="background" args={['#ffffff']} />
       <ambientLight intensity={0.42} />
       <directionalLight position={[3, 5, 4]} intensity={1.12} castShadow />
       <directionalLight position={[-3, 2, 1]} intensity={0.26} />
@@ -410,8 +410,51 @@ function ConfiguratorScene({ layout, faucetItems = [], wallLengthCm, onPositions
 
       <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, -0.001, 0]} receiveShadow>
         <planeGeometry args={[20, 20]} />
-        <meshStandardMaterial color="#e3ddd3" roughness={0.92} />
+        <meshBasicMaterial color="#ffffff" toneMapped={false} />
       </mesh>
+
+      <group>
+        <Line
+          points={[
+            [-roomWidth / 2, 0.006, 0.006],
+            [-roomWidth / 2, 2.6, 0.006],
+          ]}
+          color="#737373"
+          lineWidth={1}
+        />
+        <Line
+          points={[
+            [roomWidth / 2, 0.006, 0.006],
+            [roomWidth / 2, 2.6, 0.006],
+          ]}
+          color="#737373"
+          lineWidth={1}
+        />
+        <Line
+          points={[
+            [-roomWidth / 2, 0.006, 0.006],
+            [roomWidth / 2, 0.006, 0.006],
+          ]}
+          color="#737373"
+          lineWidth={1}
+        />
+        <Line
+          points={[
+            [-roomWidth / 2 + 0.006, 0.006, 0],
+            [-roomWidth / 2 + 0.006, 0.006, roomDepth],
+          ]}
+          color="#737373"
+          lineWidth={1}
+        />
+        <Line
+          points={[
+            [roomWidth / 2 - 0.006, 0.006, 0],
+            [roomWidth / 2 - 0.006, 0.006, roomDepth],
+          ]}
+          color="#737373"
+          lineWidth={1}
+        />
+      </group>
 
       <group position={[offsetX, 0, 0]}>
         {floorRow.map(({ item, x, xM, width, widthM, spec, key }) => (
