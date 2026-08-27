@@ -297,6 +297,8 @@ function ConfiguratorScene({ layout, faucetItems = [], wallLengthCm, onPositions
 
   const designWidthCm = Math.max(wallLengthCm ?? 0, layout.floorEnd, layout.wallEnd, 150)
   const totalSpan = designWidthCm * CM
+  const roomWidth = Math.max(totalSpan + 1, 3)
+  const roomDepth = 3
   const offsetX = -totalSpan / 2
   const wallGuideM = wallLengthCm != null ? wallLengthCm * CM : undefined
   const exceedsWall = wallLengthCm != null && Math.max(layout.floorEnd, layout.wallEnd) > wallLengthCm
@@ -384,7 +386,25 @@ function ConfiguratorScene({ layout, faucetItems = [], wallLengthCm, onPositions
       <directionalLight position={[-3, 2, 1]} intensity={0.26} />
 
       <mesh position={[0, 1.3, -0.03]} receiveShadow>
-        <planeGeometry args={[Math.max(totalSpan + 1, 3), 2.6]} />
+        <planeGeometry args={[roomWidth, 2.6]} />
+        <meshStandardMaterial color="#fffdf8" roughness={0.95} />
+      </mesh>
+
+      <mesh
+        position={[-roomWidth / 2, 1.3, roomDepth / 2 - 0.03]}
+        rotation={[0, Math.PI / 2, 0]}
+        receiveShadow
+      >
+        <planeGeometry args={[roomDepth, 2.6]} />
+        <meshStandardMaterial color="#fffdf8" roughness={0.95} />
+      </mesh>
+
+      <mesh
+        position={[roomWidth / 2, 1.3, roomDepth / 2 - 0.03]}
+        rotation={[0, -Math.PI / 2, 0]}
+        receiveShadow
+      >
+        <planeGeometry args={[roomDepth, 2.6]} />
         <meshStandardMaterial color="#fffdf8" roughness={0.95} />
       </mesh>
 
