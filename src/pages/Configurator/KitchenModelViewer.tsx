@@ -16,16 +16,12 @@ import { addSketchUpModelOutlines } from '../../lib/modelOutlines'
 import {
   buildCabinetLayout,
   cabinetDragPositionUpdates,
-  COUNTERTOP_DEPTH_CM,
   COUNTERTOP_HEIGHT_CM,
-  PLINTH_HEIGHT_CM,
-  PLINTH_RECESS_CM,
   type AccessoryPositions,
   type CabinetLayout,
   type CabinetLayoutItem,
   type CabinetPositions,
   type CategorySpec,
-  type CounterRun,
   type KitchenAccessoryId,
 } from './cabinetLayout'
 
@@ -42,7 +38,6 @@ type Props = {
 type InteractionMode = 'orbit' | 'move'
 
 const CM = 0.01
-const GAP_M = 0.01
 
 function createSketchUpDisplayMaterial(source: Material) {
   const standard = source as MeshStandardMaterial
@@ -215,34 +210,6 @@ function WallGuide({ startX, lengthM, exceeds }: { startX: number; lengthM: numb
         {`${Math.round(lengthM * 100)} ס"מ${exceeds ? ' - חריגה!' : ''}`}
       </Text>
     </group>
-  )
-}
-
-function Countertop({ run }: { run: CounterRun }) {
-  const width = (run.end - run.start) * CM
-  const x = (run.start + run.end) * CM / 2
-  const height = COUNTERTOP_HEIGHT_CM * CM
-  const depth = COUNTERTOP_DEPTH_CM * CM
-  if (width <= 0) return null
-  return (
-    <mesh position={[x, height + 0.015, depth / 2 - 0.02]} castShadow receiveShadow>
-      <boxGeometry args={[width + GAP_M, 0.03, depth + 0.06]} />
-      <meshStandardMaterial color="#d8d1c6" roughness={0.38} />
-    </mesh>
-  )
-}
-
-function Plinth({ run }: { run: CounterRun }) {
-  const width = (run.end - run.start) * CM
-  const x = (run.start + run.end) * CM / 2
-  const height = PLINTH_HEIGHT_CM * CM
-  const frontZ = (COUNTERTOP_DEPTH_CM - PLINTH_RECESS_CM) * CM
-  if (width <= 0) return null
-  return (
-    <mesh position={[x, height / 2, frontZ]} castShadow receiveShadow>
-      <boxGeometry args={[width, height, 0.025]} />
-      <meshStandardMaterial color="#b9b0a4" roughness={0.65} />
-    </mesh>
   )
 }
 
@@ -520,8 +487,6 @@ function ConfiguratorScene({ layout, faucetItems = [], wallLengthCm, onPositions
             dragHandlers={interactionMode === 'move' ? handlers('cabinet', key, x, width) : undefined}
           />
         ))}
-        {layout.counterRuns.map((run, index) => <Countertop key={`counter-${index}`} run={run} />)}
-        {layout.counterRuns.map((run, index) => <Plinth key={`plinth-${index}`} run={run} />)}
         {wallRow.map(({ item, x, xM, width, widthM, spec, key }) => (
           <Cabinet
             key={key}
