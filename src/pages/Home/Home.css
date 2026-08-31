@@ -319,9 +319,14 @@
 
 /* ─── Gallery ────────────────────────────────────── */
 .gallery {
+  /* All four frames crop one shared image coordinate system. These offsets
+     compensate for the grid gaps that are excluded from the fr tracks. */
+  --gallery-gap: 24px;
+  --gallery-second-slice-gap-offset: 6.3216px;
+  --gallery-third-slice-gap-offset: 7.368px;
   display: flex;
   flex-direction: column;
-  gap: 24px;
+  gap: var(--gallery-gap);
   padding: 0 60px 64px;
 }
 
@@ -330,7 +335,7 @@
   direction: ltr;
   display: grid;
   grid-template-columns: 36.83fr 47.82fr 15.35fr;
-  gap: 24px;
+  gap: var(--gallery-gap);
   aspect-ratio: 850 / 159;
 }
 
@@ -364,21 +369,24 @@
 }
 
 .gallery__top .gallery__img-wrap:nth-child(2) .gallery__slice-image {
-  left: calc(-36.83cqw - 6px);
+  left: calc(-36.83cqw - var(--gallery-second-slice-gap-offset));
 }
 
 .gallery__top .gallery__img-wrap:nth-child(3) .gallery__slice-image {
-  left: calc(-84.65cqw - 7px);
+  left: calc(-84.65cqw - var(--gallery-third-slice-gap-offset));
 }
 
 .gallery__bottom {
+  container-type: inline-size;
   aspect-ratio: 850 / 264;
 }
 
 .gallery__bottom-image {
   left: 0;
-  bottom: -8%;
-  width: 100%;
+  /* 159 / 850 is the top row's height; include the visible row gap so this
+     image has the exact same origin as every image in the top row. */
+  top: calc(-18.705882cqw - var(--gallery-gap));
+  width: 100cqw;
   height: auto;
 }
 
@@ -630,25 +638,18 @@
 
   /* ─── Gallery ──────────────────────────────────── */
   .gallery {
-    gap: 10px;
+    --gallery-gap: 10px;
+    --gallery-second-slice-gap-offset: 2.634px;
+    --gallery-third-slice-gap-offset: 3.07px;
     padding: 0 20px 40px;
   }
 
   .gallery__top {
-    gap: 10px;
     grid-template-columns: 36.83fr 47.82fr 15.35fr;
   }
 
   .gallery__top .gallery__img-wrap {
     border-radius: 14px;
-  }
-
-  .gallery__top .gallery__img-wrap:nth-child(2) .gallery__slice-image {
-    left: calc(-36.83cqw - 3px);
-  }
-
-  .gallery__top .gallery__img-wrap:nth-child(3) .gallery__slice-image {
-    left: calc(-84.65cqw - 3px);
   }
 
   .gallery__bottom {
