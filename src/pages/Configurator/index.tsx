@@ -8,7 +8,15 @@ import type { CartItem as CheckoutCartItem } from '../../context/CartContext'
 import KitchenModelViewer from './KitchenModelViewer'
 import Configurator2DView from './Configurator2DView'
 import { COLORS, colorHexOf, colorIdOf, colorSwatchStyleOf, knownColorHexOf } from './colors'
-import { buildCabinetLayout, type AccessoryPositions, type CabinetCategory, type CabinetPositions, type KitchenAccessoryId } from './cabinetLayout'
+import {
+  buildCabinetLayout,
+  type AccessoryPositions,
+  type CabinetCategory,
+  type CabinetPositions,
+  type CabinetSpatialPlacement,
+  type CabinetSpatialPositions,
+  type KitchenAccessoryId,
+} from './cabinetLayout'
 import { api } from '../../lib/api'
 import type { ConfiguratorProduct } from '../../types/catalog'
 import { useSiteContent } from '../../hooks/useSiteContent'
@@ -242,6 +250,7 @@ export default function Configurator() {
   const [catalogStatus, setCatalogStatus] = useState<'loading' | 'ready' | 'error'>('loading')
   const [cartItems, setCartItems] = useState<CartItem[]>([])
   const [cabinetPositions, setCabinetPositions] = useState<CabinetPositions>({})
+  const [cabinetSpatialPositions, setCabinetSpatialPositions] = useState<CabinetSpatialPositions>({})
   const [accessories, setAccessories] = useState<AccessoryPositions>({})
   const [viewMode, setViewMode] = useState<'2D' | '3D'>('3D')
   const [howOpen, setHowOpen] = useState(true)
@@ -376,6 +385,7 @@ export default function Configurator() {
   function resetAll() {
     setCartItems([])
     setCabinetPositions({})
+    setCabinetSpatialPositions({})
     setAccessories({})
     setWallLength('')
     setAppliedWallLength(null)
@@ -433,10 +443,20 @@ export default function Configurator() {
 
   const setCabinetPosition = useCallback((key: string, xCm: number) => {
     setCabinetPositions(prev => ({ ...prev, [key]: xCm }))
+    setCabinetSpatialPositions(prev => {
+      if (!(key in prev)) return prev
+      const next = { ...prev }
+      delete next[key]
+      return next
+    })
   }, [])
 
   const setCabinetPositionUpdates = useCallback((updates: CabinetPositions) => {
     setCabinetPositions(prev => ({ ...prev, ...updates }))
+  }, [])
+
+  const setCabinetSpatialPosition = useCallback((key: string, placement: CabinetSpatialPlacement) => {
+    setCabinetSpatialPositions(prev => ({ ...prev, [key]: placement }))
   }, [])
 
   const setAccessoryPosition = useCallback((id: KitchenAccessoryId, xCm: number) => {
@@ -678,6 +698,8 @@ export default function Configurator() {
                 wallLengthCm={appliedWallLength}
                 positions={cabinetPositions}
                 onPositionsChange={setCabinetPositionUpdates}
+                spatialPositions={cabinetSpatialPositions}
+                onSpatialPositionChange={setCabinetSpatialPosition}
                 accessories={visibleAccessories}
                 onAccessoryPositionChange={setAccessoryPosition}
                 showCountertop={countertopSelected}
@@ -708,7 +730,9 @@ export default function Configurator() {
             ))}
           </div>
           <div className="cfg__drag-hint">
-            {viewMode === '3D' ? 'בחרו סיבוב או הזזה, ואז גררו בתצוגה' : 'גררו ארונות וברזים למיקום הרצוי'}
+            {viewMode === '3D'
+              ? 'בחרו הזזת פריטים, גררו על הרצפה והתקרבו לקיר כדי להצמיד'
+              : 'גררו ארונות וברזים למיקום הרצוי'}
           </div>
         </div>
 
