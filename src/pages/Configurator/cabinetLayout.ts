@@ -28,6 +28,9 @@ export const CATEGORY_SPEC: Record<CabinetCategory, CategorySpec> = {
 }
 
 export const GAP_CM = 1
+export const DEFAULT_WALL_LENGTH_CM = 150
+export const WALL_HEIGHT_CM = 260
+export const WALL_SNAP_DISTANCE_CM = 8
 export const COUNTERTOP_HEIGHT_CM = CATEGORY_SPEC['תחתונים'].height
 export const COUNTERTOP_DEPTH_CM = CATEGORY_SPEC['תחתונים'].depth
 export const PLINTH_HEIGHT_CM = 10
@@ -43,6 +46,17 @@ export function doorCount(subtitle: string): number {
 
 export function isOven(subtitle: string): boolean {
   return subtitle.includes('תנור')
+}
+
+export function snapCabinetXToWall(x: number, width: number, wallLength: number) {
+  const half = width / 2
+  const leftEdgePosition = half
+  const rightEdgePosition = Math.max(half, wallLength - half)
+  const clamped = Math.min(Math.max(x, leftEdgePosition), rightEdgePosition)
+
+  if (Math.abs(clamped - leftEdgePosition) <= WALL_SNAP_DISTANCE_CM) return leftEdgePosition
+  if (Math.abs(clamped - rightEdgePosition) <= WALL_SNAP_DISTANCE_CM) return rightEdgePosition
+  return clamped
 }
 
 export type PlacedCabinet = {

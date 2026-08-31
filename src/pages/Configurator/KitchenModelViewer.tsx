@@ -1,5 +1,5 @@
 import { Component, Suspense, useCallback, useEffect, useMemo, useRef, useState, type ErrorInfo, type ReactNode } from 'react'
-import { Canvas, type ThreeEvent } from '@react-three/fiber'
+import { Canvas, useThree, type ThreeEvent } from '@react-three/fiber'
 import { Edges, Environment, Html, Line, OrbitControls, Text, useGLTF } from '@react-three/drei'
 import {
   ACESFilmicToneMapping,
@@ -17,11 +17,14 @@ import {
   cabinetDragPositionUpdates,
   COUNTERTOP_DEPTH_CM,
   COUNTERTOP_HEIGHT_CM,
+  DEFAULT_WALL_LENGTH_CM,
   doorCount,
   HANDLE_TOP_OFFSET_CM,
   isOven,
   PLINTH_HEIGHT_CM,
   PLINTH_RECESS_CM,
+  snapCabinetXToWall,
+  WALL_HEIGHT_CM,
   type AccessoryPositions,
   type CabinetLayout,
   type CabinetLayoutItem,
@@ -220,6 +223,19 @@ function WallGuide({ startX, lengthM, exceeds }: { startX: number; lengthM: numb
   )
 }
 
+function CameraFraming({ sceneWidthM }: { sceneWidthM: number }) {
+  const { camera, invalidate } = useThree()
+
+  useEffect(() => {
+    camera.position.set(sceneWidthM * 0.58, 1.5, sceneWidthM * 1.05 + 2)
+    camera.lookAt(0, 0.95, 0.2)
+    camera.updateProjectionMatrix()
+    invalidate()
+  }, [camera, invalidate, sceneWidthM])
+
+  return null
+}
+
 function Countertop({ run }: { run: CounterRun }) {
   const width = (run.end - run.start) * CM
   const x = (run.start + run.end) * CM / 2
@@ -369,10 +385,11 @@ function ConfiguratorScene({ layout, wallLengthCm, onPositionsChange, accessorie
     onAccessoryPositionChange,
   )
   const activeKey = drag ? `${drag.type}-${drag.key}` : null
-
-  const designWidthCm = Math.max(wallLengthCm ?? 0, layout.floorEnd, layout.wallEnd, 150)
+  const wallWidthCm = wallLengthCm ?? Math.max(layout.floorEnd, layout.wallEnd, DEFAULT_WALL_LENGTH_CM)
+  const designWidthCm = Math.max(wallWidthCm, layout.floorEnd, layout.wallEnd, DEFAULT_WALL_LENGTH_CM)
   const totalSpan = designWidthCm * CM
   const offsetX = -totalSpan / 2
+  const wallWidthM = wallWidthCm * CM
   const wallGuideM = wallLengthCm != null ? wallLengthCm * CM : undefined
   const exceedsWall = wallLengthCm != null && Math.max(layout.floorEnd, layout.wallEnd) > wallLengthCm
 
@@ -385,7 +402,7 @@ function ConfiguratorScene({ layout, wallLengthCm, onPositionsChange, accessorie
     const point = pointOnDragPlane(event)
     if (!point) return
     setDrag({ type, key, widthCm, offsetM: xCm * CM + offsetX - point.x })
-    const target = event.target as unknown as { setPointerCapture?: (pointerId: number) => void }
+    const target = event.currentTarget as unknown as { setPointerCapture?: (pointerId: number) => void }
     target.setPointerCapture?.(event.pointerId)
   }
 
@@ -411,8 +428,8 @@ function ConfiguratorScene({ layout, wallLengthCm, onPositionsChange, accessorie
       const updates = cabinetDragPositionUpdates(
         [...layout.floorRow, ...layout.wallRow],
         drag.key,
-        rawX,
-        designWidthCm,
+        snapCabinetXToWall(rawX, drag.widthCm, wallWidthCm),
+        wallWidthCm,
       )
       const roundedUpdates = Object.fromEntries(
         Object.entries(updates).map(([key, x]) => [key, Math.round(x)]),
@@ -433,7 +450,7 @@ function ConfiguratorScene({ layout, wallLengthCm, onPositionsChange, accessorie
   function endDrag(event: ThreeEvent<PointerEvent>) {
     if (!drag) return
     event.stopPropagation()
-    const target = event.target as unknown as { releasePointerCapture?: (pointerId: number) => void }
+    const target = event.currentTarget as unknown as { releasePointerCapture?: (pointerId: number) => void }
     target.releasePointerCapture?.(event.pointerId)
     flushPendingUpdate()
     setDrag(null)
@@ -454,6 +471,7 @@ function ConfiguratorScene({ layout, wallLengthCm, onPositionsChange, accessorie
   return (
     <>
       <color attach="background" args={['#cbc5bb']} />
+      <CameraFraming sceneWidthM={totalSpan} />
       <ambientLight intensity={0.22} />
       <directionalLight position={[3, 5, 4]} intensity={1.08} castShadow />
       <directionalLight position={[-3, 2, 1]} intensity={0.18} />
@@ -462,9 +480,10 @@ function ConfiguratorScene({ layout, wallLengthCm, onPositionsChange, accessorie
         <planeGeometry args={[20, 20]} />
         <meshStandardMaterial color="#aaa399" roughness={0.92} />
       </mesh>
-      <mesh position={[0, 1.3, -0.03]} receiveShadow>
-        <planeGeometry args={[Math.max(totalSpan + 1, 3), 2.6]} />
+      <mesh position={[offsetX + wallWidthM / 2, WALL_HEIGHT_CM * CM / 2, -0.001]} receiveShadow>
+        <planeGeometry args={[wallWidthM, WALL_HEIGHT_CM * CM]} />
         <meshStandardMaterial color="#cec7bd" roughness={0.95} />
+        <Edges color="#8e887f" />
       </mesh>
 
       <group position={[offsetX, 0, 0]}>
@@ -534,7 +553,14 @@ export default function KitchenModelViewer(props: Props) {
     () => buildCabinetLayout(props.cartItems, props.positions),
     [props.cartItems, props.positions],
   )
-  const designWidthM = Math.max(props.wallLengthCm ?? 0, layout.floorEnd, layout.wallEnd, 150) * CM
+  const wallWidthCm = props.wallLengthCm
+    ?? Math.max(layout.floorEnd, layout.wallEnd, DEFAULT_WALL_LENGTH_CM)
+  const designWidthM = Math.max(
+    wallWidthCm,
+    layout.floorEnd,
+    layout.wallEnd,
+    DEFAULT_WALL_LENGTH_CM,
+  ) * CM
 
   return (
     <div className="cfg3d__viewer">
