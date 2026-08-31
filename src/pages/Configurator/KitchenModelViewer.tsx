@@ -1,28 +1,24 @@
 import { Component, Suspense, useCallback, useEffect, useMemo, useRef, useState, type ErrorInfo, type ReactNode } from 'react'
 import { Canvas, useThree, type ThreeEvent } from '@react-three/fiber'
-import { Edges, Environment, Html, Line, OrbitControls, Text, useGLTF } from '@react-three/drei'
+import { Edges, Html, Line, OrbitControls, Text, useGLTF } from '@react-three/drei'
 import {
-  ACESFilmicToneMapping,
   Box3,
-  Color,
+  type Material,
+  MeshBasicMaterial,
+  type MeshStandardMaterial,
+  NoToneMapping,
+  SRGBColorSpace,
   type Mesh,
   Plane,
   Vector3,
 } from 'three'
 import { addSketchUpModelOutlines } from '../../lib/modelOutlines'
-import { getModelUrl } from './modelCatalog'
-import { colorHexOf } from './colors'
 import {
   buildCabinetLayout,
   cabinetDragPositionUpdates,
   COUNTERTOP_DEPTH_CM,
   COUNTERTOP_HEIGHT_CM,
   DEFAULT_WALL_LENGTH_CM,
-  doorCount,
-  HANDLE_TOP_OFFSET_CM,
-  isOven,
-  PLINTH_HEIGHT_CM,
-  PLINTH_RECESS_CM,
   ROOM_DEPTH_CM,
   snapCabinetPlacementToRoom,
   snapCabinetXToWall,
@@ -40,6 +36,7 @@ import {
 
 type Props = {
   cartItems: CabinetLayoutItem[]
+  faucetItems: Array<{ id: string; width: number; modelUrl?: string }>
   wallLengthCm?: number | null
   positions: CabinetPositions
   onPositionsChange: (positions: CabinetPositions) => void
@@ -47,13 +44,42 @@ type Props = {
   onSpatialPositionChange: (key: string, placement: CabinetSpatialPlacement) => void
   accessories: AccessoryPositions
   onAccessoryPositionChange: (id: KitchenAccessoryId, xCm: number) => void
+  showCountertop: boolean
 }
 
 type InteractionMode = 'orbit' | 'move'
 
 const CM = 0.01
-const GAP_M = 0.01
-const HANDLE_TOP_OFFSET_M = HANDLE_TOP_OFFSET_CM * CM
+
+function createSketchUpDisplayMaterial(source: Material) {
+  const standard = source as MeshStandardMaterial
+  if (!standard.isMeshStandardMaterial) return source.clone()
+
+  const display = new MeshBasicMaterial({
+    alphaMap: standard.alphaMap,
+    alphaTest: standard.alphaTest,
+    color: standard.color,
+    colorWrite: standard.colorWrite,
+    depthTest: standard.depthTest,
+    depthWrite: standard.depthWrite,
+    fog: standard.fog,
+    map: standard.map,
+    opacity: standard.opacity,
+    side: standard.side,
+    toneMapped: false,
+    transparent: standard.transparent,
+    vertexColors: standard.vertexColors,
+    wireframe: standard.wireframe,
+  })
+  display.name = source.name
+  display.userData = { ...source.userData }
+  return display
+}
+
+function isGoldAccentMesh(mesh: Mesh) {
+  const materials = Array.isArray(mesh.material) ? mesh.material : [mesh.material]
+  return materials.length > 0 && materials.every(material => material.name.toLowerCase().includes('gold'))
+}
 
 function ModelLoadingFallback() {
   return (
@@ -66,65 +92,15 @@ function ModelLoadingFallback() {
   )
 }
 
-function OvenFront({ width, height, depth }: { width: number; height: number; depth: number }) {
-  const panelWidth = width * 0.82
-  const panelHeight = height * 0.5
-  const centerY = height * 0.58
-  return (
-    <group position={[0, centerY, depth + 0.002]}>
-      <mesh>
-        <boxGeometry args={[panelWidth, panelHeight, 0.015]} />
-        <meshStandardMaterial color="#1c1c1c" roughness={0.35} metalness={0.4} />
-      </mesh>
-      <mesh position={[0, panelHeight / 2 - 0.035, 0.009]}>
-        <boxGeometry args={[panelWidth * 0.9, 0.018, 0.005]} />
-        <meshStandardMaterial color="#4a4a4a" metalness={0.6} roughness={0.3} />
-      </mesh>
-    </group>
-  )
-}
-
-function ProceduralCabinet({ width, height, depth, color, subtitle }: { width: number; height: number; depth: number; color: string; subtitle: string }) {
-  const doors = doorCount(subtitle)
-  const displayColor = useMemo(() => new Color(color).offsetHSL(0, 0, -0.1), [color])
-  const doorLines = useMemo(() => {
-    if (doors < 2) return []
-    return Array.from({ length: doors - 1 }, (_, index) => -width / 2 + (width / doors) * (index + 1))
-  }, [doors, width])
-
-  return (
-    <>
-      <mesh position={[0, height / 2, depth / 2]} castShadow receiveShadow>
-        <boxGeometry args={[width, height, depth]} />
-        <meshStandardMaterial color={displayColor} roughness={0.72} />
-        <Edges scale={1} color="#777777" />
-      </mesh>
-      {doorLines.map((lineX, index) => (
-        <Line
-          key={index}
-          points={[[lineX, 0.02, depth + 0.001], [lineX, height - 0.02, depth + 0.001]]}
-          color="#686868"
-          lineWidth={1}
-        />
-      ))}
-      {!isOven(subtitle) && (
-        <mesh position={[0, height - HANDLE_TOP_OFFSET_M, depth + 0.012]} castShadow>
-          <boxGeometry args={[Math.min(width * 0.55, 0.28), 0.018, 0.025]} />
-          <meshStandardMaterial color="#454545" metalness={0.75} roughness={0.28} />
-        </mesh>
-      )}
-      {isOven(subtitle) && <OvenFront width={width} height={height} depth={depth} />}
-    </>
-  )
-}
-
-function RealCabinetModel({ url, width }: {
+function RealCabinetModel({ url, width, showOutlines }: {
   url: string
   width: number
+  showOutlines: boolean
 }) {
   const { scene } = useGLTF(url)
-  const cloned = useMemo(() => {
+  const normalized = useMemo(() => {
     const clone = scene.clone(true)
+    const displayMaterials = new Set<Material>()
     // The source GLBs are authored with their doors on the maximum-Z side,
     // which already faces the configurator camera. Keep that orientation;
     // rotating the complete model would expose its plain rear panel instead.
@@ -142,16 +118,31 @@ function RealCabinetModel({ url, width }: {
     clone.traverse(node => {
       const mesh = node as Mesh
       if (mesh.isMesh) {
+        const sourceMaterials = Array.isArray(mesh.material) ? mesh.material : [mesh.material]
+        const replacements = sourceMaterials.map(createSketchUpDisplayMaterial)
+        replacements.forEach(material => displayMaterials.add(material))
+        mesh.material = Array.isArray(mesh.material) ? replacements : replacements[0]
         mesh.castShadow = true
         mesh.receiveShadow = false
       }
     })
-    return clone
+    return { displayMaterials, object: clone }
   }, [scene, width])
 
-  useEffect(() => addSketchUpModelOutlines(cloned), [cloned])
+  useEffect(() => {
+    if (!showOutlines) return
+    return addSketchUpModelOutlines(normalized.object, {
+      // Thin gold handles already carry a baked SketchUp texture. A full edge
+      // overlay covers that texture at configurator scale and makes it black.
+      shouldOutlineMesh: mesh => !isGoldAccentMesh(mesh),
+    })
+  }, [normalized, showOutlines])
 
-  return <primitive object={cloned} />
+  useEffect(() => () => {
+    normalized.displayMaterials.forEach(material => material.dispose())
+  }, [normalized])
+
+  return <primitive object={normalized.object} />
 }
 
 class CabinetModelErrorBoundary extends Component<
@@ -165,7 +156,7 @@ class CabinetModelErrorBoundary extends Component<
   }
 
   componentDidCatch(error: Error, info: ErrorInfo) {
-    console.error('Could not load cabinet GLB; using the procedural fallback.', error, info)
+    console.error('Could not load the uploaded cabinet GLB; no substitute model will be shown.', error, info)
   }
 
   render() {
@@ -180,35 +171,40 @@ type DragHandlers = {
   onPointerCancel: (event: ThreeEvent<PointerEvent>) => void
 }
 
-function Cabinet({ x, width, spec, color, subtitle, modelUrl, active, dragHandlers }: {
+function Cabinet({ x, width, spec, modelUrl, active, showOutlines, dragHandlers }: {
   x: number
   width: number
   spec: CategorySpec
-  color: string
-  subtitle: string
   modelUrl?: string
   active: boolean
+  showOutlines: boolean
   dragHandlers?: DragHandlers
 }) {
   const height = spec.height * CM
   const depth = spec.depth * CM
   const elevation = spec.elevation * CM
-  const fallback = <ProceduralCabinet width={width} height={height} depth={depth} color={color} subtitle={subtitle} />
+  const unavailable = (
+    <Html center>
+      <div className="cfg3d__model-error" role="alert">המודל שהועלה לא נטען</div>
+    </Html>
+  )
 
   return (
     <group position={[x, elevation, 0]} {...(dragHandlers ?? {})}>
       {modelUrl ? (
-        <CabinetModelErrorBoundary key={modelUrl} fallback={fallback}>
-          <RealCabinetModel url={modelUrl} width={width} />
+        <CabinetModelErrorBoundary key={modelUrl} fallback={unavailable}>
+          <>
+            <RealCabinetModel url={modelUrl} width={width} showOutlines={showOutlines} />
+            {active && (
+              <mesh position={[0, height / 2, depth / 2]}>
+                <boxGeometry args={[width + 0.035, height + 0.035, depth + 0.035]} />
+                <meshBasicMaterial color="#377e2b" transparent opacity={0.13} depthWrite={false} />
+                <Edges color="#377e2b" />
+              </mesh>
+            )}
+          </>
         </CabinetModelErrorBoundary>
-      ) : fallback}
-      {active && (
-        <mesh position={[0, height / 2, depth / 2]}>
-          <boxGeometry args={[width + 0.035, height + 0.035, depth + 0.035]} />
-          <meshBasicMaterial color="#377e2b" transparent opacity={0.13} depthWrite={false} />
-          <Edges color="#377e2b" />
-        </mesh>
-      )}
+      ) : unavailable}
     </group>
   )
 }
@@ -259,76 +255,35 @@ function Countertop({ run }: { run: CounterRun }) {
   const height = COUNTERTOP_HEIGHT_CM * CM
   const depth = COUNTERTOP_DEPTH_CM * CM
   if (width <= 0) return null
+
   return (
-    <mesh position={[x, height + 0.015, depth / 2 - 0.02]} castShadow receiveShadow>
-      <boxGeometry args={[width + GAP_M, 0.03, depth + 0.06]} />
-      <meshStandardMaterial color="#d8d1c6" roughness={0.38} />
+    <mesh position={[x, height + 0.015, depth / 2]} castShadow>
+      <boxGeometry args={[width, 0.03, depth]} />
+      <meshBasicMaterial color="#d8d1c6" toneMapped={false} />
     </mesh>
   )
 }
 
-function Plinth({ run }: { run: CounterRun }) {
-  const width = (run.end - run.start) * CM
-  const x = (run.start + run.end) * CM / 2
-  const height = PLINTH_HEIGHT_CM * CM
-  const frontZ = (COUNTERTOP_DEPTH_CM - PLINTH_RECESS_CM) * CM
-  if (width <= 0) return null
-  return (
-    <mesh position={[x, height / 2, frontZ]} castShadow receiveShadow>
-      <boxGeometry args={[width, height, 0.025]} />
-      <meshStandardMaterial color="#b9b0a4" roughness={0.65} />
-    </mesh>
-  )
-}
-
-function Sink({ x, active, dragHandlers }: { x: number; active: boolean; dragHandlers?: DragHandlers }) {
-  const top = COUNTERTOP_HEIGHT_CM * CM + 0.037
-  const z = COUNTERTOP_DEPTH_CM * CM * 0.57
-  return (
-    <group position={[x, top, z]} {...(dragHandlers ?? {})}>
-      <mesh castShadow>
-        <boxGeometry args={[0.52, 0.018, 0.42]} />
-        <meshStandardMaterial color="#aeb3b4" metalness={0.72} roughness={0.22} />
-      </mesh>
-      <mesh position={[0, 0.012, 0]}>
-        <boxGeometry args={[0.45, 0.008, 0.35]} />
-        <meshStandardMaterial color="#555d60" metalness={0.55} roughness={0.32} />
-      </mesh>
-      {active && (
-        <mesh position={[0, 0.02, 0]}>
-          <boxGeometry args={[0.57, 0.015, 0.47]} />
-          <meshBasicMaterial color="#377e2b" transparent opacity={0.2} />
-          <Edges color="#377e2b" />
-        </mesh>
-      )}
-    </group>
-  )
-}
-
-function Faucet({ x, active, dragHandlers }: { x: number; active: boolean; dragHandlers?: DragHandlers }) {
+function UploadedFaucet({ x, width, modelUrl, showOutlines, dragHandlers }: {
+  x: number
+  width: number
+  modelUrl?: string
+  showOutlines: boolean
+  dragHandlers?: DragHandlers
+}) {
   const top = COUNTERTOP_HEIGHT_CM * CM + 0.045
-  const metal = <meshStandardMaterial color="#aeb4b6" metalness={0.86} roughness={0.17} />
+  const unavailable = (
+    <Html center>
+      <div className="cfg3d__model-error" role="alert">מודל הברז שהועלה לא נטען</div>
+    </Html>
+  )
   return (
     <group position={[x, top, 0.12]} {...(dragHandlers ?? {})}>
-      <mesh position={[0, 0.16, 0]} castShadow>
-        <cylinderGeometry args={[0.018, 0.022, 0.32, 18]} />
-        {metal}
-      </mesh>
-      <mesh position={[0, 0.31, 0.09]} rotation={[Math.PI / 2, 0, 0]} castShadow>
-        <cylinderGeometry args={[0.016, 0.016, 0.2, 18]} />
-        {metal}
-      </mesh>
-      <mesh position={[0, 0.27, 0.19]} castShadow>
-        <cylinderGeometry args={[0.015, 0.015, 0.09, 18]} />
-        {metal}
-      </mesh>
-      {active && (
-        <mesh position={[0, 0.17, 0.08]}>
-          <boxGeometry args={[0.12, 0.4, 0.32]} />
-          <meshBasicMaterial color="#377e2b" transparent opacity={0.12} depthWrite={false} />
-          <Edges color="#377e2b" />
-        </mesh>
-      )}
+      {modelUrl ? (
+        <CabinetModelErrorBoundary key={modelUrl} fallback={unavailable}>
+          <RealCabinetModel url={modelUrl} width={width} showOutlines={showOutlines} />
+        </CabinetModelErrorBoundary>
+      ) : unavailable}
     </group>
   )
 }
@@ -404,6 +359,7 @@ function useDragUpdateScheduler(
 
 function ConfiguratorScene({
   layout,
+  faucetItems = [],
   wallLengthCm,
   onPositionsChange,
   spatialPositions,
@@ -411,6 +367,7 @@ function ConfiguratorScene({
   accessories,
   onAccessoryPositionChange,
   interactionMode,
+  showCountertop,
 }: SceneProps) {
   const dragPlane = useMemo(() => new Plane(new Vector3(0, 1, 0), 0), [])
   const [drag, setDrag] = useState<DragState | null>(null)
@@ -420,6 +377,7 @@ function ConfiguratorScene({
     onAccessoryPositionChange,
   )
   const activeKey = drag ? `${drag.type}-${drag.key}` : null
+  const uploadedFaucet = faucetItems.find((item) => Boolean(item.modelUrl))
   const wallWidthCm = wallLengthCm ?? Math.max(layout.floorEnd, layout.wallEnd, DEFAULT_WALL_LENGTH_CM)
   const designWidthCm = Math.max(wallWidthCm, layout.floorEnd, layout.wallEnd, DEFAULT_WALL_LENGTH_CM)
   const totalSpan = designWidthCm * CM
@@ -551,38 +509,83 @@ function ConfiguratorScene({
     widthM: placed.width * CM,
   }))
   const roomDepthM = ROOM_DEPTH_CM * CM
+  const wallHeightM = WALL_HEIGHT_CM * CM
+  const wallLeftM = offsetX
+  const wallRightM = offsetX + wallWidthM
+  const wallCenterM = (wallLeftM + wallRightM) / 2
 
   return (
     <>
-      <color attach="background" args={['#cbc5bb']} />
+      <color attach="background" args={['#ffffff']} />
       <CameraFraming sceneWidthM={totalSpan} />
-      <ambientLight intensity={0.22} />
-      <directionalLight position={[3, 5, 4]} intensity={1.08} castShadow />
-      <directionalLight position={[-3, 2, 1]} intensity={0.18} />
+      {/* Preserve the authored SketchUp colors with neutral white lighting. */}
+      <ambientLight color="#ffffff" intensity={2.3} />
+      <directionalLight color="#ffffff" position={[3, 5, 4]} intensity={0.06} castShadow />
+      <directionalLight color="#ffffff" position={[-3, 2, 1]} intensity={0.01} />
 
       <mesh
         rotation={[-Math.PI / 2, 0, 0]}
-        position={[offsetX + wallWidthM / 2, -0.001, roomDepthM / 2]}
+        position={[wallCenterM, -0.001, roomDepthM / 2]}
         receiveShadow
       >
         <planeGeometry args={[wallWidthM, roomDepthM]} />
-        <meshStandardMaterial color="#aaa399" roughness={0.92} />
+        <meshBasicMaterial color="#ffffff" toneMapped={false} />
       </mesh>
-      <mesh position={[offsetX + wallWidthM / 2, WALL_HEIGHT_CM * CM / 2, -0.001]} receiveShadow>
-        <planeGeometry args={[wallWidthM, WALL_HEIGHT_CM * CM]} />
-        <meshStandardMaterial color="#cec7bd" roughness={0.95} />
-        <Edges color="#8e887f" />
+      <mesh position={[wallCenterM, wallHeightM / 2, -0.001]} receiveShadow>
+        <planeGeometry args={[wallWidthM, wallHeightM]} />
+        <meshBasicMaterial color="#ffffff" toneMapped={false} />
       </mesh>
-      <mesh position={[offsetX - 0.001, WALL_HEIGHT_CM * CM / 2, roomDepthM / 2]} rotation={[0, Math.PI / 2, 0]} receiveShadow>
-        <planeGeometry args={[roomDepthM, WALL_HEIGHT_CM * CM]} />
-        <meshStandardMaterial color="#cec7bd" roughness={0.95} />
-        <Edges color="#8e887f" />
+      <mesh position={[wallLeftM - 0.001, wallHeightM / 2, roomDepthM / 2]} rotation={[0, Math.PI / 2, 0]} receiveShadow>
+        <planeGeometry args={[roomDepthM, wallHeightM]} />
+        <meshBasicMaterial color="#ffffff" toneMapped={false} />
       </mesh>
-      <mesh position={[offsetX + wallWidthM + 0.001, WALL_HEIGHT_CM * CM / 2, roomDepthM / 2]} rotation={[0, -Math.PI / 2, 0]} receiveShadow>
-        <planeGeometry args={[roomDepthM, WALL_HEIGHT_CM * CM]} />
-        <meshStandardMaterial color="#cec7bd" roughness={0.95} />
-        <Edges color="#8e887f" />
+      <mesh position={[wallRightM + 0.001, wallHeightM / 2, roomDepthM / 2]} rotation={[0, -Math.PI / 2, 0]} receiveShadow>
+        <planeGeometry args={[roomDepthM, wallHeightM]} />
+        <meshBasicMaterial color="#ffffff" toneMapped={false} />
       </mesh>
+
+      <group>
+        <Line
+          points={[
+            [wallLeftM, 0.006, 0.006],
+            [wallLeftM, wallHeightM, 0.006],
+          ]}
+          color="#737373"
+          lineWidth={1}
+        />
+        <Line
+          points={[
+            [wallRightM, 0.006, 0.006],
+            [wallRightM, wallHeightM, 0.006],
+          ]}
+          color="#737373"
+          lineWidth={1}
+        />
+        <Line
+          points={[
+            [wallLeftM, 0.006, 0.006],
+            [wallRightM, 0.006, 0.006],
+          ]}
+          color="#737373"
+          lineWidth={1}
+        />
+        <Line
+          points={[
+            [wallLeftM + 0.006, 0.006, 0],
+            [wallLeftM + 0.006, 0.006, roomDepthM],
+          ]}
+          color="#737373"
+          lineWidth={1}
+        />
+        <Line
+          points={[
+            [wallRightM - 0.006, 0.006, 0],
+            [wallRightM - 0.006, 0.006, roomDepthM],
+          ]}
+          color="#737373"
+          lineWidth={1}
+        />
+      </group>
 
       <group position={[offsetX, 0, 0]}>
         {floorRow.map(({ item, width, widthM, spec, key, placement }) => (
@@ -596,14 +599,14 @@ function ConfiguratorScene({
               x={0}
               width={widthM}
               spec={spec}
-              color={item.colorHex ?? colorHexOf(item.colorId)}
-              subtitle={item.subtitle}
-              modelUrl={item.modelUrl ?? getModelUrl(item.modelSlug, item.colorId)}
+              modelUrl={item.modelUrl}
               active={activeKey === `cabinet-${key}`}
+              showOutlines
               dragHandlers={interactionMode === 'move' ? handlers('cabinet', key, placement, width, spec.depth) : undefined}
             />
-            {item.category !== 'גבוהים' && <Countertop run={{ start: -width / 2, end: width / 2 }} />}
-            <Plinth run={{ start: -width / 2, end: width / 2 }} />
+            {showCountertop && item.category !== 'גבוהים' && (
+              <Countertop run={{ start: -width / 2, end: width / 2 }} />
+            )}
             {(activeKey === `cabinet-${key}` || placement.wall === 'left' || placement.wall === 'right') && (
               <WallSnapIndicator wall={placement.wall} topM={(spec.elevation + spec.height) * CM} />
             )}
@@ -620,10 +623,9 @@ function ConfiguratorScene({
               x={0}
               width={widthM}
               spec={spec}
-              color={item.colorHex ?? colorHexOf(item.colorId)}
-              subtitle={item.subtitle}
-              modelUrl={item.modelUrl ?? getModelUrl(item.modelSlug, item.colorId)}
+              modelUrl={item.modelUrl}
               active={activeKey === `cabinet-${key}`}
+              showOutlines
               dragHandlers={interactionMode === 'move' ? handlers('cabinet', key, placement, width, spec.depth) : undefined}
             />
             {(activeKey === `cabinet-${key}` || placement.wall === 'left' || placement.wall === 'right') && (
@@ -631,19 +633,12 @@ function ConfiguratorScene({
             )}
           </group>
         ))}
-        {accessories.sink != null && layout.counterRuns.length > 0 && (
-          <Sink
-            x={accessories.sink * CM}
-            active={activeKey === 'accessory-sink'}
-            dragHandlers={interactionMode === 'move'
-              ? handlers('accessory', 'sink', { xCm: accessories.sink, zCm: 0, wall: 'back' }, 52, 42)
-              : undefined}
-          />
-        )}
-        {accessories.faucet != null && layout.counterRuns.length > 0 && (
-          <Faucet
+        {uploadedFaucet && accessories.faucet != null && layout.counterRuns.length > 0 && (
+          <UploadedFaucet
             x={accessories.faucet * CM}
-            active={activeKey === 'accessory-faucet'}
+            width={uploadedFaucet.width * CM}
+            modelUrl={uploadedFaucet.modelUrl}
+            showOutlines
             dragHandlers={interactionMode === 'move'
               ? handlers('accessory', 'faucet', { xCm: accessories.faucet, zCm: 0, wall: 'back' }, 8, 8)
               : undefined}
@@ -662,7 +657,6 @@ function ConfiguratorScene({
         maxPolarAngle={Math.PI * 0.49}
         enablePan={false}
       />
-      <Environment preset="studio" environmentIntensity={0.38} />
     </>
   )
 }
@@ -706,8 +700,15 @@ export default function KitchenModelViewer(props: Props) {
         shadows="basic"
         frameloop="demand"
         dpr={[1, 1.5]}
-        gl={{ antialias: true, toneMapping: ACESFilmicToneMapping, powerPreference: 'high-performance' }}
-        onCreated={({ gl }) => { gl.toneMappingExposure = 0.78 }}
+        gl={{
+          antialias: true,
+          toneMapping: NoToneMapping,
+          powerPreference: 'high-performance',
+        }}
+        onCreated={({ gl }) => {
+          gl.outputColorSpace = SRGBColorSpace
+          gl.toneMappingExposure = 1
+        }}
         camera={{ position: [designWidthM * 0.58, 1.5, designWidthM * 1.05 + 2], fov: 45 }}
       >
         <Suspense fallback={<ModelLoadingFallback />}>

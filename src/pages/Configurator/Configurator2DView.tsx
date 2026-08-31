@@ -25,6 +25,7 @@ type Props = {
   onPositionChange: (key: string, xCm: number) => void
   accessories: AccessoryPositions
   onAccessoryPositionChange: (id: KitchenAccessoryId, xCm: number) => void
+  showCountertop: boolean
 }
 
 const SIDE_MARGIN = 40
@@ -159,7 +160,7 @@ function AccessoryShapes({ accessories, activeKey, onStartDrag }: {
 
 type DragState = { type: 'cabinet' | 'accessory'; key: string; width: number; offset: number }
 
-export default function Configurator2DView({ cartItems, wallLengthCm, positions, onPositionChange, accessories, onAccessoryPositionChange }: Props) {
+export default function Configurator2DView({ cartItems, wallLengthCm, positions, onPositionChange, accessories, onAccessoryPositionChange, showCountertop }: Props) {
   const layout = useMemo(() => buildCabinetLayout(cartItems, positions), [cartItems, positions])
   const svgRef = useRef<SVGSVGElement>(null)
   const dragRef = useRef<DragState | null>(null)
@@ -260,7 +261,7 @@ export default function Configurator2DView({ cartItems, wallLengthCm, positions,
       />
       <line x1={-SIDE_MARGIN} x2={designWidth + SIDE_MARGIN} y1={0} y2={0} stroke="#aaa49a" strokeWidth={1} />
 
-      {counterRuns.map((run, index) => (
+      {showCountertop && counterRuns.map((run, index) => (
         <rect
           key={`countertop-${index}`}
           x={run.start - GAP_HALF}

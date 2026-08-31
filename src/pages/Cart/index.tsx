@@ -108,8 +108,9 @@ export default function Cart() {
       await api.delete<void>('/cart')
       for (const item of cartItems) {
         await api.post<unknown>('/cart/items', {
-          product_id: item.id,
-          variant_id: item.variantId,
+          ...(item.configurationId
+            ? { configuration_id: item.configurationId }
+            : { product_id: item.id, variant_id: item.variantId }),
           quantity: item.quantity,
         })
       }
@@ -183,17 +184,21 @@ export default function Cart() {
                     {subtitle && <p className="cart-page__item-subtitle">{subtitle}</p>}
                     <div className="cart-page__item-footer">
                       <span className="cart-page__item-price">{formatPrice(item.price)} ₪</span>
-                      <select
-                        aria-label={`כמות עבור ${item.name}`}
-                        value={item.quantity}
-                        onChange={(event) => updateQuantity(lineId, Number(event.target.value))}
-                      >
-                        {QUANTITY_OPTIONS.map((quantity) => (
-                          <option key={quantity} value={quantity}>
-                            {quantity}
-                          </option>
-                        ))}
-                      </select>
+                      {item.fixedQuantity ? (
+                        <span className="cart-page__fixed-quantity">כמות 1</span>
+                      ) : (
+                        <select
+                          aria-label={`כמות עבור ${item.name}`}
+                          value={item.quantity}
+                          onChange={(event) => updateQuantity(lineId, Number(event.target.value))}
+                        >
+                          {QUANTITY_OPTIONS.map((quantity) => (
+                            <option key={quantity} value={quantity}>
+                              {quantity}
+                            </option>
+                          ))}
+                        </select>
+                      )}
                     </div>
                   </div>
                 </li>

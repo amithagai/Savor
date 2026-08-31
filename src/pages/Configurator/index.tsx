@@ -1,21 +1,21 @@
-import { useCallback, useEffect, useState, type FC } from 'react'
+import { useCallback, useEffect, useMemo, useState, type FC } from 'react'
 import { useNavigate } from 'react-router-dom'
 import './Configurator.css'
 import HeartIcon from '../../components/HeartIcon'
 import { useWishlist } from '../../context/useWishlist'
 import { useCart } from '../../context/useCart'
+import type { CartItem as CheckoutCartItem } from '../../context/CartContext'
 import KitchenModelViewer from './KitchenModelViewer'
 import Configurator2DView from './Configurator2DView'
-import ProductThumbnail from './ProductThumbnail'
-import { COLORS, colorHexOf, colorIdOf, colorLabelOf, colorSwatchStyleOf, knownColorHexOf } from './colors'
-import { availableColorsFor } from './modelCatalog'
-import type {
-  AccessoryPositions,
-  CabinetCategory,
-  CabinetPositions,
-  CabinetSpatialPlacement,
-  CabinetSpatialPositions,
-  KitchenAccessoryId,
+import { COLORS, colorHexOf, colorIdOf, colorSwatchStyleOf, knownColorHexOf } from './colors'
+import {
+  buildCabinetLayout,
+  type AccessoryPositions,
+  type CabinetCategory,
+  type CabinetPositions,
+  type CabinetSpatialPlacement,
+  type CabinetSpatialPositions,
+  type KitchenAccessoryId,
 } from './cabinetLayout'
 import { api } from '../../lib/api'
 import type { ConfiguratorProduct } from '../../types/catalog'
@@ -30,9 +30,7 @@ type CabinetProduct = {
   subtitle: string
   width: number
   price: number
-  pricesByColor?: Partial<Record<string, number>>
   category: ConfiguratorCategory
-  modelSlug?: string
   variants?: CabinetProductVariant[]
 }
 
@@ -54,33 +52,36 @@ type CabinetProductVariant = {
 
 type CartItem = CabinetProduct & CabinetProductVariant & { qty: number }
 
-const CATEGORIES: ConfiguratorCategory[] = ['עליונים', 'גבוהים', 'תחתונים', 'כיור', 'ברז']
+type CountertopRate = {
+  product_id: string
+  name: string
+  rate_per_meter: number
+  currency: string
+}
 
-const FALLBACK_PRODUCTS: CabinetProduct[] = [
-  { id: 'p1', name: 'ארון תנור 60 ס"מ', subtitle: 'יחידת תנור', width: 60, price: 670, category: 'תחתונים', modelSlug: 'oven-60' },
-  { id: 'p2', name: 'ארון תחתון 30 ס"מ - מדף ומגירה', subtitle: 'מדף ומגירה', width: 30, price: 660, category: 'תחתונים', modelSlug: 'shelf-drawer-30' },
-  { id: 'p3', name: 'ארון תחתון 60 ס"מ - מדף ומגירה', subtitle: 'מדף ומגירה', width: 60, price: 770, category: 'תחתונים', modelSlug: 'shelf-drawer-60' },
-  { id: 'p4', name: 'ארון תחתון 60 ס"מ - חזית 2 דלתות', subtitle: 'חזית 2 דלתות', width: 60, price: 600, category: 'תחתונים', modelSlug: 'base-60-2door' },
-  { id: 'p5', name: 'ארון תחתון 60 ס"מ - חזית דלת', subtitle: 'חזית דלת', width: 60, price: 640, category: 'תחתונים', modelSlug: 'base-60-1door' },
-  { id: 'p6', name: 'ארון תחתון 80 ס"מ - חזית 2 דלתות', subtitle: 'חזית 2 דלתות', width: 80, price: 740, category: 'תחתונים', modelSlug: 'base-80-2door' },
-  { id: 'p7', name: 'ארון תחתון 60 ס"מ - שלוש מגירות', subtitle: 'שלוש מגירות', width: 60, price: 900, category: 'תחתונים', modelSlug: 'three-drawers-60' },
-  { id: 'p8', name: 'ארון עליון 100 ס"מ - קלאפה', subtitle: 'דלת קלאפה', width: 100, price: 550, category: 'עליונים', modelSlug: 'klappa-100' },
-  { id: 'p9', name: 'ארון עליון 60 ס"מ - חזית 2 דלתות', subtitle: 'חזית 2 דלתות', width: 60, price: 470, category: 'עליונים', modelSlug: 'upper-60' },
-  { id: 'p10', name: 'ארון גבוה 60 ס"מ - מזווה', subtitle: 'דלת מזווה מלאה', width: 60, price: 2000, pricesByColor: { latte: 2330 }, category: 'גבוהים', modelSlug: 'pantry-60-v2' },
-  { id: 'p12', name: 'ארון כיור 60 ס"מ - חזית 2 דלתות', subtitle: 'חזית 2 דלתות', width: 60, price: 1350, category: 'כיור' },
-  { id: 'p13', name: 'ארון כיור 80 ס"מ - חזית 2 דלתות', subtitle: 'חזית 2 דלתות', width: 80, price: 1550, category: 'כיור' },
-]
+type CountertopQuote = CountertopRate & {
+  configuration_id: string
+  length_cm: number
+  length_m: number
+  total_price: number
+}
+
+type CountertopSelection = {
+  lengthCm: number
+  ratePerMeter: number
+  totalPrice: number
+}
+
+function variantKeyOf(variant: Pick<CabinetProductVariant, 'variantId' | 'colorId'>) {
+  return variant.variantId || variant.colorId
+}
+
+const CATEGORIES: ConfiguratorCategory[] = ['עליונים', 'גבוהים', 'תחתונים', 'כיור', 'ברז']
 
 const HOW_STEPS = [
   'בוחרים את המידה: מתחילים מהגדרת אורך הקיר של המטבח שלכם.',
   'בוחרים רהיטים ובנייתם: בוחרים את יחידות המתאימות (ארונות תחתונים, עליונים או ארונות גבוהים) ולפשוט אותם גורמים לתוך ההדמיה.',
   'משלימים את העיצוב: בודקים שהכל ישבב במקום, רואים את התוצאה הסופית, ויכולים להתקדם להזמנה!',
-]
-
-const INITIAL_CART: CartItem[] = [
-  { ...FALLBACK_PRODUCTS[0], qty: 1, colorId: 'cream', colorLabel: 'CREAM', price: FALLBACK_PRODUCTS[0].price },
-  { ...FALLBACK_PRODUCTS[1], qty: 1, colorId: 'cream', colorLabel: 'CREAM', price: FALLBACK_PRODUCTS[1].price },
-  { ...FALLBACK_PRODUCTS[2], qty: 1, colorId: 'cream', colorLabel: 'CREAM', price: FALLBACK_PRODUCTS[2].price },
 ]
 
 const DEFAULT_WHATSAPP_PHONE = '972509072335'
@@ -102,13 +103,18 @@ function phoneFromWhatsAppUrl(value?: string | null) {
   }
 }
 
-function buildWhatsAppPlanMessage(cartItems: CartItem[], wallLengthCm: number | null) {
-  const itemLines = cartItems.length > 0
-    ? cartItems.map((item) => (
-        `• ${item.name} — צבע ${item.colorLabel} — כמות ${item.qty} — ${(item.price * item.qty).toLocaleString('he-IL')} ₪`
-      ))
+function buildWhatsAppPlanMessage(cartItems: CartItem[], wallLengthCm: number | null, countertop?: CountertopSelection) {
+  const itemLines = cartItems.length > 0 || countertop
+    ? [
+        ...cartItems.map((item) => (
+          `• ${item.name} — צבע ${item.colorLabel} — כמות ${item.qty} — ${(item.price * item.qty).toLocaleString('he-IL')} ₪`
+        )),
+        ...(countertop ? [
+          `• משטח עליון — ${(countertop.lengthCm / 100).toLocaleString('he-IL', { maximumFractionDigits: 2 })} מטר × ${countertop.ratePerMeter.toLocaleString('he-IL')} ₪ — ${countertop.totalPrice.toLocaleString('he-IL')} ₪`,
+        ] : []),
+      ]
     : ['• לא נבחרו פריטים']
-  const total = cartItems.reduce((sum, item) => sum + item.price * item.qty, 0)
+  const total = cartItems.reduce((sum, item) => sum + item.price * item.qty, 0) + (countertop?.totalPrice ?? 0)
 
   return [
     'שלום, בניתי תכנון מטבח באתר Savor:',
@@ -126,8 +132,9 @@ function buildWhatsAppPlanMessage(cartItems: CartItem[], wallLengthCm: number | 
 interface ActionButtonProps {
   resetAll: () => void
   contactHref: string
-  onBuy: () => void
+  onBuy: () => void | Promise<void>
   buyDisabled: boolean
+  buyPending: boolean
 }
 
 const Chevron: FC<{ open: boolean }> = ({ open }) => (
@@ -149,27 +156,31 @@ function categoryLabel(cats: ConfiguratorCategory[]) {
   return `${cats[0]}, ${cats[1]} (+${cats.length - 2})`
 }
 
-function priceFor(product: CabinetProduct, colorId: string) {
-  const variant = product.variants?.find((item) => item.colorId === colorId)
-  if (variant) return variant.price
-  return product.pricesByColor?.[colorId] ?? product.price
+function variantsFor(product: CabinetProduct): CabinetProductVariant[] {
+  return product.variants ?? []
 }
 
-function variantsFor(product: CabinetProduct): CabinetProductVariant[] {
-  if (product.variants?.length) return product.variants
-  return availableColorsFor(product.modelSlug).map((colorId) => ({
-    colorId,
-    colorLabel: colorLabelOf(colorId),
-    price: priceFor(product, colorId),
-  }))
+function configuratorWidth(attributes: Record<string, unknown>) {
+  const explicitWidth = Number(attributes.width_cm)
+  if (Number.isFinite(explicitWidth) && explicitWidth > 0) return explicitWidth
+
+  const size = String(attributes.size || '').trim().replace(',', '.')
+  const centimeters = size.match(/(\d+(?:\.\d+)?)\s*(?:ס[״"]?מ|cm)(?:\s|$)/i)
+  if (centimeters) return Number(centimeters[1])
+
+  const meters = size.match(/(\d+(?:\.\d+)?)\s*(?:מטר|m)(?:\s|$)/i)
+  if (meters) return Number(meters[1]) * 100
+
+  return Number.NaN
 }
 
 function configuratorProductFromApi(product: ConfiguratorProduct): CabinetProduct | null {
   const attributes = product.attributes || {}
   const category = String(attributes.configurator_category || '') as ConfiguratorCategory
-  const width = Number(attributes.width_cm)
-  if (!CATEGORIES.includes(category) || !Number.isFinite(width) || width <= 0 || product.variants.length === 0) return null
-  const variants = product.variants.map((variant) => ({
+  const width = configuratorWidth(attributes)
+  const primaryImageUrl = product.images?.[0] || undefined
+  if (!CATEGORIES.includes(category) || !Number.isFinite(width) || width <= 0) return null
+  const variants = product.variants.filter((variant) => Boolean(variant.model_url?.trim())).map((variant) => ({
     variantId: variant.id,
     colorId: colorIdOf(variant.color_id, variant.color_label),
     colorLabel: variant.color_label,
@@ -177,13 +188,14 @@ function configuratorProductFromApi(product: ConfiguratorProduct): CabinetProduc
     originalPrice: variant.sale_price != null ? variant.price : undefined,
     sku: variant.sku,
     modelUrl: variant.model_url,
-    thumbnailUrl: variant.thumbnail_url || undefined,
+    thumbnailUrl: variant.thumbnail_url || primaryImageUrl,
     colorHex: typeof variant.attributes?.color_hex === 'string' ? variant.attributes.color_hex : undefined,
     inventoryTracking: variant.inventory_tracking,
     availableQuantity: variant.available_quantity,
     inStock: variant.in_stock,
     allowPreorder: variant.allow_preorder,
   }))
+  if (variants.length === 0) return null
   return {
     id: product.id,
     name: product.name,
@@ -195,19 +207,19 @@ function configuratorProductFromApi(product: ConfiguratorProduct): CabinetProduc
   }
 }
 
-const TotalPrice: FC<{ cartItems: Array<CartItem> }> = ({ cartItems }) => {
-  const total = cartItems.reduce((sum, item) => sum + item.price * item.qty, 0)
+const TotalPrice: FC<{ cartItems: Array<CartItem>; countertopPrice: number }> = ({ cartItems, countertopPrice }) => {
+  const total = cartItems.reduce((sum, item) => sum + item.price * item.qty, 0) + countertopPrice
 
   return (
     <>
-      {cartItems.length > 0 && (
+      {(cartItems.length > 0 || countertopPrice > 0) && (
         <p className="cfg__total">סך הכל {total.toLocaleString()} ₪</p>
       )}
     </>
   )
 }
 
-export const ActionButton: FC<ActionButtonProps> = ({ resetAll, contactHref, onBuy, buyDisabled }) => {
+export const ActionButton: FC<ActionButtonProps> = ({ resetAll, contactHref, onBuy, buyDisabled, buyPending }) => {
 
   return (
     <div className="cfg__cart-footer">
@@ -219,9 +231,9 @@ export const ActionButton: FC<ActionButtonProps> = ({ resetAll, contactHref, onB
         className="cfg__buy-btn"
         onClick={onBuy}
         disabled={buyDisabled}
-        title={buyDisabled ? 'הרכישה זמינה לאחר פרסום מוצרי הקונפיגורטור' : undefined}
+        title={buyDisabled ? 'הרכישה אינה זמינה עד להשלמת פרטי התכנון' : undefined}
       >
-        לרכישת המטבח
+        {buyPending ? 'מחשב מחיר…' : 'לרכישת המטבח'}
       </button>
     </div>
   )
@@ -233,15 +245,21 @@ export default function Configurator() {
   const [wallLength, setWallLength] = useState('')
   const [appliedWallLength, setAppliedWallLength] = useState<number | null>(null)
   const [selectedCategories, setSelectedCategories] = useState<ConfiguratorCategory[]>(['תחתונים'])
-  const [selectedColors, setSelectedColors] = useState<string[]>(['latte', 'timber'])
-  const [products, setProducts] = useState<CabinetProduct[]>(FALLBACK_PRODUCTS)
-  const [cartItems, setCartItems] = useState<CartItem[]>(INITIAL_CART)
+  const [selectedColors, setSelectedColors] = useState<string[]>(() => COLORS.map((color) => color.id))
+  const [products, setProducts] = useState<CabinetProduct[]>([])
+  const [catalogStatus, setCatalogStatus] = useState<'loading' | 'ready' | 'error'>('loading')
+  const [cartItems, setCartItems] = useState<CartItem[]>([])
   const [cabinetPositions, setCabinetPositions] = useState<CabinetPositions>({})
   const [cabinetSpatialPositions, setCabinetSpatialPositions] = useState<CabinetSpatialPositions>({})
   const [accessories, setAccessories] = useState<AccessoryPositions>({})
   const [viewMode, setViewMode] = useState<'2D' | '3D'>('3D')
   const [howOpen, setHowOpen] = useState(true)
   const [catMenuOpen, setCatMenuOpen] = useState(false)
+  const [countertopRate, setCountertopRate] = useState<CountertopRate | null>(null)
+  const [countertopRateStatus, setCountertopRateStatus] = useState<'loading' | 'ready' | 'error'>('loading')
+  const [wantsCountertop, setWantsCountertop] = useState(false)
+  const [buyPending, setBuyPending] = useState(false)
+  const [buyError, setBuyError] = useState('')
   const { isInWishlist, toggleWishlist } = useWishlist()
   const { addItemsToCart } = useCart()
 
@@ -250,22 +268,47 @@ export default function Configurator() {
     api.get<ConfiguratorProduct[]>('/catalog/configurator-products')
       .then((response) => response.map(configuratorProductFromApi).filter((product): product is CabinetProduct => product !== null))
       .then((adminProducts) => {
-        if (cancelled || adminProducts.length === 0) return
+        if (cancelled) return
         setProducts(adminProducts)
-        const ids = new Set(adminProducts.map((product) => product.id))
-        setCartItems((current) => current.filter((item) => ids.has(item.id)))
+        setCatalogStatus('ready')
       })
       .catch(() => {
-        // The hard-coded catalog remains a safe development/legacy fallback
-        // until the admin has published its first configurator products.
+        if (!cancelled) setCatalogStatus('error')
+      })
+    return () => { cancelled = true }
+  }, [])
+
+  useEffect(() => {
+    let cancelled = false
+    api.get<CountertopRate>('/pricing/countertop')
+      .then((rate) => {
+        if (cancelled) return
+        setCountertopRate(rate)
+        setCountertopRateStatus('ready')
+      })
+      .catch(() => {
+        if (!cancelled) setCountertopRateStatus('error')
       })
     return () => { cancelled = true }
   }, [])
 
   const filteredProducts = products.filter(p => selectedCategories.includes(p.category))
-  const cabinetCartItems = cartItems.filter(
+  const cabinetCartItems = useMemo(() => cartItems.filter(
     (item): item is CartItem & { category: CabinetCategory } => item.category !== 'ברז',
+  ), [cartItems])
+  const faucetCartItems = cartItems.filter((item) => item.category === 'ברז')
+  const cabinetLayout = useMemo(
+    () => buildCabinetLayout(cabinetCartItems, cabinetPositions),
+    [cabinetCartItems, cabinetPositions],
   )
+  const countertopLengthCm = cabinetLayout.counterRuns.reduce((sum, run) => sum + run.end - run.start, 0)
+  const countertopSelected = wantsCountertop && countertopLengthCm > 0
+  const countertopPrice = countertopSelected && countertopRate
+    ? Math.round(countertopRate.rate_per_meter * countertopLengthCm) / 100
+    : 0
+  const countertopSelection = countertopSelected && countertopRate
+    ? { lengthCm: countertopLengthCm, ratePerMeter: countertopRate.rate_per_meter, totalPrice: countertopPrice }
+    : undefined
   const totalCabinetWidth = cabinetCartItems
     .filter(item => item.category !== 'עליונים')
     .reduce((sum, item) => sum + item.width * item.qty, 0)
@@ -282,11 +325,14 @@ export default function Configurator() {
     delete visibleAccessories.faucet
   }
   const exceedsWall = appliedWallLength != null && totalCabinetWidth > appliedWallLength
-  const canBuyKitchen = cartItems.length > 0 && cartItems.every((item) => Boolean(item.variantId))
+  const canBuyKitchen = cartItems.length > 0
+    && cartItems.every((item) => Boolean(item.variantId))
+    && (!countertopSelected || countertopRateStatus === 'ready')
+    && !buyPending
   const whatsappPhone = normalizeWhatsAppPhone(footerContent?.whatsapp_phone)
     || phoneFromWhatsAppUrl(footerContent?.whatsapp_url)
     || DEFAULT_WHATSAPP_PHONE
-  const whatsappMessage = buildWhatsAppPlanMessage(cartItems, appliedWallLength)
+  const whatsappMessage = buildWhatsAppPlanMessage(cartItems, appliedWallLength, countertopSelection)
   const whatsappContactHref = `https://wa.me/${whatsappPhone}?text=${encodeURIComponent(whatsappMessage)}`
 
   function toggleCategory(cat: ConfiguratorCategory) {
@@ -310,11 +356,12 @@ export default function Configurator() {
   function addToCart(product: CabinetProduct, variant: CabinetProductVariant) {
     if (variant.inStock === false && !variant.allowPreorder) return
     setCartItems(prev => {
-      const existing = prev.find(item => item.id === product.id && item.colorId === variant.colorId)
+      const variantKey = variantKeyOf(variant)
+      const existing = prev.find(item => item.id === product.id && variantKeyOf(item) === variantKey)
       if (existing) {
         if (variant.inventoryTracking && !variant.allowPreorder && existing.qty >= (variant.availableQuantity ?? 0)) return prev
         return prev.map(item =>
-          item.id === product.id && item.colorId === variant.colorId
+          item.id === product.id && variantKeyOf(item) === variantKey
             ? { ...item, ...variant, qty: item.qty + 1 }
             : item
         )
@@ -323,12 +370,12 @@ export default function Configurator() {
     })
   }
 
-  function setQty(id: string, colorId: string, qty: number) {
+  function setQty(id: string, variantKey: string, qty: number) {
     if (qty <= 0) {
-      setCartItems(prev => prev.filter(item => !(item.id === id && item.colorId === colorId)))
+      setCartItems(prev => prev.filter(item => !(item.id === id && variantKeyOf(item) === variantKey)))
     } else {
       setCartItems(prev => prev.map(item => {
-        if (item.id !== id || item.colorId !== colorId) return item
+        if (item.id !== id || variantKeyOf(item) !== variantKey) return item
         const maximum = item.inventoryTracking && !item.allowPreorder ? item.availableQuantity ?? 0 : 10
         return { ...item, qty: Math.min(qty, maximum) }
       }))
@@ -342,26 +389,56 @@ export default function Configurator() {
     setAccessories({})
     setWallLength('')
     setAppliedWallLength(null)
+    setWantsCountertop(false)
+    setBuyError('')
   }
 
-  function buyKitchen() {
+  async function buyKitchen() {
     if (!canBuyKitchen) return
+    setBuyPending(true)
+    setBuyError('')
+    try {
+      const checkoutItems: CheckoutCartItem[] = cartItems.map((item) => ({
+        id: item.id,
+        lineId: `${item.id}:${item.variantId}`,
+        name: item.name,
+        category: item.category,
+        size: item.subtitle,
+        variant: item.colorLabel,
+        variantId: item.variantId,
+        quantity: item.qty,
+        price: item.price,
+        image: item.thumbnailUrl,
+        swatchColor: knownColorHexOf(item.colorId, item.colorLabel) || item.colorHex || colorHexOf(item.colorId, item.colorLabel),
+        productType: 'CABINET' as const,
+      }))
 
-    addItemsToCart(cartItems.map((item) => ({
-      id: item.id,
-      lineId: `${item.id}:${item.variantId}`,
-      name: item.name,
-      category: item.category,
-      size: item.subtitle,
-      variant: item.colorLabel,
-      variantId: item.variantId,
-      quantity: item.qty,
-      price: item.price,
-      image: item.thumbnailUrl,
-      swatchColor: knownColorHexOf(item.colorId, item.colorLabel) || item.colorHex || colorHexOf(item.colorId, item.colorLabel),
-      productType: 'CABINET',
-    })))
-    navigate('/cart')
+      if (countertopSelected) {
+        const quote = await api.post<CountertopQuote>('/pricing/countertop/calculate', {
+          length_cm: countertopLengthCm,
+        })
+        checkoutItems.push({
+          id: quote.product_id,
+          lineId: `countertop:${quote.configuration_id}`,
+          name: quote.name,
+          category: 'משטח',
+          size: `${quote.length_m.toLocaleString('he-IL', { maximumFractionDigits: 2 })} מטר`,
+          variant: `${quote.rate_per_meter.toLocaleString('he-IL')} ₪ למטר`,
+          configurationId: quote.configuration_id,
+          quantity: 1,
+          price: quote.total_price,
+          productType: 'ACCESSORY' as const,
+          fixedQuantity: true,
+        })
+      }
+
+      addItemsToCart(checkoutItems)
+      navigate('/cart')
+    } catch {
+      setBuyError('לא ניתן היה לנעול את מחיר המשטח. נסו שוב בעוד רגע.')
+    } finally {
+      setBuyPending(false)
+    }
   }
 
   const setCabinetPosition = useCallback((key: string, xCm: number) => {
@@ -532,6 +609,7 @@ export default function Configurator() {
             contactHref={whatsappContactHref}
             onBuy={buyKitchen}
             buyDisabled={!canBuyKitchen}
+            buyPending={buyPending}
           />
         </div>
       </div>
@@ -542,10 +620,22 @@ export default function Configurator() {
         {/* RIGHT panel: product catalog (RTL start — first in DOM) */}
         <div className="cfg__catalog">
           <div className="cfg__product-list">
+            {catalogStatus === 'loading' && (
+              <p className="cfg__catalog-state" role="status">טוען את המודלים שהועלו…</p>
+            )}
+            {catalogStatus === 'error' && (
+              <p className="cfg__catalog-state cfg__catalog-state--error" role="alert">לא ניתן לטעון כרגע את המודלים שהועלו.</p>
+            )}
+            {catalogStatus === 'ready' && products.length === 0 && (
+              <p className="cfg__catalog-state">עדיין לא הועלו מודלים לקונפיגורטור.</p>
+            )}
+            {catalogStatus === 'ready' && products.length > 0 && filteredProducts.length === 0 && (
+              <p className="cfg__catalog-state">אין מודלים שהועלו בסינון הנוכחי.</p>
+            )}
             {filteredProducts.flatMap(product => variantsFor(product)
               .filter((variant) => selectedColors.includes(colorIdOf(variant.colorId, variant.colorLabel)))
               .map(variant => {
-              const wishlistId = `${product.id}-${variant.colorId}`
+              const wishlistId = `${product.id}-${variantKeyOf(variant)}`
               return (
                 <div
                   key={wishlistId}
@@ -558,13 +648,7 @@ export default function Configurator() {
                   <div className="cfg__product-img">
                     {variant.thumbnailUrl
                       ? <img className="cfg__product-thumbnail cfg__product-thumbnail--photo" src={variant.thumbnailUrl} alt="" />
-                      : <ProductThumbnail
-                          modelSlug={product.modelSlug}
-                          productId={product.id}
-                          colorId={variant.colorId}
-                          colorHex={variant.colorHex}
-                          widthCm={product.width}
-                        />}
+                      : <span className="cfg__product-thumbnail-placeholder">ללא תמונה</span>}
                   </div>
                   <div className="cfg__product-info">
                     <span className="cfg__product-name">{product.name}</span>
@@ -610,6 +694,7 @@ export default function Configurator() {
             <div className="cfg__canvas-area">
               <KitchenModelViewer
                 cartItems={cabinetCartItems}
+                faucetItems={faucetCartItems}
                 wallLengthCm={appliedWallLength}
                 positions={cabinetPositions}
                 onPositionsChange={setCabinetPositionUpdates}
@@ -617,6 +702,7 @@ export default function Configurator() {
                 onSpatialPositionChange={setCabinetSpatialPosition}
                 accessories={visibleAccessories}
                 onAccessoryPositionChange={setAccessoryPosition}
+                showCountertop={countertopSelected}
               />
             </div>
           ) : (
@@ -628,6 +714,7 @@ export default function Configurator() {
                 onPositionChange={setCabinetPosition}
                 accessories={visibleAccessories}
                 onAccessoryPositionChange={setAccessoryPosition}
+                showCountertop={countertopSelected}
               />
             </div>
           )}
@@ -658,7 +745,7 @@ export default function Configurator() {
               <p className="cfg__cart-empty">לחצו על מוצר כדי להוסיף</p>
             )}
             {cartItems.map(item => (
-              <div key={`${item.id}-${item.colorId}`} className="cfg__cart-item">
+              <div key={`${item.id}-${variantKeyOf(item)}`} className="cfg__cart-item">
                 <div className="cfg__ci-info">
                   <span className="cfg__ci-name">{item.name}</span>
                   <span className="cfg__ci-sub">{item.subtitle} · {item.colorLabel}</span>
@@ -670,7 +757,7 @@ export default function Configurator() {
                       className="cfg__qty-select"
                       value={item.qty}
                       aria-label={`כמות עבור ${item.name}`}
-                      onChange={e => setQty(item.id, item.colorId, Number(e.target.value))}
+                      onChange={e => setQty(item.id, variantKeyOf(item), Number(e.target.value))}
                     >
                       {Array.from({ length: Math.max(1, item.inventoryTracking && !item.allowPreorder ? Math.min(10, item.availableQuantity ?? 0) : 10) }, (_, index) => index + 1).map(n => (
                         <option key={n} value={n}>{n}</option>
@@ -680,7 +767,7 @@ export default function Configurator() {
                   <button
                     type="button"
                     className="cfg__ci-decrease"
-                    onClick={() => setQty(item.id, item.colorId, item.qty - 1)}
+                    onClick={() => setQty(item.id, variantKeyOf(item), item.qty - 1)}
                     aria-label={item.qty === 1 ? `הסרת ${item.name}` : `הפחתת כמות ${item.name}`}
                     title={item.qty === 1 ? 'הסרת מוצר' : 'הפחתת כמות'}
                   >
@@ -697,7 +784,32 @@ export default function Configurator() {
             ))}
           </div>
 
-          <TotalPrice cartItems={cartItems} />
+          <div className={`cfg__countertop-option${countertopSelected ? ' cfg__countertop-option--selected' : ''}`}>
+            <div className="cfg__countertop-copy">
+              <strong>משטח עליון</strong>
+              {countertopLengthCm > 0 && countertopRate ? (
+                <span>
+                  {(countertopLengthCm / 100).toLocaleString('he-IL', { maximumFractionDigits: 2 })} מטר × {countertopRate.rate_per_meter.toLocaleString('he-IL')} ₪
+                </span>
+              ) : (
+                <span>{countertopRateStatus === 'error' ? 'מחיר המשטח אינו זמין כרגע' : 'הוסיפו ארונות תחתונים כדי לחשב אורך'}</span>
+              )}
+            </div>
+            <button
+              type="button"
+              className="cfg__countertop-toggle"
+              aria-pressed={countertopSelected}
+              disabled={countertopLengthCm <= 0 || countertopRateStatus !== 'ready'}
+              onClick={() => setWantsCountertop((current) => !current)}
+            >
+              {countertopSelected ? 'הסרת משטח' : 'הוספת משטח'}
+            </button>
+            {countertopSelected && <strong className="cfg__countertop-price">{countertopPrice.toLocaleString('he-IL')} ₪</strong>}
+          </div>
+
+          {buyError && <p className="cfg__purchase-error" role="alert">{buyError}</p>}
+
+          <TotalPrice cartItems={cartItems} countertopPrice={countertopPrice} />
 
           <div className="cfg__actions cfg__actions--mobile">
             <ActionButton
@@ -705,6 +817,7 @@ export default function Configurator() {
               contactHref={whatsappContactHref}
               onBuy={buyKitchen}
               buyDisabled={!canBuyKitchen}
+              buyPending={buyPending}
             />
           </div>
         </div>
