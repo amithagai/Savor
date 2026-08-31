@@ -10,6 +10,7 @@ import Configurator2DView from './Configurator2DView'
 import { COLORS, colorHexOf, colorIdOf, colorSwatchStyleOf, knownColorHexOf } from './colors'
 import {
   buildCabinetLayout,
+  DEFAULT_WALL_LENGTH_CM,
   type AccessoryPositions,
   type CabinetCategory,
   type CabinetPositions,
@@ -242,8 +243,8 @@ export const ActionButton: FC<ActionButtonProps> = ({ resetAll, contactHref, onB
 export default function Configurator() {
   const navigate = useNavigate()
   const { data: footerContent } = useSiteContent<FooterContent>('footer')
-  const [wallLength, setWallLength] = useState('')
-  const [appliedWallLength, setAppliedWallLength] = useState<number | null>(null)
+  const [wallLength, setWallLength] = useState(String(DEFAULT_WALL_LENGTH_CM))
+  const [appliedWallLength, setAppliedWallLength] = useState<number | null>(DEFAULT_WALL_LENGTH_CM)
   const [selectedCategories, setSelectedCategories] = useState<ConfiguratorCategory[]>(['תחתונים'])
   const [selectedColors, setSelectedColors] = useState<string[]>(() => COLORS.map((color) => color.id))
   const [products, setProducts] = useState<CabinetProduct[]>([])
@@ -387,8 +388,8 @@ export default function Configurator() {
     setCabinetPositions({})
     setCabinetSpatialPositions({})
     setAccessories({})
-    setWallLength('')
-    setAppliedWallLength(null)
+    setWallLength(String(DEFAULT_WALL_LENGTH_CM))
+    setAppliedWallLength(DEFAULT_WALL_LENGTH_CM)
     setWantsCountertop(false)
     setBuyError('')
   }
@@ -495,7 +496,7 @@ export default function Configurator() {
               <input
                 className="cfg__wall-input"
                 type="text"
-                placeholder="לדוגמה: 150"
+                placeholder="לדוגמה: 350"
                 value={wallLength}
                 onChange={e => setWallLength(e.target.value)}
                 onKeyDown={e => e.key === 'Enter' && applyWallLength()}

@@ -31,7 +31,7 @@ export const CATEGORY_SPEC: Record<CabinetCategory, CategorySpec> = {
 }
 
 export const GAP_CM = 1
-export const DEFAULT_WALL_LENGTH_CM = 150
+export const DEFAULT_WALL_LENGTH_CM = 350
 export const WALL_HEIGHT_CM = 260
 export const WALL_SNAP_DISTANCE_CM = 8
 export const ROOM_DEPTH_CM = 260
@@ -195,7 +195,7 @@ export function cabinetDragPositionUpdates(
 
 function removeOverlaps(cabinets: PlacedCabinet[]) {
   const roomyWidth = Math.max(
-    150,
+    DEFAULT_WALL_LENGTH_CM,
     ...cabinets.map(cabinet => cabinet.x + cabinet.width / 2),
   ) + cabinets.reduce((sum, cabinet) => sum + cabinet.width + GAP_CM, 0)
 
