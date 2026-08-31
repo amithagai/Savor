@@ -23,12 +23,16 @@ import {
   isOven,
   PLINTH_HEIGHT_CM,
   PLINTH_RECESS_CM,
+  ROOM_DEPTH_CM,
+  snapCabinetPlacementToRoom,
   snapCabinetXToWall,
   WALL_HEIGHT_CM,
   type AccessoryPositions,
   type CabinetLayout,
   type CabinetLayoutItem,
   type CabinetPositions,
+  type CabinetSpatialPlacement,
+  type CabinetSpatialPositions,
   type CategorySpec,
   type CounterRun,
   type KitchenAccessoryId,
@@ -39,6 +43,8 @@ type Props = {
   wallLengthCm?: number | null
   positions: CabinetPositions
   onPositionsChange: (positions: CabinetPositions) => void
+  spatialPositions: CabinetSpatialPositions
+  onSpatialPositionChange: (key: string, placement: CabinetSpatialPlacement) => void
   accessories: AccessoryPositions
   onAccessoryPositionChange: (id: KitchenAccessoryId, xCm: number) => void
 }
@@ -227,13 +233,24 @@ function CameraFraming({ sceneWidthM }: { sceneWidthM: number }) {
   const { camera, invalidate } = useThree()
 
   useEffect(() => {
-    camera.position.set(sceneWidthM * 0.58, 1.5, sceneWidthM * 1.05 + 2)
-    camera.lookAt(0, 0.95, 0.2)
+    const roomDepthM = ROOM_DEPTH_CM * CM
+    camera.position.set(sceneWidthM * 0.58, 1.6, Math.max(sceneWidthM * 1.05 + 2, roomDepthM + 1.25))
+    camera.lookAt(0, 0.95, roomDepthM * 0.34)
     camera.updateProjectionMatrix()
     invalidate()
   }, [camera, invalidate, sceneWidthM])
 
   return null
+}
+
+function WallSnapIndicator({ wall, topM }: { wall: CabinetSpatialPlacement['wall']; topM: number }) {
+  if (wall === 'free') return null
+  const label = wall === 'back' ? 'נצמד לקיר האחורי' : wall === 'left' ? 'נצמד לקיר השמאלי' : 'נצמד לקיר הימני'
+  return (
+    <Html position={[0, topM + 0.12, 0]} center>
+      <div className="cfg3d__snap-indicator">{label}</div>
+    </Html>
+  )
 }
 
 function Countertop({ run }: { run: CounterRun }) {
@@ -320,7 +337,9 @@ type DragState = {
   type: 'cabinet' | 'accessory'
   key: string
   widthCm: number
-  offsetM: number
+  depthCm: number
+  offsetXM: number
+  offsetZM: number
 }
 
 type SceneProps = Props & {
@@ -330,11 +349,13 @@ type SceneProps = Props & {
 
 type PendingDragUpdate = {
   cabinetPositions?: CabinetPositions
+  spatialPlacement?: { key: string; placement: CabinetSpatialPlacement }
   accessory?: { id: KitchenAccessoryId; xCm: number }
 }
 
 function useDragUpdateScheduler(
   onPositionsChange: Props['onPositionsChange'],
+  onSpatialPositionChange: Props['onSpatialPositionChange'],
   onAccessoryPositionChange: Props['onAccessoryPositionChange'],
 ) {
   const pendingUpdate = useRef<PendingDragUpdate>({})
@@ -347,16 +368,20 @@ function useDragUpdateScheduler(
     if (pending.cabinetPositions && Object.keys(pending.cabinetPositions).length > 0) {
       onPositionsChange(pending.cabinetPositions)
     }
+    if (pending.spatialPlacement) {
+      onSpatialPositionChange(pending.spatialPlacement.key, pending.spatialPlacement.placement)
+    }
     if (pending.accessory) {
       onAccessoryPositionChange(pending.accessory.id, pending.accessory.xCm)
     }
-  }, [onAccessoryPositionChange, onPositionsChange])
+  }, [onAccessoryPositionChange, onPositionsChange, onSpatialPositionChange])
 
   const scheduleUpdate = useCallback((update: PendingDragUpdate) => {
     pendingUpdate.current = {
       cabinetPositions: update.cabinetPositions
         ? { ...pendingUpdate.current.cabinetPositions, ...update.cabinetPositions }
         : pendingUpdate.current.cabinetPositions,
+      spatialPlacement: update.spatialPlacement ?? pendingUpdate.current.spatialPlacement,
       accessory: update.accessory ?? pendingUpdate.current.accessory,
     }
     if (updateFrame.current == null) {
@@ -377,11 +402,21 @@ function useDragUpdateScheduler(
   return { flushPendingUpdate, scheduleUpdate }
 }
 
-function ConfiguratorScene({ layout, wallLengthCm, onPositionsChange, accessories, onAccessoryPositionChange, interactionMode }: SceneProps) {
-  const dragPlane = useMemo(() => new Plane(new Vector3(0, 0, 1), 0), [])
+function ConfiguratorScene({
+  layout,
+  wallLengthCm,
+  onPositionsChange,
+  spatialPositions,
+  onSpatialPositionChange,
+  accessories,
+  onAccessoryPositionChange,
+  interactionMode,
+}: SceneProps) {
+  const dragPlane = useMemo(() => new Plane(new Vector3(0, 1, 0), 0), [])
   const [drag, setDrag] = useState<DragState | null>(null)
   const { flushPendingUpdate, scheduleUpdate } = useDragUpdateScheduler(
     onPositionsChange,
+    onSpatialPositionChange,
     onAccessoryPositionChange,
   )
   const activeKey = drag ? `${drag.type}-${drag.key}` : null
@@ -397,11 +432,25 @@ function ConfiguratorScene({ layout, wallLengthCm, onPositionsChange, accessorie
     return event.ray.intersectPlane(dragPlane, new Vector3())
   }
 
-  function startDrag(event: ThreeEvent<PointerEvent>, type: DragState['type'], key: string, xCm: number, widthCm: number) {
+  function startDrag(
+    event: ThreeEvent<PointerEvent>,
+    type: DragState['type'],
+    key: string,
+    placement: CabinetSpatialPlacement,
+    widthCm: number,
+    depthCm: number,
+  ) {
     event.stopPropagation()
     const point = pointOnDragPlane(event)
     if (!point) return
-    setDrag({ type, key, widthCm, offsetM: xCm * CM + offsetX - point.x })
+    setDrag({
+      type,
+      key,
+      widthCm,
+      depthCm,
+      offsetXM: placement.xCm * CM + offsetX - point.x,
+      offsetZM: placement.zCm * CM - point.z,
+    })
     const target = event.currentTarget as unknown as { setPointerCapture?: (pointerId: number) => void }
     target.setPointerCapture?.(event.pointerId)
   }
@@ -423,12 +472,22 @@ function ConfiguratorScene({ layout, wallLengthCm, onPositionsChange, accessorie
     event.stopPropagation()
     const point = pointOnDragPlane(event)
     if (!point) return
-    const rawX = (point.x + drag.offsetM - offsetX) / CM
+    const rawX = (point.x + drag.offsetXM - offsetX) / CM
+    const rawZ = (point.z + drag.offsetZM) / CM
     if (drag.type === 'cabinet') {
+      const placement = snapCabinetPlacementToRoom(
+        rawX,
+        rawZ,
+        drag.widthCm,
+        drag.depthCm,
+        wallWidthCm,
+      )
+      scheduleUpdate({ spatialPlacement: { key: drag.key, placement } })
+      if (placement.wall !== 'back') return
       const updates = cabinetDragPositionUpdates(
         [...layout.floorRow, ...layout.wallRow],
         drag.key,
-        snapCabinetXToWall(rawX, drag.widthCm, wallWidthCm),
+        snapCabinetXToWall(placement.xCm, drag.widthCm, wallWidthCm),
         wallWidthCm,
       )
       const roundedUpdates = Object.fromEntries(
@@ -456,17 +515,42 @@ function ConfiguratorScene({ layout, wallLengthCm, onPositionsChange, accessorie
     setDrag(null)
   }
 
-  function handlers(type: DragState['type'], key: string, xCm: number, widthCm: number): DragHandlers {
+  function handlers(
+    type: DragState['type'],
+    key: string,
+    placement: CabinetSpatialPlacement,
+    widthCm: number,
+    depthCm: number,
+  ): DragHandlers {
     return {
-      onPointerDown: event => startDrag(event, type, key, xCm, widthCm),
+      onPointerDown: event => startDrag(event, type, key, placement, widthCm, depthCm),
       onPointerMove: event => moveDrag(event),
       onPointerUp: event => endDrag(event),
       onPointerCancel: event => endDrag(event),
     }
   }
 
-  const floorRow = layout.floorRow.map(placed => ({ ...placed, xM: placed.x * CM, widthM: placed.width * CM }))
-  const wallRow = layout.wallRow.map(placed => ({ ...placed, xM: placed.x * CM, widthM: placed.width * CM }))
+  function spatialPlacement(key: string, xCm: number): CabinetSpatialPlacement {
+    return spatialPositions[key] ?? { xCm, zCm: 0, wall: 'back' }
+  }
+
+  function rotationForWall(wall: CabinetSpatialPlacement['wall']) {
+    if (wall === 'left') return Math.PI / 2
+    if (wall === 'right') return -Math.PI / 2
+    return 0
+  }
+
+  const floorRow = layout.floorRow.map(placed => ({
+    ...placed,
+    placement: spatialPlacement(placed.key, placed.x),
+    widthM: placed.width * CM,
+  }))
+  const wallRow = layout.wallRow.map(placed => ({
+    ...placed,
+    placement: spatialPlacement(placed.key, placed.x),
+    widthM: placed.width * CM,
+  }))
+  const roomDepthM = ROOM_DEPTH_CM * CM
 
   return (
     <>
@@ -476,8 +560,12 @@ function ConfiguratorScene({ layout, wallLengthCm, onPositionsChange, accessorie
       <directionalLight position={[3, 5, 4]} intensity={1.08} castShadow />
       <directionalLight position={[-3, 2, 1]} intensity={0.18} />
 
-      <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, -0.001, 0]} receiveShadow>
-        <planeGeometry args={[20, 20]} />
+      <mesh
+        rotation={[-Math.PI / 2, 0, 0]}
+        position={[offsetX + wallWidthM / 2, -0.001, roomDepthM / 2]}
+        receiveShadow
+      >
+        <planeGeometry args={[wallWidthM, roomDepthM]} />
         <meshStandardMaterial color="#aaa399" roughness={0.92} />
       </mesh>
       <mesh position={[offsetX + wallWidthM / 2, WALL_HEIGHT_CM * CM / 2, -0.001]} receiveShadow>
@@ -485,48 +573,80 @@ function ConfiguratorScene({ layout, wallLengthCm, onPositionsChange, accessorie
         <meshStandardMaterial color="#cec7bd" roughness={0.95} />
         <Edges color="#8e887f" />
       </mesh>
+      <mesh position={[offsetX - 0.001, WALL_HEIGHT_CM * CM / 2, roomDepthM / 2]} rotation={[0, Math.PI / 2, 0]} receiveShadow>
+        <planeGeometry args={[roomDepthM, WALL_HEIGHT_CM * CM]} />
+        <meshStandardMaterial color="#cec7bd" roughness={0.95} />
+        <Edges color="#8e887f" />
+      </mesh>
+      <mesh position={[offsetX + wallWidthM + 0.001, WALL_HEIGHT_CM * CM / 2, roomDepthM / 2]} rotation={[0, -Math.PI / 2, 0]} receiveShadow>
+        <planeGeometry args={[roomDepthM, WALL_HEIGHT_CM * CM]} />
+        <meshStandardMaterial color="#cec7bd" roughness={0.95} />
+        <Edges color="#8e887f" />
+      </mesh>
 
       <group position={[offsetX, 0, 0]}>
-        {floorRow.map(({ item, x, xM, width, widthM, spec, key }) => (
-          <Cabinet
+        {floorRow.map(({ item, width, widthM, spec, key, placement }) => (
+          <group
             key={key}
-            x={xM}
-            width={widthM}
-            spec={spec}
-            color={item.colorHex ?? colorHexOf(item.colorId)}
-            subtitle={item.subtitle}
-            modelUrl={item.modelUrl ?? getModelUrl(item.modelSlug, item.colorId)}
-            active={activeKey === `cabinet-${key}`}
-            dragHandlers={interactionMode === 'move' ? handlers('cabinet', key, x, width) : undefined}
-          />
+            name={`cabinet-placement-${key}-${placement.wall}`}
+            position={[placement.xCm * CM, 0, placement.zCm * CM]}
+            rotation={[0, rotationForWall(placement.wall), 0]}
+          >
+            <Cabinet
+              x={0}
+              width={widthM}
+              spec={spec}
+              color={item.colorHex ?? colorHexOf(item.colorId)}
+              subtitle={item.subtitle}
+              modelUrl={item.modelUrl ?? getModelUrl(item.modelSlug, item.colorId)}
+              active={activeKey === `cabinet-${key}`}
+              dragHandlers={interactionMode === 'move' ? handlers('cabinet', key, placement, width, spec.depth) : undefined}
+            />
+            {item.category !== 'גבוהים' && <Countertop run={{ start: -width / 2, end: width / 2 }} />}
+            <Plinth run={{ start: -width / 2, end: width / 2 }} />
+            {(activeKey === `cabinet-${key}` || placement.wall === 'left' || placement.wall === 'right') && (
+              <WallSnapIndicator wall={placement.wall} topM={(spec.elevation + spec.height) * CM} />
+            )}
+          </group>
         ))}
-        {layout.counterRuns.map((run, index) => <Countertop key={`counter-${index}`} run={run} />)}
-        {layout.counterRuns.map((run, index) => <Plinth key={`plinth-${index}`} run={run} />)}
-        {wallRow.map(({ item, x, xM, width, widthM, spec, key }) => (
-          <Cabinet
+        {wallRow.map(({ item, width, widthM, spec, key, placement }) => (
+          <group
             key={key}
-            x={xM}
-            width={widthM}
-            spec={spec}
-            color={item.colorHex ?? colorHexOf(item.colorId)}
-            subtitle={item.subtitle}
-            modelUrl={item.modelUrl ?? getModelUrl(item.modelSlug, item.colorId)}
-            active={activeKey === `cabinet-${key}`}
-            dragHandlers={interactionMode === 'move' ? handlers('cabinet', key, x, width) : undefined}
-          />
+            name={`cabinet-placement-${key}-${placement.wall}`}
+            position={[placement.xCm * CM, 0, placement.zCm * CM]}
+            rotation={[0, rotationForWall(placement.wall), 0]}
+          >
+            <Cabinet
+              x={0}
+              width={widthM}
+              spec={spec}
+              color={item.colorHex ?? colorHexOf(item.colorId)}
+              subtitle={item.subtitle}
+              modelUrl={item.modelUrl ?? getModelUrl(item.modelSlug, item.colorId)}
+              active={activeKey === `cabinet-${key}`}
+              dragHandlers={interactionMode === 'move' ? handlers('cabinet', key, placement, width, spec.depth) : undefined}
+            />
+            {(activeKey === `cabinet-${key}` || placement.wall === 'left' || placement.wall === 'right') && (
+              <WallSnapIndicator wall={placement.wall} topM={(spec.elevation + spec.height) * CM} />
+            )}
+          </group>
         ))}
         {accessories.sink != null && layout.counterRuns.length > 0 && (
           <Sink
             x={accessories.sink * CM}
             active={activeKey === 'accessory-sink'}
-            dragHandlers={interactionMode === 'move' ? handlers('accessory', 'sink', accessories.sink, 52) : undefined}
+            dragHandlers={interactionMode === 'move'
+              ? handlers('accessory', 'sink', { xCm: accessories.sink, zCm: 0, wall: 'back' }, 52, 42)
+              : undefined}
           />
         )}
         {accessories.faucet != null && layout.counterRuns.length > 0 && (
           <Faucet
             x={accessories.faucet * CM}
             active={activeKey === 'accessory-faucet'}
-            dragHandlers={interactionMode === 'move' ? handlers('accessory', 'faucet', accessories.faucet, 8) : undefined}
+            dragHandlers={interactionMode === 'move'
+              ? handlers('accessory', 'faucet', { xCm: accessories.faucet, zCm: 0, wall: 'back' }, 8, 8)
+              : undefined}
           />
         )}
       </group>

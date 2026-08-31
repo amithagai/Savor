@@ -553,6 +553,21 @@
   touch-action: none;
 }
 
+.cfg3d__snap-indicator {
+  width: max-content;
+  padding: 6px 10px;
+  border: 1px solid rgba(55, 126, 43, 0.32);
+  border-radius: 999px;
+  background: rgba(240, 249, 237, 0.96);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.12);
+  color: #2f6f2b;
+  font-family: var(--font);
+  font-size: 11px;
+  font-weight: 700;
+  white-space: nowrap;
+  pointer-events: none;
+}
+
 .cfg3d__viewer {
   position: relative;
   width: 100%;
