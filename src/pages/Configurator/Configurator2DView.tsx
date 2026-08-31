@@ -5,14 +5,19 @@ import {
   COUNTERTOP_HEIGHT_CM,
   DEFAULT_WALL_LENGTH_CM,
   doorCount,
+  GAP_CM,
   HANDLE_TOP_OFFSET_CM,
   isOven,
   PLINTH_HEIGHT_CM,
+  ROOM_DEPTH_CM,
   snapCabinetXToWall,
   WALL_HEIGHT_CM,
   type AccessoryPositions,
   type CabinetLayoutItem,
   type CabinetPositions,
+  type CabinetSpatialPlacement,
+  type CabinetSpatialPositions,
+  type CabinetWall,
   type KitchenAccessoryId,
   type PlacedCabinet,
 } from './cabinetLayout'
@@ -23,6 +28,8 @@ type Props = {
   wallLengthCm?: number | null
   positions: CabinetPositions
   onPositionChange: (key: string, xCm: number) => void
+  spatialPositions: CabinetSpatialPositions
+  onSpatialPositionChange: (key: string, placement: CabinetSpatialPlacement) => void
   accessories: AccessoryPositions
   onAccessoryPositionChange: (id: KitchenAccessoryId, xCm: number) => void
   showCountertop: boolean
@@ -32,6 +39,14 @@ const SIDE_MARGIN = 40
 const TOP_MARGIN = 40
 const DIMENSION_BOTTOM = 72
 const GAP_HALF = 0.5
+const SECTION_GAP = 34
+
+const WALL_LABELS: Record<CabinetWall, string> = {
+  left: 'קיר שמאלי',
+  back: 'קיר אחורי',
+  right: 'קיר ימני',
+  free: 'מרכז החדר',
+}
 
 function formatDimension(value: number) {
   return Number.isInteger(value) ? String(value) : value.toFixed(1)
@@ -160,25 +175,111 @@ function AccessoryShapes({ accessories, activeKey, onStartDrag }: {
 
 type DragState = { type: 'cabinet' | 'accessory'; key: string; width: number; offset: number }
 
-export default function Configurator2DView({ cartItems, wallLengthCm, positions, onPositionChange, accessories, onAccessoryPositionChange, showCountertop }: Props) {
+type WallSection = {
+  wall: CabinetWall
+  wallWidth: number
+  designWidth: number
+  offsetX: number
+  floorRow: PlacedCabinet[]
+  wallRow: PlacedCabinet[]
+  counterRuns: { start: number; end: number }[]
+}
+
+type WallDragState = DragState & { wall: CabinetWall; sectionOffsetX: number; wallWidth: number }
+
+function counterRunsForRow(row: PlacedCabinet[]) {
+  const extents = row
+    .filter(placed => placed.item.category !== 'גבוהים')
+    .map(placed => ({ start: placed.x - placed.width / 2, end: placed.x + placed.width / 2 }))
+    .sort((first, second) => first.start - second.start)
+
+  return extents.reduce<Array<{ start: number; end: number }>>((runs, extent) => {
+    const last = runs[runs.length - 1]
+    if (!last || extent.start > last.end + GAP_CM * 2) runs.push({ ...extent })
+    else last.end = Math.max(last.end, extent.end)
+    return runs
+  }, [])
+}
+
+function positionOnWall(placed: PlacedCabinet, spatialPositions: CabinetSpatialPositions) {
+  const placement = spatialPositions[placed.key]
+  if (!placement) return { wall: 'back' as const, x: placed.x }
+  return {
+    wall: placement.wall,
+    x: placement.wall === 'left' || placement.wall === 'right' ? placement.zCm : placement.xCm,
+  }
+}
+
+export default function Configurator2DView({
+  cartItems,
+  wallLengthCm,
+  positions,
+  onPositionChange,
+  spatialPositions,
+  onSpatialPositionChange,
+  accessories,
+  onAccessoryPositionChange,
+  showCountertop,
+}: Props) {
   const layout = useMemo(() => buildCabinetLayout(cartItems, positions), [cartItems, positions])
   const svgRef = useRef<SVGSVGElement>(null)
-  const dragRef = useRef<DragState | null>(null)
+  const dragRef = useRef<WallDragState | null>(null)
   const [activeKey, setActiveKey] = useState<string | null>(null)
-  const { floorRow, wallRow, counterRuns } = layout
-  const allCabinets = [...floorRow, ...wallRow]
-  const overallStart = Math.min(...allCabinets.map(placed => placed.x - placed.width / 2))
-  const overallEnd = Math.max(...allCabinets.map(placed => placed.x + placed.width / 2))
-
   const wallWidth = wallLengthCm ?? Math.max(layout.floorEnd, layout.wallEnd, DEFAULT_WALL_LENGTH_CM)
   const designWidth = Math.max(wallWidth, layout.floorEnd, layout.wallEnd, DEFAULT_WALL_LENGTH_CM)
+  const sections = useMemo<WallSection[]>(() => {
+    const floorKeys = new Set(layout.floorRow.map(placed => placed.key))
+    const grouped = new Map<CabinetWall, PlacedCabinet[]>([
+      ['left', []],
+      ['back', []],
+      ['right', []],
+      ['free', []],
+    ])
+
+    const allCabinets = [...layout.floorRow, ...layout.wallRow]
+    allCabinets.forEach(placed => {
+      const projected = positionOnWall(placed, spatialPositions)
+      grouped.get(projected.wall)!.push({ ...placed, x: projected.x })
+    })
+
+    const allWalls: CabinetWall[] = ['left', 'back', 'right', 'free']
+    const visibleWalls = allWalls.filter(wall => (
+      wall === 'back' || grouped.get(wall)!.length > 0
+    ))
+    let cursor = 0
+
+    return visibleWalls.map(wall => {
+      const cabinets = grouped.get(wall)!
+      const sectionWallWidth = wall === 'left' || wall === 'right' ? ROOM_DEPTH_CM : wallWidth
+      const cabinetEnd = cabinets.length > 0
+        ? Math.max(...cabinets.map(placed => placed.x + placed.width / 2))
+        : 0
+      const sectionDesignWidth = Math.max(sectionWallWidth, cabinetEnd)
+      const floorRow = cabinets.filter(placed => floorKeys.has(placed.key))
+      const wallRow = cabinets.filter(placed => !floorKeys.has(placed.key))
+      const section: WallSection = {
+        wall,
+        wallWidth: sectionWallWidth,
+        designWidth: sectionDesignWidth,
+        offsetX: cursor,
+        floorRow,
+        wallRow,
+        counterRuns: counterRunsForRow(floorRow),
+      }
+      cursor += sectionDesignWidth + SECTION_GAP
+      return section
+    })
+  }, [layout, spatialPositions, wallWidth])
+  const backCounterRuns = sections.find(section => section.wall === 'back')?.counterRuns ?? []
   const maxTop = Math.max(
     WALL_HEIGHT_CM,
-    ...floorRow.map(placed => placed.spec.elevation + placed.spec.height),
-    ...wallRow.map(placed => placed.spec.elevation + placed.spec.height),
+    ...layout.floorRow.map(placed => placed.spec.elevation + placed.spec.height),
+    ...layout.wallRow.map(placed => placed.spec.elevation + placed.spec.height),
     COUNTERTOP_HEIGHT_CM + 40
   )
-  const viewWidth = designWidth + SIDE_MARGIN * 2
+  const sectionsWidth = sections.reduce((sum, section) => sum + section.designWidth, 0)
+    + Math.max(0, sections.length - 1) * SECTION_GAP
+  const viewWidth = Math.max(designWidth, sectionsWidth) + SIDE_MARGIN * 2
   const viewHeight = maxTop + TOP_MARGIN + DIMENSION_BOTTOM
 
   function svgX(clientX: number) {
@@ -190,17 +291,32 @@ export default function Configurator2DView({ cartItems, wallLengthCm, positions,
     return point.matrixTransform(matrix.inverse()).x
   }
 
-  function startDrag(event: ReactPointerEvent<SVGGElement>, type: DragState['type'], key: string, x: number, width: number) {
+  function startDrag(
+    event: ReactPointerEvent<SVGGElement>,
+    type: DragState['type'],
+    key: string,
+    x: number,
+    width: number,
+    section: WallSection,
+  ) {
     event.stopPropagation()
-    dragRef.current = { type, key, width, offset: x - svgX(event.clientX) }
+    dragRef.current = {
+      type,
+      key,
+      width,
+      wall: section.wall,
+      wallWidth: section.wallWidth,
+      sectionOffsetX: section.offsetX,
+      offset: x + section.offsetX - svgX(event.clientX),
+    }
     setActiveKey(`${type}-${key}`)
     svgRef.current?.setPointerCapture(event.pointerId)
   }
 
   function clampAccessoryX(x: number, width: number) {
-    if (counterRuns.length === 0) return x
+    if (backCounterRuns.length === 0) return x
     const half = width / 2
-    return counterRuns
+    return backCounterRuns
       .map(run => {
         const min = run.start + half
         const max = run.end - half
@@ -213,15 +329,36 @@ export default function Configurator2DView({ cartItems, wallLengthCm, positions,
   function moveDrag(event: ReactPointerEvent<SVGSVGElement>) {
     const drag = dragRef.current
     if (!drag) return
-    const rawX = svgX(event.clientX) + drag.offset
+    const rawX = svgX(event.clientX) + drag.offset - drag.sectionOffsetX
     if (drag.type === 'cabinet') {
+      const section = sections.find(candidate => candidate.wall === drag.wall)
+      if (!section) return
       const updates = cabinetDragPositionUpdates(
-        [...floorRow, ...wallRow],
+        [...section.floorRow, ...section.wallRow],
         drag.key,
-        snapCabinetXToWall(rawX, drag.width, wallWidth),
-        wallWidth,
+        snapCabinetXToWall(rawX, drag.width, drag.wallWidth),
+        drag.wallWidth,
       )
-      Object.entries(updates).forEach(([key, x]) => onPositionChange(key, Math.round(x)))
+      Object.entries(updates).forEach(([key, x]) => {
+        const roundedX = Math.round(x)
+        if (drag.wall === 'back') {
+          onPositionChange(key, roundedX)
+          return
+        }
+
+        const existing = spatialPositions[key]
+        if (drag.wall === 'left') {
+          onSpatialPositionChange(key, { xCm: 0, zCm: roundedX, wall: 'left' })
+        } else if (drag.wall === 'right') {
+          onSpatialPositionChange(key, { xCm: wallWidth, zCm: roundedX, wall: 'right' })
+        } else {
+          onSpatialPositionChange(key, {
+            xCm: roundedX,
+            zCm: existing?.zCm ?? 0,
+            wall: 'free',
+          })
+        }
+      })
     } else {
       onAccessoryPositionChange(drag.key as KitchenAccessoryId, Math.round(clampAccessoryX(rawX, drag.width)))
     }
@@ -250,53 +387,77 @@ export default function Configurator2DView({ cartItems, wallLengthCm, positions,
       onPointerUp={endDrag}
       onPointerCancel={endDrag}
     >
-      <rect
-        x={0}
-        y={-WALL_HEIGHT_CM}
-        width={wallWidth}
-        height={WALL_HEIGHT_CM}
-        fill="#cec7bd"
-        stroke="#8e887f"
-        strokeWidth={0.8}
-      />
-      <line x1={-SIDE_MARGIN} x2={designWidth + SIDE_MARGIN} y1={0} y2={0} stroke="#aaa49a" strokeWidth={1} />
+      {sections.map(section => {
+        const allCabinets = [...section.floorRow, ...section.wallRow]
+        const overallStart = allCabinets.length > 0
+          ? Math.min(...allCabinets.map(placed => placed.x - placed.width / 2))
+          : 0
+        const overallEnd = allCabinets.length > 0
+          ? Math.max(...allCabinets.map(placed => placed.x + placed.width / 2))
+          : 0
+        const sectionStartDrag: StartDrag = (event, type, key, x, width) => (
+          startDrag(event, type, key, x, width, section)
+        )
 
-      {showCountertop && counterRuns.map((run, index) => (
-        <rect
-          key={`countertop-${index}`}
-          x={run.start - GAP_HALF}
-          y={-(COUNTERTOP_HEIGHT_CM + 1.5)}
-          width={run.end - run.start + GAP_HALF * 2}
-          height={3}
-          fill="#d8d1c6"
-          stroke="#00000055"
-          strokeWidth={0.5}
-        />
-      ))}
+        return (
+          <g key={section.wall} transform={`translate(${section.offsetX} 0)`}>
+            <rect
+              x={0}
+              y={-WALL_HEIGHT_CM}
+              width={section.wallWidth}
+              height={WALL_HEIGHT_CM}
+              fill={section.wall === 'free' ? '#e4e1da' : '#cec7bd'}
+              stroke="#8e887f"
+              strokeWidth={0.8}
+            />
+            <line x1={-8} x2={section.designWidth + 8} y1={0} y2={0} stroke="#aaa49a" strokeWidth={1} />
+            <g className="cfg2d__wall-label" pointerEvents="none">
+              <rect x={section.wallWidth / 2 - 39} y={-WALL_HEIGHT_CM - 28} width={78} height={19} rx={9.5} />
+              <text x={section.wallWidth / 2} y={-WALL_HEIGHT_CM - 15} textAnchor="middle">
+                {`${WALL_LABELS[section.wall]} · ${allCabinets.length}`}
+              </text>
+            </g>
 
-      {floorRow.map(placed => (
-        <CabinetShape key={placed.key} placed={placed} active={activeKey === `cabinet-${placed.key}`} onStartDrag={startDrag} />
-      ))}
-      {wallRow.map(placed => (
-        <CabinetShape key={placed.key} placed={placed} active={activeKey === `cabinet-${placed.key}`} onStartDrag={startDrag} />
-      ))}
-      {counterRuns.map((run, index) => (
-        <rect
-          key={`plinth-${index}`}
-          x={run.start}
-          y={-PLINTH_HEIGHT_CM}
-          width={run.end - run.start}
-          height={PLINTH_HEIGHT_CM}
-          fill="#b9b0a4"
-          stroke="#8f867b"
-          strokeWidth={0.45}
-          pointerEvents="none"
-        />
-      ))}
-      <AccessoryShapes accessories={accessories} activeKey={activeKey} onStartDrag={startDrag} />
-      <text x={designWidth / 2} y={24} textAnchor="middle" fontSize={8} fill="#6b6b6b">גררו כל פריט כדי למקם אותו</text>
-      {allCabinets.map(placed => <ObjectDimension key={`dimension-${placed.key}`} placed={placed} />)}
-      <OverallDimension start={overallStart} end={overallEnd} />
+            {showCountertop && section.counterRuns.map((run, index) => (
+              <rect
+                key={`countertop-${index}`}
+                x={run.start - GAP_HALF}
+                y={-(COUNTERTOP_HEIGHT_CM + 1.5)}
+                width={run.end - run.start + GAP_HALF * 2}
+                height={3}
+                fill="#d8d1c6"
+                stroke="#00000055"
+                strokeWidth={0.5}
+              />
+            ))}
+
+            {section.floorRow.map(placed => (
+              <CabinetShape key={placed.key} placed={placed} active={activeKey === `cabinet-${placed.key}`} onStartDrag={sectionStartDrag} />
+            ))}
+            {section.wallRow.map(placed => (
+              <CabinetShape key={placed.key} placed={placed} active={activeKey === `cabinet-${placed.key}`} onStartDrag={sectionStartDrag} />
+            ))}
+            {section.counterRuns.map((run, index) => (
+              <rect
+                key={`plinth-${index}`}
+                x={run.start}
+                y={-PLINTH_HEIGHT_CM}
+                width={run.end - run.start}
+                height={PLINTH_HEIGHT_CM}
+                fill="#b9b0a4"
+                stroke="#8f867b"
+                strokeWidth={0.45}
+                pointerEvents="none"
+              />
+            ))}
+            {section.wall === 'back' && (
+              <AccessoryShapes accessories={accessories} activeKey={activeKey} onStartDrag={sectionStartDrag} />
+            )}
+            {allCabinets.map(placed => <ObjectDimension key={`dimension-${placed.key}`} placed={placed} />)}
+            {allCabinets.length > 0 && <OverallDimension start={overallStart} end={overallEnd} />}
+          </g>
+        )
+      })}
     </svg>
   )
 }
