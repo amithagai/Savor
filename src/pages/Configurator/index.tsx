@@ -713,6 +713,8 @@ export default function Configurator() {
                 wallLengthCm={appliedWallLength}
                 positions={cabinetPositions}
                 onPositionChange={setCabinetPosition}
+                spatialPositions={cabinetSpatialPositions}
+                onSpatialPositionChange={setCabinetSpatialPosition}
                 accessories={visibleAccessories}
                 onAccessoryPositionChange={setAccessoryPosition}
                 showCountertop={countertopSelected}

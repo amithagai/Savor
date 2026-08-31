@@ -670,6 +670,19 @@
   font-variant-numeric: tabular-nums;
 }
 
+.cfg2d__wall-label rect {
+  fill: rgba(255, 255, 255, 0.94);
+  stroke: rgba(55, 126, 43, 0.24);
+  stroke-width: 0.7;
+}
+
+.cfg2d__wall-label text {
+  fill: #2f6f2b;
+  font-family: inherit;
+  font-size: 8px;
+  font-weight: 700;
+}
+
 .cfg2d__draggable {
   cursor: grab;
 }
