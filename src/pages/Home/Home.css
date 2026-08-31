@@ -331,6 +331,7 @@
   display: grid;
   grid-template-columns: 36.83fr 47.82fr 15.35fr;
   gap: 24px;
+  aspect-ratio: 850 / 159;
 }
 
 .gallery__img-wrap {
@@ -349,7 +350,7 @@
 }
 
 .gallery__top .gallery__img-wrap {
-  height: clamp(200px, 18vw, 244px);
+  height: 100%;
 }
 
 .gallery__slice-image {
@@ -371,7 +372,7 @@
 }
 
 .gallery__bottom {
-  height: clamp(330px, 29.5vw, 404px);
+  aspect-ratio: 850 / 264;
 }
 
 .gallery__bottom-image {
@@ -639,7 +640,6 @@
   }
 
   .gallery__top .gallery__img-wrap {
-    height: 120px;
     border-radius: 14px;
   }
 
@@ -652,7 +652,6 @@
   }
 
   .gallery__bottom {
-    height: 220px;
     border-radius: 14px;
   }
 
