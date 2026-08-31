@@ -3,10 +3,12 @@ import {
   buildCabinetLayout,
   cabinetDragPositionUpdates,
   COUNTERTOP_HEIGHT_CM,
+  DEFAULT_WALL_LENGTH_CM,
   doorCount,
   HANDLE_TOP_OFFSET_CM,
   isOven,
   PLINTH_HEIGHT_CM,
+  WALL_HEIGHT_CM,
   type AccessoryPositions,
   type CabinetLayoutItem,
   type CabinetPositions,
@@ -166,8 +168,10 @@ export default function Configurator2DView({ cartItems, wallLengthCm, positions,
   const overallStart = Math.min(...allCabinets.map(placed => placed.x - placed.width / 2))
   const overallEnd = Math.max(...allCabinets.map(placed => placed.x + placed.width / 2))
 
-  const designWidth = Math.max(wallLengthCm ?? 0, layout.floorEnd, layout.wallEnd, 150)
+  const wallWidth = wallLengthCm ?? Math.max(layout.floorEnd, layout.wallEnd, DEFAULT_WALL_LENGTH_CM)
+  const designWidth = Math.max(wallWidth, layout.floorEnd, layout.wallEnd, DEFAULT_WALL_LENGTH_CM)
   const maxTop = Math.max(
+    WALL_HEIGHT_CM,
     ...floorRow.map(placed => placed.spec.elevation + placed.spec.height),
     ...wallRow.map(placed => placed.spec.elevation + placed.spec.height),
     COUNTERTOP_HEIGHT_CM + 40
@@ -213,7 +217,7 @@ export default function Configurator2DView({ cartItems, wallLengthCm, positions,
         [...floorRow, ...wallRow],
         drag.key,
         rawX,
-        designWidth,
+        wallWidth,
       )
       Object.entries(updates).forEach(([key, x]) => onPositionChange(key, Math.round(x)))
     } else {
@@ -244,6 +248,15 @@ export default function Configurator2DView({ cartItems, wallLengthCm, positions,
       onPointerUp={endDrag}
       onPointerCancel={endDrag}
     >
+      <rect
+        x={0}
+        y={-WALL_HEIGHT_CM}
+        width={wallWidth}
+        height={WALL_HEIGHT_CM}
+        fill="#fffdf8"
+        stroke="#aaa49a"
+        strokeWidth={0.8}
+      />
       <line x1={-SIDE_MARGIN} x2={designWidth + SIDE_MARGIN} y1={0} y2={0} stroke="#aaa49a" strokeWidth={1} />
 
       {counterRuns.map((run, index) => (

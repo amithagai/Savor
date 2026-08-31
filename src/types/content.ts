@@ -3,6 +3,7 @@ export type ContentPageData = {
   slug: string
   title: string
   body: string
+  image_url?: string | null
   language: string
   meta_description?: string | null
   is_published: boolean
@@ -58,6 +59,7 @@ export type FooterContent = {
   hours: string
   pickup_address: string
   whatsapp_url: string
+  whatsapp_phone?: string
   instagram_url: string
   copyright: string
 }
@@ -66,6 +68,7 @@ export type ContactContent = {
   title: string
   subtitle: string
   success_message: string
+  email?: string
 }
 
 export type SizeGuideStep = {

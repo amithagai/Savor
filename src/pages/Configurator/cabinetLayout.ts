@@ -28,6 +28,8 @@ export const CATEGORY_SPEC: Record<CabinetCategory, CategorySpec> = {
 }
 
 export const GAP_CM = 1
+export const DEFAULT_WALL_LENGTH_CM = 150
+export const WALL_HEIGHT_CM = 260
 export const COUNTERTOP_HEIGHT_CM = CATEGORY_SPEC['תחתונים'].height
 export const COUNTERTOP_DEPTH_CM = CATEGORY_SPEC['תחתונים'].depth
 export const PLINTH_HEIGHT_CM = 10

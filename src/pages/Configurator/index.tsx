@@ -1,17 +1,17 @@
-import { useEffect, useState, type FC } from 'react'
-import { useNavigate } from 'react-router-dom'
+import { useCallback, useEffect, useState, type FC } from 'react'
+import { useNavigate, useSearchParams } from 'react-router-dom'
 import './Configurator.css'
 import HeartIcon from '../../components/HeartIcon'
 import { useWishlist } from '../../context/useWishlist'
 import { useCart } from '../../context/useCart'
 import KitchenModelViewer from './KitchenModelViewer'
 import Configurator2DView from './Configurator2DView'
-import ProductThumbnail from './ProductThumbnail'
-import { COLORS, colorHexOf, colorIdOf, colorLabelOf, colorSwatchStyleOf, knownColorHexOf } from './colors'
-import { availableColorsFor } from './modelCatalog'
+import { COLORS, colorHexOf, colorIdOf, colorSwatchStyleOf, knownColorHexOf } from './colors'
 import type { AccessoryPositions, CabinetCategory, CabinetPositions, KitchenAccessoryId } from './cabinetLayout'
 import { api } from '../../lib/api'
 import type { ConfiguratorProduct } from '../../types/catalog'
+import { useSiteContent } from '../../hooks/useSiteContent'
+import type { FooterContent } from '../../types/content'
 
 type ConfiguratorCategory = CabinetCategory | 'ברז'
 
@@ -21,9 +21,7 @@ type CabinetProduct = {
   subtitle: string
   width: number
   price: number
-  pricesByColor?: Partial<Record<string, number>>
   category: ConfiguratorCategory
-  modelSlug?: string
   variants?: CabinetProductVariant[]
 }
 
@@ -45,22 +43,32 @@ type CabinetProductVariant = {
 
 type CartItem = CabinetProduct & CabinetProductVariant & { qty: number }
 
-const CATEGORIES: ConfiguratorCategory[] = ['עליונים', 'גבוהים', 'תחתונים', 'כיור', 'ברז']
+type SharedConfiguratorPlan = {
+  id: string
+  wall_length_cm: number | null
+  items: Array<{
+    product_id: string
+    variant_id: string
+    name: string
+    subtitle: string
+    width: number
+    price: number
+    original_price?: number | null
+    category: ConfiguratorCategory
+    color_id: string
+    color_label: string
+    sku?: string | null
+    model_url?: string | null
+    thumbnail_url?: string | null
+    color_hex?: string | null
+    quantity: number
+  }>
+  cabinet_positions: CabinetPositions
+  accessories: AccessoryPositions
+  share_url: string
+}
 
-const FALLBACK_PRODUCTS: CabinetProduct[] = [
-  { id: 'p1', name: 'ארון תנור 60 ס"מ', subtitle: 'יחידת תנור', width: 60, price: 670, category: 'תחתונים', modelSlug: 'oven-60' },
-  { id: 'p2', name: 'ארון תחתון 30 ס"מ - מדף ומגירה', subtitle: 'מדף ומגירה', width: 30, price: 660, category: 'תחתונים', modelSlug: 'shelf-drawer-30' },
-  { id: 'p3', name: 'ארון תחתון 60 ס"מ - מדף ומגירה', subtitle: 'מדף ומגירה', width: 60, price: 770, category: 'תחתונים', modelSlug: 'shelf-drawer-60' },
-  { id: 'p4', name: 'ארון תחתון 60 ס"מ - חזית 2 דלתות', subtitle: 'חזית 2 דלתות', width: 60, price: 600, category: 'תחתונים', modelSlug: 'base-60-2door' },
-  { id: 'p5', name: 'ארון תחתון 60 ס"מ - חזית דלת', subtitle: 'חזית דלת', width: 60, price: 640, category: 'תחתונים', modelSlug: 'base-60-1door' },
-  { id: 'p6', name: 'ארון תחתון 80 ס"מ - חזית 2 דלתות', subtitle: 'חזית 2 דלתות', width: 80, price: 740, category: 'תחתונים', modelSlug: 'base-80-2door' },
-  { id: 'p7', name: 'ארון תחתון 60 ס"מ - שלוש מגירות', subtitle: 'שלוש מגירות', width: 60, price: 900, category: 'תחתונים', modelSlug: 'three-drawers-60' },
-  { id: 'p8', name: 'ארון עליון 100 ס"מ - קלאפה', subtitle: 'דלת קלאפה', width: 100, price: 550, category: 'עליונים', modelSlug: 'klappa-100' },
-  { id: 'p9', name: 'ארון עליון 60 ס"מ - חזית 2 דלתות', subtitle: 'חזית 2 דלתות', width: 60, price: 470, category: 'עליונים', modelSlug: 'upper-60' },
-  { id: 'p10', name: 'ארון גבוה 60 ס"מ - מזווה', subtitle: 'דלת מזווה מלאה', width: 60, price: 2000, pricesByColor: { latte: 2330 }, category: 'גבוהים', modelSlug: 'pantry-60-v2' },
-  { id: 'p12', name: 'ארון כיור 60 ס"מ - חזית 2 דלתות', subtitle: 'חזית 2 דלתות', width: 60, price: 1350, category: 'כיור' },
-  { id: 'p13', name: 'ארון כיור 80 ס"מ - חזית 2 דלתות', subtitle: 'חזית 2 דלתות', width: 80, price: 1550, category: 'כיור' },
-]
+const CATEGORIES: ConfiguratorCategory[] = ['עליונים', 'גבוהים', 'תחתונים', 'כיור', 'ברז']
 
 const HOW_STEPS = [
   'בוחרים את המידה: מתחילים מהגדרת אורך הקיר של המטבח שלכם.',
@@ -68,14 +76,37 @@ const HOW_STEPS = [
   'משלימים את העיצוב: בודקים שהכל ישבב במקום, רואים את התוצאה הסופית, ויכולים להתקדם להזמנה!',
 ]
 
-const INITIAL_CART: CartItem[] = [
-  { ...FALLBACK_PRODUCTS[0], qty: 1, colorId: 'cream', colorLabel: 'CREAM', price: FALLBACK_PRODUCTS[0].price },
-  { ...FALLBACK_PRODUCTS[1], qty: 1, colorId: 'cream', colorLabel: 'CREAM', price: FALLBACK_PRODUCTS[1].price },
-  { ...FALLBACK_PRODUCTS[2], qty: 1, colorId: 'cream', colorLabel: 'CREAM', price: FALLBACK_PRODUCTS[2].price },
-]
+const DEFAULT_WHATSAPP_PHONE = '972509072335'
+
+function normalizeWhatsAppPhone(value?: string | null) {
+  let digits = (value || '').replace(/\D/g, '')
+  if (digits.startsWith('0')) digits = `972${digits.slice(1)}`
+  return /^\d{10,15}$/.test(digits) ? digits : null
+}
+
+function phoneFromWhatsAppUrl(value?: string | null) {
+  if (!value) return null
+  try {
+    const url = new URL(value)
+    const match = url.hostname.toLowerCase() === 'wa.me' ? url.pathname.match(/^\/(\d+)\/?$/) : null
+    return normalizeWhatsAppPhone(match?.[1])
+  } catch {
+    return null
+  }
+}
+
+function buildWhatsAppPlanMessage(shareUrl: string) {
+  return [
+    'שלום, בניתי תכנון מטבח באתר Savor:',
+    '',
+    shareUrl,
+  ].join('\n')
+}
 interface ActionButtonProps {
   resetAll: () => void
   onContact: () => void
+  contactStatus: 'idle' | 'saving' | 'error'
+  contactDisabled: boolean
   onBuy: () => void
   buyDisabled: boolean
 }
@@ -99,27 +130,17 @@ function categoryLabel(cats: ConfiguratorCategory[]) {
   return `${cats[0]}, ${cats[1]} (+${cats.length - 2})`
 }
 
-function priceFor(product: CabinetProduct, colorId: string) {
-  const variant = product.variants?.find((item) => item.colorId === colorId)
-  if (variant) return variant.price
-  return product.pricesByColor?.[colorId] ?? product.price
-}
-
 function variantsFor(product: CabinetProduct): CabinetProductVariant[] {
-  if (product.variants?.length) return product.variants
-  return availableColorsFor(product.modelSlug).map((colorId) => ({
-    colorId,
-    colorLabel: colorLabelOf(colorId),
-    price: priceFor(product, colorId),
-  }))
+  return product.variants ?? []
 }
 
 function configuratorProductFromApi(product: ConfiguratorProduct): CabinetProduct | null {
   const attributes = product.attributes || {}
   const category = String(attributes.configurator_category || '') as ConfiguratorCategory
   const width = Number(attributes.width_cm)
-  if (!CATEGORIES.includes(category) || !Number.isFinite(width) || width <= 0 || product.variants.length === 0) return null
-  const variants = product.variants.map((variant) => ({
+  const primaryImageUrl = product.images?.[0] || undefined
+  if (!CATEGORIES.includes(category) || !Number.isFinite(width) || width <= 0) return null
+  const variants = product.variants.filter((variant) => Boolean(variant.model_url?.trim())).map((variant) => ({
     variantId: variant.id,
     colorId: colorIdOf(variant.color_id, variant.color_label),
     colorLabel: variant.color_label,
@@ -127,13 +148,14 @@ function configuratorProductFromApi(product: ConfiguratorProduct): CabinetProduc
     originalPrice: variant.sale_price != null ? variant.price : undefined,
     sku: variant.sku,
     modelUrl: variant.model_url,
-    thumbnailUrl: variant.thumbnail_url || undefined,
+    thumbnailUrl: variant.thumbnail_url || primaryImageUrl,
     colorHex: typeof variant.attributes?.color_hex === 'string' ? variant.attributes.color_hex : undefined,
     inventoryTracking: variant.inventory_tracking,
     availableQuantity: variant.available_quantity,
     inStock: variant.in_stock,
     allowPreorder: variant.allow_preorder,
   }))
+  if (variants.length === 0) return null
   return {
     id: product.id,
     name: product.name,
@@ -157,12 +179,30 @@ const TotalPrice: FC<{ cartItems: Array<CartItem> }> = ({ cartItems }) => {
   )
 }
 
-export const ActionButton: FC<ActionButtonProps> = ({ resetAll, onContact, onBuy, buyDisabled }) => {
+export const ActionButton: FC<ActionButtonProps> = ({
+  resetAll,
+  onContact,
+  contactStatus,
+  contactDisabled,
+  onBuy,
+  buyDisabled,
+}) => {
 
   return (
     <div className="cfg__cart-footer">
       <button className="cfg__reset-btn" onClick={resetAll}>איפוס</button>
-      <button className="cfg__outline-btn" onClick={onContact}>שמירת תכנון ויצרות קשר</button>
+      <button
+        type="button"
+        className="cfg__outline-btn cfg__contact-link"
+        onClick={onContact}
+        disabled={contactDisabled || contactStatus === 'saving'}
+        title={contactDisabled ? 'יש לבחור לפחות פריט אחד לפני שמירת התכנון' : undefined}
+      >
+        {contactStatus === 'saving' ? 'שומר תכנון…' : 'שמירת תכנון ויצירת קשר'}
+      </button>
+      {contactStatus === 'error' && (
+        <span className="cfg__contact-error" role="alert">שמירת התכנון נכשלה. נסו שוב.</span>
+      )}
       <button
         className="cfg__buy-btn"
         onClick={onBuy}
@@ -175,40 +215,25 @@ export const ActionButton: FC<ActionButtonProps> = ({ resetAll, onContact, onBuy
   )
 }
 
-const ContactPopup: FC<{ open: boolean; onClose: () => void }> = ({ open, onClose }) => {
-  const navigate = useNavigate()
-
-  if (!open) return null
-
-  return (
-    <div className="cfg__contact-popup" role="dialog" aria-modal="true">
-      <button className="cfg__contact-close" onClick={onClose} aria-label="סגור">×</button>
-      <h3 className="cfg__contact-title">שמירת תכנון ויצירת קשר</h3>
-      <p className="cfg__contact-text">בואו לדבר איתי ולהתייעץ בנוגע לעיצוב שלכם :)</p>
-      <div className="cfg__contact-actions">
-        <button className="cfg__outline-btn" onClick={onClose}>לא עכשיו, תודה</button>
-        <button className="cfg__buy-btn" onClick={() => { onClose(); navigate('/contact') }}>
-          יצירת קשר
-        </button>
-      </div>
-    </div>
-  )
-}
-
 export default function Configurator() {
   const navigate = useNavigate()
+  const [searchParams] = useSearchParams()
+  const sharedPlanId = searchParams.get('plan')
+  const { data: footerContent } = useSiteContent<FooterContent>('footer')
   const [wallLength, setWallLength] = useState('')
   const [appliedWallLength, setAppliedWallLength] = useState<number | null>(null)
   const [selectedCategories, setSelectedCategories] = useState<ConfiguratorCategory[]>(['תחתונים'])
   const [selectedColors, setSelectedColors] = useState<string[]>(['latte', 'timber'])
-  const [products, setProducts] = useState<CabinetProduct[]>(FALLBACK_PRODUCTS)
-  const [cartItems, setCartItems] = useState<CartItem[]>(INITIAL_CART)
+  const [products, setProducts] = useState<CabinetProduct[]>([])
+  const [catalogStatus, setCatalogStatus] = useState<'loading' | 'ready' | 'error'>('loading')
+  const [cartItems, setCartItems] = useState<CartItem[]>([])
   const [cabinetPositions, setCabinetPositions] = useState<CabinetPositions>({})
   const [accessories, setAccessories] = useState<AccessoryPositions>({})
   const [viewMode, setViewMode] = useState<'2D' | '3D'>('3D')
   const [howOpen, setHowOpen] = useState(true)
   const [catMenuOpen, setCatMenuOpen] = useState(false)
-  const [contactOpen, setContactOpen] = useState(false)
+  const [sharedPlanStatus, setSharedPlanStatus] = useState<'idle' | 'loading' | 'ready' | 'error'>(sharedPlanId ? 'loading' : 'idle')
+  const [contactStatus, setContactStatus] = useState<'idle' | 'saving' | 'error'>('idle')
   const { isInWishlist, toggleWishlist } = useWishlist()
   const { addItemsToCart } = useCart()
 
@@ -217,22 +242,62 @@ export default function Configurator() {
     api.get<ConfiguratorProduct[]>('/catalog/configurator-products')
       .then((response) => response.map(configuratorProductFromApi).filter((product): product is CabinetProduct => product !== null))
       .then((adminProducts) => {
-        if (cancelled || adminProducts.length === 0) return
+        if (cancelled) return
         setProducts(adminProducts)
-        const ids = new Set(adminProducts.map((product) => product.id))
-        setCartItems((current) => current.filter((item) => ids.has(item.id)))
+        setCatalogStatus('ready')
       })
       .catch(() => {
-        // The hard-coded catalog remains a safe development/legacy fallback
-        // until the admin has published its first configurator products.
+        if (!cancelled) setCatalogStatus('error')
       })
     return () => { cancelled = true }
   }, [])
+
+  useEffect(() => {
+    if (!sharedPlanId) return
+
+    let cancelled = false
+    api.get<SharedConfiguratorPlan>(`/configurator-plans/${encodeURIComponent(sharedPlanId)}`)
+      .then((plan) => {
+        if (cancelled) return
+        const restoredItems: CartItem[] = plan.items.map((item) => ({
+          id: item.product_id,
+          variantId: item.variant_id,
+          name: item.name,
+          subtitle: item.subtitle,
+          width: item.width,
+          price: item.price,
+          originalPrice: item.original_price ?? undefined,
+          category: item.category,
+          colorId: colorIdOf(item.color_id, item.color_label),
+          colorLabel: item.color_label,
+          sku: item.sku ?? undefined,
+          modelUrl: item.model_url ?? undefined,
+          thumbnailUrl: item.thumbnail_url ?? undefined,
+          colorHex: item.color_hex ?? undefined,
+          qty: item.quantity,
+        }))
+        setCartItems(restoredItems)
+        setCabinetPositions(plan.cabinet_positions || {})
+        setAccessories(plan.accessories || {})
+        setAppliedWallLength(plan.wall_length_cm)
+        setWallLength(plan.wall_length_cm?.toString() || '')
+        const restoredCategories = [...new Set(restoredItems.map((item) => item.category))]
+        const restoredColors = [...new Set(restoredItems.map((item) => item.colorId))]
+        if (restoredCategories.length > 0) setSelectedCategories(restoredCategories)
+        if (restoredColors.length > 0) setSelectedColors(restoredColors)
+        setSharedPlanStatus('ready')
+      })
+      .catch(() => {
+        if (!cancelled) setSharedPlanStatus('error')
+      })
+    return () => { cancelled = true }
+  }, [sharedPlanId])
 
   const filteredProducts = products.filter(p => selectedCategories.includes(p.category))
   const cabinetCartItems = cartItems.filter(
     (item): item is CartItem & { category: CabinetCategory } => item.category !== 'ברז',
   )
+  const faucetCartItems = cartItems.filter((item) => item.category === 'ברז')
   const totalCabinetWidth = cabinetCartItems
     .filter(item => item.category !== 'עליונים')
     .reduce((sum, item) => sum + item.width * item.qty, 0)
@@ -250,6 +315,42 @@ export default function Configurator() {
   }
   const exceedsWall = appliedWallLength != null && totalCabinetWidth > appliedWallLength
   const canBuyKitchen = cartItems.length > 0 && cartItems.every((item) => Boolean(item.variantId))
+  const whatsappPhone = normalizeWhatsAppPhone(footerContent?.whatsapp_phone)
+    || phoneFromWhatsAppUrl(footerContent?.whatsapp_url)
+    || DEFAULT_WHATSAPP_PHONE
+
+  async function sharePlanOnWhatsApp() {
+    if (contactStatus === 'saving' || cartItems.length === 0 || cartItems.some((item) => !item.variantId)) return
+
+    const whatsappWindow = window.open('about:blank', '_blank')
+    if (whatsappWindow) whatsappWindow.opener = null
+    setContactStatus('saving')
+    try {
+      const plan = await api.post<SharedConfiguratorPlan>('/configurator-plans', {
+        wall_length_cm: appliedWallLength,
+        items: cartItems.map((item) => ({
+          product_id: item.id,
+          variant_id: item.variantId,
+          quantity: item.qty,
+        })),
+        cabinet_positions: cabinetPositions,
+        accessories: visibleAccessories,
+      })
+      const shareUrl = new URL('/configurator', window.location.origin)
+      shareUrl.searchParams.set('plan', plan.id)
+      const whatsappMessage = buildWhatsAppPlanMessage(shareUrl.toString())
+      const whatsappHref = `https://wa.me/${whatsappPhone}?text=${encodeURIComponent(whatsappMessage)}`
+      if (whatsappWindow) {
+        whatsappWindow.location.href = whatsappHref
+      } else {
+        window.location.assign(whatsappHref)
+      }
+      setContactStatus('idle')
+    } catch {
+      whatsappWindow?.close()
+      setContactStatus('error')
+    }
+  }
 
   function toggleCategory(cat: ConfiguratorCategory) {
     setSelectedCategories(prev => {
@@ -325,13 +426,17 @@ export default function Configurator() {
     navigate('/cart')
   }
 
-  function setCabinetPosition(key: string, xCm: number) {
+  const setCabinetPosition = useCallback((key: string, xCm: number) => {
     setCabinetPositions(prev => ({ ...prev, [key]: xCm }))
-  }
+  }, [])
 
-  function setAccessoryPosition(id: KitchenAccessoryId, xCm: number) {
+  const setCabinetPositionUpdates = useCallback((updates: CabinetPositions) => {
+    setCabinetPositions(prev => ({ ...prev, ...updates }))
+  }, [])
+
+  const setAccessoryPosition = useCallback((id: KitchenAccessoryId, xCm: number) => {
     setAccessories(prev => ({ ...prev, [id]: xCm }))
-  }
+  }, [])
 
   function applyWallLength() {
     const parsed = Number(wallLength)
@@ -342,6 +447,15 @@ export default function Configurator() {
 
   return (
     <div className="cfg" dir="rtl">
+
+      {sharedPlanId && sharedPlanStatus === 'loading' && (
+        <p className="cfg__share-notice" role="status">טוען את התכנון שנשמר…</p>
+      )}
+      {sharedPlanId && sharedPlanStatus === 'error' && (
+        <p className="cfg__share-notice cfg__share-notice--error" role="alert">
+          לא הצלחנו לפתוח את התכנון. ייתכן שהקישור שגוי.
+        </p>
+      )}
 
       {/* ══════════ TOP INFO SECTION ══════════ */}
       <div className="cfg__top">
@@ -476,7 +590,9 @@ export default function Configurator() {
         <div className="cfg__actions cfg__actions--desktop">
           <ActionButton
             resetAll={resetAll}
-            onContact={() => setContactOpen(true)}
+            onContact={sharePlanOnWhatsApp}
+            contactStatus={contactStatus}
+            contactDisabled={!canBuyKitchen}
             onBuy={buyKitchen}
             buyDisabled={!canBuyKitchen}
           />
@@ -489,6 +605,18 @@ export default function Configurator() {
         {/* RIGHT panel: product catalog (RTL start — first in DOM) */}
         <div className="cfg__catalog">
           <div className="cfg__product-list">
+            {catalogStatus === 'loading' && (
+              <p className="cfg__catalog-state" role="status">טוען את המודלים שהועלו…</p>
+            )}
+            {catalogStatus === 'error' && (
+              <p className="cfg__catalog-state cfg__catalog-state--error" role="alert">לא ניתן לטעון כרגע את המודלים שהועלו.</p>
+            )}
+            {catalogStatus === 'ready' && products.length === 0 && (
+              <p className="cfg__catalog-state">עדיין לא הועלו מודלים לקונפיגורטור.</p>
+            )}
+            {catalogStatus === 'ready' && products.length > 0 && filteredProducts.length === 0 && (
+              <p className="cfg__catalog-state">אין מודלים שהועלו בסינון הנוכחי.</p>
+            )}
             {filteredProducts.flatMap(product => variantsFor(product)
               .filter((variant) => selectedColors.includes(colorIdOf(variant.colorId, variant.colorLabel)))
               .map(variant => {
@@ -505,13 +633,7 @@ export default function Configurator() {
                   <div className="cfg__product-img">
                     {variant.thumbnailUrl
                       ? <img className="cfg__product-thumbnail cfg__product-thumbnail--photo" src={variant.thumbnailUrl} alt="" />
-                      : <ProductThumbnail
-                          modelSlug={product.modelSlug}
-                          productId={product.id}
-                          colorId={variant.colorId}
-                          colorHex={variant.colorHex}
-                          widthCm={product.width}
-                        />}
+                      : <span className="cfg__product-thumbnail-placeholder">ללא תמונה</span>}
                   </div>
                   <div className="cfg__product-info">
                     <span className="cfg__product-name">{product.name}</span>
@@ -557,9 +679,10 @@ export default function Configurator() {
             <div className="cfg__canvas-area">
               <KitchenModelViewer
                 cartItems={cabinetCartItems}
+                faucetItems={faucetCartItems}
                 wallLengthCm={appliedWallLength}
                 positions={cabinetPositions}
-                onPositionChange={setCabinetPosition}
+                onPositionsChange={setCabinetPositionUpdates}
                 accessories={visibleAccessories}
                 onAccessoryPositionChange={setAccessoryPosition}
               />
@@ -587,7 +710,9 @@ export default function Configurator() {
               </button>
             ))}
           </div>
-          <div className="cfg__drag-hint">גררו ארונות וברזים למיקום הרצוי</div>
+          <div className="cfg__drag-hint">
+            {viewMode === '3D' ? 'בחרו סיבוב או הזזה, ואז גררו בתצוגה' : 'גררו ארונות וברזים למיקום הרצוי'}
+          </div>
         </div>
 
         {/* LEFT panel: shopping list (RTL end — last in DOM) */}
@@ -643,7 +768,9 @@ export default function Configurator() {
           <div className="cfg__actions cfg__actions--mobile">
             <ActionButton
               resetAll={resetAll}
-              onContact={() => setContactOpen(true)}
+              onContact={sharePlanOnWhatsApp}
+              contactStatus={contactStatus}
+              contactDisabled={!canBuyKitchen}
               onBuy={buyKitchen}
               buyDisabled={!canBuyKitchen}
             />
@@ -652,7 +779,6 @@ export default function Configurator() {
 
       </div>
 
-      <ContactPopup open={contactOpen} onClose={() => setContactOpen(false)} />
     </div>
   )
 }
