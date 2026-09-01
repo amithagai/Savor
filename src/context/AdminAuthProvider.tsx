@@ -7,7 +7,13 @@ import { api } from '../lib/api'
 const STORAGE_KEY = 'savor:admin_token'
 
 function loadStoredToken(): string | null {
-  return localStorage.getItem(STORAGE_KEY)
+  const sessionToken = sessionStorage.getItem(STORAGE_KEY)
+  const legacyToken = localStorage.getItem(STORAGE_KEY)
+  localStorage.removeItem(STORAGE_KEY)
+  if (!sessionToken && legacyToken) {
+    sessionStorage.setItem(STORAGE_KEY, legacyToken)
+  }
+  return sessionToken || legacyToken
 }
 
 type AdminAuthProviderProps = {
@@ -19,10 +25,11 @@ export function AdminAuthProvider({ children }: AdminAuthProviderProps) {
 
   useEffect(() => {
     if (token) {
-      localStorage.setItem(STORAGE_KEY, token)
+      sessionStorage.setItem(STORAGE_KEY, token)
     } else {
-      localStorage.removeItem(STORAGE_KEY)
+      sessionStorage.removeItem(STORAGE_KEY)
     }
+    localStorage.removeItem(STORAGE_KEY)
   }, [token])
 
   const login = async (email: string, password: string) => {

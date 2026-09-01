@@ -36,8 +36,8 @@ export default function AdminLayout() {
     event.preventDefault()
     setPasswordError('')
 
-    if (newPassword.length < 10) {
-      setPasswordError('הסיסמה החדשה חייבת להכיל לפחות 10 תווים')
+    if (newPassword.length < 12) {
+      setPasswordError('הסיסמה החדשה חייבת להכיל לפחות 12 תווים')
       return
     }
     if (!/\p{L}/u.test(newPassword) || !/\p{N}/u.test(newPassword)) {

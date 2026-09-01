@@ -1,9 +1,8 @@
 import { useState } from 'react'
 import './Contact.css'
 import { useSiteContent } from '../../hooks/useSiteContent'
+import { api } from '../../lib/api'
 import type { ContactContent } from '../../types/content'
-
-const WEBHOOK_URL = import.meta.env.VITE_MAKE_WEBHOOK_URL as string
 
 type FormState = { name: string; email: string; message: string }
 type Status = 'idle' | 'sending' | 'success' | 'error'
@@ -14,6 +13,7 @@ export default function Contact() {
   const { data: content } = useSiteContent<ContactContent>('contact')
   const [form, setForm] = useState<FormState>(emptyForm)
   const [status, setStatus] = useState<Status>('idle')
+  const contactEmail = content?.email?.trim()
 
   const handleChange = (event: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
     setForm((previous) => ({ ...previous, [event.target.name]: event.target.value }))
@@ -24,13 +24,7 @@ export default function Contact() {
     setStatus('sending')
 
     try {
-      const response = await fetch(WEBHOOK_URL, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(form),
-      })
-
-      if (!response.ok) throw new Error('webhook error')
+      await api.post<void>('/contact', form)
       setStatus('success')
       setForm(emptyForm)
     } catch {
@@ -49,7 +43,9 @@ export default function Contact() {
             <p>
               טלפון משרד: <a href="tel:0555565617" dir="ltr">055-556-5617</a>
             </p>
-            <p>מייל:</p>
+            {contactEmail ? (
+              <p>מייל: <a href={`mailto:${contactEmail}`} dir="ltr">{contactEmail}</a></p>
+            ) : null}
             <p>כתובת לאיסוף עצמי: מומנטום - שדרות טום לנטוס 10, נתניה</p>
           </address>
 

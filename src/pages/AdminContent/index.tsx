@@ -260,6 +260,7 @@ export default function AdminContent() {
           slug: selectedPage.slug,
           title: selectedPage.title,
           body: selectedPage.body,
+          image_url: selectedPage.image_url?.trim() || null,
           language: selectedPage.language,
           meta_description: selectedPage.meta_description || null,
           is_published: selectedPage.is_published,
@@ -514,6 +515,15 @@ export default function AdminContent() {
                 <label className="admin-content__toggle"><input type="checkbox" checked={selectedPage.is_published} onChange={(event) => changeSelectedPage({ is_published: event.target.checked })} />מפורסם באתר</label>
               </div>
               <Field label="כותרת העמוד" value={selectedPage.title} onChange={(title) => changeSelectedPage({ title })} />
+              {selectedPage.slug === 'about' ? (
+                <ImageField
+                  label="תמונת עמוד אודות"
+                  value={selectedPage.image_url || ''}
+                  uploading={uploading === 'page-about'}
+                  onChange={(image_url) => changeSelectedPage({ image_url })}
+                  onUpload={(file) => uploadImage(file, 'page-about', (image_url) => changeSelectedPage({ image_url }))}
+                />
+              ) : null}
               {selectedPage.slug === 'size-guide' && sizeGuide ? (
                 <div className="admin-content__guide-editor">
                   <div className="admin-content__guide-intro">
@@ -610,6 +620,7 @@ export default function AdminContent() {
               <Field label="שעות פעילות" value={footer.data.hours} onChange={(hours) => setFooter({ ...footer, data: { ...footer.data, hours } })} />
               <Field label="כתובת לאיסוף" value={footer.data.pickup_address} onChange={(pickup_address) => setFooter({ ...footer, data: { ...footer.data, pickup_address } })} />
               <Field label="קישור WhatsApp" value={footer.data.whatsapp_url} dir="ltr" onChange={(whatsapp_url) => setFooter({ ...footer, data: { ...footer.data, whatsapp_url } })} />
+              <Field label="מספר WhatsApp לקבלת תכנונים (בפורמט בינלאומי)" value={footer.data.whatsapp_phone || ''} dir="ltr" onChange={(whatsapp_phone) => setFooter({ ...footer, data: { ...footer.data, whatsapp_phone } })} />
               <Field label="קישור Instagram" value={footer.data.instagram_url} dir="ltr" onChange={(instagram_url) => setFooter({ ...footer, data: { ...footer.data, instagram_url } })} />
               <Field label="שורת זכויות יוצרים" value={footer.data.copyright} onChange={(copyright) => setFooter({ ...footer, data: { ...footer.data, copyright } })} />
             </div>
@@ -621,6 +632,7 @@ export default function AdminContent() {
             </div>
             <Field label="כותרת" value={contact.data.title} onChange={(title) => setContact({ ...contact, data: { ...contact.data, title } })} />
             <Field label="כותרת משנה" value={contact.data.subtitle} onChange={(subtitle) => setContact({ ...contact, data: { ...contact.data, subtitle } })} />
+            <Field label="כתובת מייל ליצירת קשר" value={contact.data.email || ''} dir="ltr" type="email" onChange={(email) => setContact({ ...contact, data: { ...contact.data, email } })} />
             <Field label="הודעת הצלחה" value={contact.data.success_message} onChange={(success_message) => setContact({ ...contact, data: { ...contact.data, success_message } })} />
           </section>
           <SaveBar label="שמירת פרטי האתר" saving={saving === 'site'} onClick={saveSite} />
@@ -630,8 +642,8 @@ export default function AdminContent() {
   )
 }
 
-function Field({ label, value, onChange, dir }: { label: string; value: string; onChange: (value: string) => void; dir?: 'ltr' | 'rtl' }) {
-  return <label className="admin-content__field"><span>{label}</span><input value={value} dir={dir} onChange={(event) => onChange(event.target.value)} /></label>
+function Field({ label, value, onChange, dir, type = 'text' }: { label: string; value: string; onChange: (value: string) => void; dir?: 'ltr' | 'rtl'; type?: 'text' | 'email' }) {
+  return <label className="admin-content__field"><span>{label}</span><input type={type} value={value} dir={dir} onChange={(event) => onChange(event.target.value)} /></label>
 }
 
 function TextAreaField({ label, value, rows, onChange }: { label: string; value: string; rows: number; onChange: (value: string) => void }) {
@@ -646,7 +658,7 @@ function ImageField({ label, value, uploading, onChange, onUpload }: { label: st
         <Field label={label} value={value} dir="ltr" onChange={onChange} />
         <label className={`admin-content__upload ${uploading ? 'is-disabled' : ''}`}>
           {uploading ? 'מעלה…' : 'העלאת תמונה'}
-          <input type="file" accept="image/jpeg,image/png,image/webp" disabled={uploading} onChange={(event) => { const file = event.target.files?.[0]; event.target.value = ''; if (file) onUpload(file) }} />
+          <input type="file" accept="image/jpeg,image/png,image/webp,image/avif" disabled={uploading} onChange={(event) => { const file = event.target.files?.[0]; event.target.value = ''; if (file) onUpload(file) }} />
         </label>
       </div>
     </div>
