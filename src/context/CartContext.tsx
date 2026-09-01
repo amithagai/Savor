@@ -9,11 +9,13 @@ export type CartItem = {
   category?: string
   variant?: string
   variantId?: string
+  configurationId?: string
   quantity: number
   price: number
   image?: string
   swatchColor?: string
   productType?: ProductType
+  fixedQuantity?: boolean
 }
 
 export type CartContextType = {

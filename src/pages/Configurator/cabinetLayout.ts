@@ -13,6 +13,9 @@ export type CabinetLayoutItem = {
 }
 
 export type CabinetPositions = Record<string, number>
+export type CabinetWall = 'back' | 'left' | 'right' | 'free'
+export type CabinetSpatialPlacement = { xCm: number; zCm: number; wall: CabinetWall }
+export type CabinetSpatialPositions = Record<string, CabinetSpatialPlacement>
 export type KitchenAccessoryId = 'sink' | 'faucet'
 export type AccessoryPositions = Partial<Record<KitchenAccessoryId, number>>
 
@@ -28,8 +31,11 @@ export const CATEGORY_SPEC: Record<CabinetCategory, CategorySpec> = {
 }
 
 export const GAP_CM = 1
-export const DEFAULT_WALL_LENGTH_CM = 150
+export const DEFAULT_WALL_LENGTH_CM = 350
 export const WALL_HEIGHT_CM = 260
+export const WALL_SNAP_DISTANCE_CM = 8
+export const ROOM_DEPTH_CM = 260
+export const ROOM_WALL_SNAP_DISTANCE_CM = 45
 export const COUNTERTOP_HEIGHT_CM = CATEGORY_SPEC['תחתונים'].height
 export const COUNTERTOP_DEPTH_CM = CATEGORY_SPEC['תחתונים'].depth
 export const PLINTH_HEIGHT_CM = 10
@@ -45,6 +51,45 @@ export function doorCount(subtitle: string): number {
 
 export function isOven(subtitle: string): boolean {
   return subtitle.includes('תנור')
+}
+
+export function snapCabinetXToWall(x: number, width: number, wallLength: number) {
+  const half = width / 2
+  const leftEdgePosition = half
+  const rightEdgePosition = Math.max(half, wallLength - half)
+  const clamped = Math.min(Math.max(x, leftEdgePosition), rightEdgePosition)
+
+  if (Math.abs(clamped - leftEdgePosition) <= WALL_SNAP_DISTANCE_CM) return leftEdgePosition
+  if (Math.abs(clamped - rightEdgePosition) <= WALL_SNAP_DISTANCE_CM) return rightEdgePosition
+  return clamped
+}
+
+export function snapCabinetPlacementToRoom(
+  xCm: number,
+  zCm: number,
+  widthCm: number,
+  depthCm: number,
+  wallLengthCm: number,
+): CabinetSpatialPlacement {
+  const distanceToBack = Math.abs(zCm)
+  const distanceToLeft = Math.abs(xCm)
+  const distanceToRight = Math.abs(wallLengthCm - xCm)
+  const closestDistance = Math.min(distanceToBack, distanceToLeft, distanceToRight)
+  const halfWidth = widthCm / 2
+  const alongBack = Math.min(Math.max(xCm, halfWidth), Math.max(halfWidth, wallLengthCm - halfWidth))
+  const alongSide = Math.min(Math.max(zCm, halfWidth), Math.max(halfWidth, ROOM_DEPTH_CM - halfWidth))
+
+  if (closestDistance <= ROOM_WALL_SNAP_DISTANCE_CM) {
+    if (closestDistance === distanceToBack) return { xCm: alongBack, zCm: 0, wall: 'back' }
+    if (closestDistance === distanceToLeft) return { xCm: 0, zCm: alongSide, wall: 'left' }
+    return { xCm: wallLengthCm, zCm: alongSide, wall: 'right' }
+  }
+
+  return {
+    xCm: Math.min(Math.max(xCm, halfWidth), Math.max(halfWidth, wallLengthCm - halfWidth)),
+    zCm: Math.min(Math.max(zCm, 0), Math.max(0, ROOM_DEPTH_CM - depthCm)),
+    wall: 'free',
+  }
 }
 
 export type PlacedCabinet = {
@@ -150,7 +195,7 @@ export function cabinetDragPositionUpdates(
 
 function removeOverlaps(cabinets: PlacedCabinet[]) {
   const roomyWidth = Math.max(
-    150,
+    DEFAULT_WALL_LENGTH_CM,
     ...cabinets.map(cabinet => cabinet.x + cabinet.width / 2),
   ) + cabinets.reduce((sum, cabinet) => sum + cabinet.width + GAP_CM, 0)
 

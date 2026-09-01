@@ -485,8 +485,24 @@
 }
 
 .cfg__product-thumbnail--photo {
-  object-fit: contain;
-  padding: 3px;
+  /* Uploaded product shots include a wide white canvas. Crop that canvas,
+     then zoom slightly so the cabinet stays legible at thumbnail size. */
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  object-position: center;
+  padding: 0;
+  transform: scale(1.12);
+}
+
+.cfg__product-thumbnail-placeholder {
+  display: grid;
+  width: 100%;
+  height: 100%;
+  place-items: center;
+  color: var(--text-muted);
+  font-size: 10px;
+  text-align: center;
 }
 
 .cfg__product-info {
@@ -567,14 +583,29 @@
   touch-action: none;
 }
 
-.cfg__product-thumbnail-placeholder {
-  display: grid;
+.cfg3d__snap-indicator {
+  width: max-content;
+  padding: 6px 10px;
+  border: 1px solid rgba(55, 126, 43, 0.32);
+  border-radius: 999px;
+  background: rgba(240, 249, 237, 0.96);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.12);
+  color: #2f6f2b;
+  font-family: var(--font);
+  font-size: 11px;
+  font-weight: 700;
+  white-space: nowrap;
+  pointer-events: none;
+}
+
+.cfg3d__viewer {
+  position: relative;
   width: 100%;
   height: 100%;
-  place-items: center;
-  color: var(--text-muted);
-  font-size: 10px;
-  text-align: center;
+}
+
+.cfg3d__viewer canvas {
+  display: block;
 }
 
 .cfg3d__model-error {
@@ -590,20 +621,9 @@
   pointer-events: none;
 }
 
-.cfg3d__viewer {
-  position: relative;
-  width: 100%;
-  height: 100%;
-}
-
-.cfg3d__viewer canvas {
-  display: block;
-}
-
 .cfg3d__interaction-toggle {
   position: absolute;
   top: 12px;
-  right: 12px;
   z-index: 3;
   display: flex;
   gap: 2px;
@@ -613,6 +633,10 @@
   background: rgba(255, 255, 255, 0.92);
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
   direction: rtl;
+}
+
+.cfg3d__interaction-toggle {
+  right: 12px;
 }
 
 .cfg3d__interaction-btn {
@@ -650,6 +674,19 @@
 .cfg2d__dimension text {
   font-family: inherit;
   font-variant-numeric: tabular-nums;
+}
+
+.cfg2d__wall-label rect {
+  fill: rgba(255, 255, 255, 0.94);
+  stroke: rgba(55, 126, 43, 0.24);
+  stroke-width: 0.7;
+}
+
+.cfg2d__wall-label text {
+  fill: #2f6f2b;
+  font-family: inherit;
+  font-size: 8px;
+  font-weight: 700;
 }
 
 .cfg2d__draggable {
@@ -783,6 +820,84 @@
   display: none;
 }
 
+.cfg__countertop-option {
+  margin: 0 10px 10px;
+  padding: 10px;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 8px 10px;
+  align-items: center;
+  border: 1px solid #d9e1ea;
+  border-radius: 10px;
+  background: #fff;
+  direction: rtl;
+}
+
+.cfg__countertop-option--selected {
+  border-color: #8fba87;
+  background: #f5fbf3;
+}
+
+.cfg__countertop-copy {
+  display: flex;
+  min-width: 0;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.cfg__countertop-copy strong {
+  font-size: 12.5px;
+  color: var(--text);
+}
+
+.cfg__countertop-copy span {
+  font-size: 10.5px;
+  line-height: 1.35;
+  color: var(--text-muted);
+}
+
+.cfg__countertop-toggle {
+  border: 1px solid #377e2b;
+  border-radius: 7px;
+  padding: 7px 9px;
+  background: #fff;
+  color: #377e2b;
+  font-family: var(--font);
+  font-size: 11px;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.cfg__countertop-toggle[aria-pressed="true"] {
+  background: #377e2b;
+  color: #fff;
+}
+
+.cfg__countertop-toggle:disabled {
+  border-color: #cbd1d5;
+  color: #9aa1a6;
+  cursor: not-allowed;
+}
+
+.cfg__countertop-toggle:focus-visible {
+  outline: 2px solid var(--sage);
+  outline-offset: 2px;
+}
+
+.cfg__countertop-price {
+  grid-column: 1 / -1;
+  color: #2f6f28;
+  font-size: 12px;
+  text-align: left;
+}
+
+.cfg__purchase-error {
+  margin: 0 12px 8px;
+  color: #a13a32;
+  font-size: 11px;
+  line-height: 1.4;
+}
+
 .cfg__cart-empty {
   font-size: 12.5px;
   color: var(--text-muted);
@@ -900,7 +1015,6 @@
 .cfg__cart-footer {
   padding: 12px;
   display: flex;
-  position: relative;
   flex-direction: row;
   gap: 8px;
   width: 40%;
@@ -1058,7 +1172,7 @@
   }
 
   .cfg3d__interaction-toggle {
-    top: 48px;
+    top: 10px;
     right: 50%;
     transform: translateX(50%);
   }
@@ -1233,32 +1347,4 @@
   align-items: center;
   justify-content: center;
   text-decoration: none;
-}
-
-.cfg__outline-btn:disabled {
-  cursor: not-allowed;
-  opacity: 0.55;
-}
-
-.cfg__contact-error {
-  position: absolute;
-  top: 100%;
-  right: 0;
-  left: 0;
-  color: #a33a32;
-  font-size: 12px;
-  text-align: center;
-}
-
-.cfg__share-notice {
-  margin: 0 0 16px;
-  padding: 12px 16px;
-  border-radius: 8px;
-  background: #f3f0e8;
-  text-align: center;
-}
-
-.cfg__share-notice--error {
-  background: #fff0ee;
-  color: #a33a32;
 }

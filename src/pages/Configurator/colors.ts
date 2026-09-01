@@ -24,7 +24,7 @@ const DEFAULT_HEX = '#F1EDE5'
 
 const COLOR_ALIASES: Record<string, string[]> = {
   cloud: ['cloud'],
-  cream: ['cream', 'קרם'],
+  cream: ['cream', 'craem', 'קרם'],
   latte: ['latte', 'לאטה'],
   timber: ['timber', 'טימבר'],
 }
