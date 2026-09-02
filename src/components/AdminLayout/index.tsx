@@ -188,11 +188,11 @@ export default function AdminLayout() {
                   value={newPassword}
                   onChange={(event) => setNewPassword(event.target.value)}
                   autoComplete="new-password"
-                  minLength={10}
+                  minLength={12}
                   required
                 />
               </label>
-              <p className="admin-password__hint">לפחות 10 תווים, כולל אות ומספר</p>
+              <p className="admin-password__hint">לפחות 12 תווים, כולל אות ומספר</p>
               <label>
                 אימות סיסמה חדשה
                 <input
@@ -200,7 +200,7 @@ export default function AdminLayout() {
                   value={confirmPassword}
                   onChange={(event) => setConfirmPassword(event.target.value)}
                   autoComplete="new-password"
-                  minLength={10}
+                  minLength={12}
                   required
                 />
               </label>
