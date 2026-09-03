@@ -50,7 +50,7 @@ function getImageDimensions(file: File) {
 }
 
 export default function AdminContent() {
-  const { token, logout } = useAdminAuth()
+  const { logout } = useAdminAuth()
   const navigate = useNavigate()
   const [tab, setTab] = useState<ContentTab>('home')
   const [home, setHome] = useState<SiteContentResponse<HomeContent> | null>(null)
@@ -76,22 +76,22 @@ export default function AdminContent() {
   }, [logout, navigate])
 
   useEffect(() => {
-    const seoRequest = api.get<SiteContentResponse<SeoContent>>('/admin/content/site/seo', token)
+    const seoRequest = api.get<SiteContentResponse<SeoContent>>('/admin/content/site/seo')
       .catch((error) => {
         if (error instanceof ApiError && error.status === 404) return null
         throw error
       })
-    const sizeGuideRequest = api.get<SiteContentResponse<SizeGuideContent>>('/admin/content/site/size-guide', token)
+    const sizeGuideRequest = api.get<SiteContentResponse<SizeGuideContent>>('/admin/content/site/size-guide')
       .catch((error) => {
         if (error instanceof ApiError && error.status === 404) return null
         throw error
       })
 
     Promise.all([
-      api.get<SiteContentResponse<HomeContent>>('/admin/content/site/home', token),
-      api.get<ContentPageData[]>('/admin/content/pages', token),
-      api.get<SiteContentResponse<FooterContent>>('/admin/content/site/footer', token),
-      api.get<SiteContentResponse<ContactContent>>('/admin/content/site/contact', token),
+      api.get<SiteContentResponse<HomeContent>>('/admin/content/site/home'),
+      api.get<ContentPageData[]>('/admin/content/pages'),
+      api.get<SiteContentResponse<FooterContent>>('/admin/content/site/footer'),
+      api.get<SiteContentResponse<ContactContent>>('/admin/content/site/contact'),
       api.get<CatalogProduct[]>('/catalog/kitchens?limit=100'),
       sizeGuideRequest,
       seoRequest,
@@ -133,7 +133,7 @@ export default function AdminContent() {
       })
       .catch((error) => handleError(error, 'טעינת תוכן האתר נכשלה'))
       .finally(() => setLoading(false))
-  }, [token, handleError])
+  }, [handleError])
 
   const selectedPage = useMemo(
     () => pages.find((page) => page.slug === selectedPageSlug) || null,
@@ -202,7 +202,7 @@ export default function AdminContent() {
     setUploading(slot)
     setNotice(null)
     try {
-      const result = await api.upload<{ url: string }>('/admin/media', file, token)
+      const result = await api.upload<{ url: string }>('/admin/media', file)
       onUploaded(result.url)
       setNotice({ tone: 'success', text: 'התמונה הועלתה. יש לשמור את השינויים כדי לפרסם אותה.' })
     } catch (error) {
@@ -238,7 +238,6 @@ export default function AdminContent() {
       const saved = await api.put<SiteContentResponse<HomeContent>>(
         '/admin/content/site/home',
         { data: home.data, is_published: home.is_published },
-        token,
       )
       setHome(saved)
       setNotice({ tone: 'success', text: 'דף הבית נשמר בהצלחה' })
@@ -265,13 +264,11 @@ export default function AdminContent() {
           meta_description: selectedPage.meta_description || null,
           is_published: selectedPage.is_published,
         },
-        token,
       )
       if (selectedPage.slug === 'size-guide' && sizeGuide) {
         const savedGuide = await api.put<SiteContentResponse<SizeGuideContent>>(
           '/admin/content/site/size-guide',
           { data: sizeGuide.data, is_published: selectedPage.is_published },
-          token,
         )
         setSizeGuide(savedGuide)
       }
@@ -293,17 +290,14 @@ export default function AdminContent() {
         api.put<SiteContentResponse<FooterContent>>(
           '/admin/content/site/footer',
           { data: footer.data, is_published: footer.is_published },
-          token,
         ),
         api.put<SiteContentResponse<ContactContent>>(
           '/admin/content/site/contact',
           { data: contact.data, is_published: contact.is_published },
-          token,
         ),
         api.put<SiteContentResponse<SeoContent>>(
           '/admin/content/site/seo',
           { data: seo.data, is_published: true },
-          token,
         ),
       ])
       setFooter(savedFooter)

@@ -16,7 +16,7 @@ const STATUS_LABELS: Record<InventoryItem['status'], string> = {
 }
 
 export default function AdminInventory() {
-  const { token, logout } = useAdminAuth()
+  const { logout } = useAdminAuth()
   const navigate = useNavigate()
   const [items, setItems] = useState<InventoryItem[]>([])
   const [query, setQuery] = useState('')
@@ -27,7 +27,7 @@ export default function AdminInventory() {
   const [error, setError] = useState('')
 
   useEffect(() => {
-    api.get<InventoryItem[]>('/admin/inventory', token)
+    api.get<InventoryItem[]>('/admin/inventory')
       .then(setItems)
       .catch((loadError) => {
         if (loadError instanceof ApiError && loadError.status === 401) {
@@ -38,7 +38,7 @@ export default function AdminInventory() {
         setError('טעינת המלאי נכשלה')
       })
       .finally(() => setLoading(false))
-  }, [token, logout, navigate])
+  }, [logout, navigate])
 
   const visibleItems = useMemo(() => {
     const normalized = query.trim().toLocaleLowerCase('he')
@@ -66,7 +66,6 @@ export default function AdminInventory() {
       const updated = await api.post<InventoryItem>(
         `/admin/inventory/${item.inventory_item_id}/adjust`,
         { quantity_delta: quantity, note: 'כניסת סחורה למחסן' },
-        token,
       )
       setItems((current) => current.map((value) => value.inventory_item_id === updated.inventory_item_id ? updated : value))
       setReceipts((current) => ({ ...current, [item.inventory_item_id!]: '' }))

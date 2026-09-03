@@ -48,7 +48,6 @@ function isGuestSessionError(status: number, detail: unknown): boolean {
 async function request<T>(
   path: string,
   options: RequestInit = {},
-  token?: string | null,
   retryGuestSession = true,
 ): Promise<T> {
   const observedSessionGeneration = sessionGeneration
@@ -56,10 +55,6 @@ async function request<T>(
   if (!(options.body instanceof FormData) && !headers.has('Content-Type')) {
     headers.set('Content-Type', 'application/json')
   }
-  if (token) {
-    headers.set('Authorization', `Bearer ${token}`)
-  }
-
   const res = await fetch(`${API_URL}${path}`, {
     ...options,
     headers,
@@ -70,7 +65,7 @@ async function request<T>(
     const body = await res.json().catch(() => null)
     if (retryGuestSession && isGuestSessionError(res.status, body?.detail)) {
       await refreshSessionCookie(observedSessionGeneration)
-      return request<T>(path, options, token, false)
+      return request<T>(path, options, false)
     }
     throw new ApiError(res.status, body?.detail || res.statusText)
   }
@@ -83,18 +78,18 @@ async function request<T>(
 }
 
 export const api = {
-  get: <T,>(path: string, token?: string | null) => request<T>(path, {}, token),
-  post: <T,>(path: string, data: unknown, token?: string | null) =>
-    request<T>(path, { method: 'POST', body: JSON.stringify(data) }, token),
-  patch: <T,>(path: string, data: unknown, token?: string | null) =>
-    request<T>(path, { method: 'PATCH', body: JSON.stringify(data) }, token),
-  delete: <T,>(path: string, token?: string | null) =>
-    request<T>(path, { method: 'DELETE' }, token),
-  put: <T,>(path: string, data: unknown, token?: string | null) =>
-    request<T>(path, { method: 'PUT', body: JSON.stringify(data) }, token),
-  upload: <T,>(path: string, file: File, token?: string | null): Promise<T> => {
+  get: <T,>(path: string) => request<T>(path),
+  post: <T,>(path: string, data: unknown) =>
+    request<T>(path, { method: 'POST', body: JSON.stringify(data) }),
+  patch: <T,>(path: string, data: unknown) =>
+    request<T>(path, { method: 'PATCH', body: JSON.stringify(data) }),
+  delete: <T,>(path: string) =>
+    request<T>(path, { method: 'DELETE' }),
+  put: <T,>(path: string, data: unknown) =>
+    request<T>(path, { method: 'PUT', body: JSON.stringify(data) }),
+  upload: <T,>(path: string, file: File): Promise<T> => {
     const form = new FormData()
     form.append('file', file)
-    return request<T>(path, { method: 'POST', body: form }, token)
+    return request<T>(path, { method: 'POST', body: form })
   },
 }

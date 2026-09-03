@@ -12,7 +12,7 @@ type LoginStep = 'credentials' | 'challenge' | 'setup' | 'recovery'
 const QR_OPTIONS = { width: 240, margin: 1, errorCorrectionLevel: 'M' as const }
 
 export default function AdminLogin() {
-  const { login, startMfaSetup, confirmMfaSetup, verifyMfa, isAuthenticated } = useAdminAuth()
+  const { login, startMfaSetup, confirmMfaSetup, verifyMfa, isAuthenticated, isLoading } = useAdminAuth()
   const navigate = useNavigate()
   const [searchParams] = useSearchParams()
   const passwordChanged = searchParams.get('password_changed') === '1'
@@ -48,6 +48,8 @@ export default function AdminLogin() {
     }
   }, [otpauthUri])
 
+  if (isLoading) return null
+
   if (isAuthenticated && step !== 'recovery') {
     return <Navigate to="/admin/orders" replace />
   }
@@ -82,9 +84,7 @@ export default function AdminLogin() {
     try {
       const result = await login(email, password)
       setPassword('')
-      if (result.status === 'authenticated') {
-        navigate('/admin/orders')
-      } else if (result.status === 'mfa_required') {
+      if (result.status === 'mfa_required') {
         setChallengeToken(result.challengeToken)
         setStep('challenge')
       } else {

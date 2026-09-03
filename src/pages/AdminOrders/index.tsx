@@ -148,7 +148,7 @@ function variantDetails(item: OrderItem) {
 }
 
 export default function AdminOrders() {
-  const { token, logout } = useAdminAuth()
+  const { logout } = useAdminAuth()
   const navigate = useNavigate()
   const [orders, setOrders] = useState<Order[]>([])
   const [loading, setLoading] = useState(true)
@@ -166,7 +166,7 @@ export default function AdminOrders() {
     const loadOrders = async (showLoading = false) => {
       if (showLoading) setLoading(true)
       try {
-        const data = await api.get<Order[]>('/admin/orders', token)
+        const data = await api.get<Order[]>('/admin/orders')
         if (!cancelled) setOrders(data)
       } catch (err) {
         if (err instanceof ApiError && err.status === 401) {
@@ -185,7 +185,7 @@ export default function AdminOrders() {
       cancelled = true
       window.clearInterval(refreshId)
     }
-  }, [token, logout, navigate])
+  }, [logout, navigate])
 
   const statusCounts = useMemo(() => STATUS_ORDER.reduce<Record<OrderStatus, number>>(
     (counts, status) => ({
@@ -247,7 +247,7 @@ export default function AdminOrders() {
     setError('')
     setNotice('')
     try {
-      const updated = await api.patch<Order>(`/admin/orders/${order.id}/status`, { status }, token)
+      const updated = await api.patch<Order>(`/admin/orders/${order.id}/status`, { status })
       setOrders((current) => current.map((item) => item.id === order.id ? updated : item))
       setNotice(`הזמנה #${order.order_number} עודכנה לסטטוס “${STATUS_LABELS[status]}”`)
     } catch (err) {

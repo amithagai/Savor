@@ -15,7 +15,7 @@ const TYPE_LABELS: Record<ProductType, string> = {
 }
 
 export default function AdminProducts() {
-  const { token, logout } = useAdminAuth()
+  const { logout } = useAdminAuth()
   const navigate = useNavigate()
   const [products, setProducts] = useState<AdminProduct[]>([])
   const [query, setQuery] = useState('')
@@ -24,7 +24,7 @@ export default function AdminProducts() {
   const [error, setError] = useState('')
 
   useEffect(() => {
-    api.get<AdminProduct[]>('/admin/products', token)
+    api.get<AdminProduct[]>('/admin/products')
       .then(setProducts)
       .catch((err) => {
         if (err instanceof ApiError && err.status === 401) {
@@ -35,7 +35,7 @@ export default function AdminProducts() {
         setError('טעינת המוצרים נכשלה')
       })
       .finally(() => setLoading(false))
-  }, [token, logout, navigate])
+  }, [logout, navigate])
 
   const visibleProducts = useMemo(() => {
     const normalized = query.trim().toLocaleLowerCase('he')
