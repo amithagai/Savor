@@ -1,4 +1,4 @@
-export const API_URL = import.meta.env.VITE_API_URL || (import.meta.env.PROD ? '/api' : 'http://localhost:8000')
+export const API_URL = import.meta.env.PROD ? '/api' : (import.meta.env.VITE_API_URL || 'http://localhost:8000')
 let sessionRequest: Promise<void> | null = null
 let sessionGeneration = 0
 
