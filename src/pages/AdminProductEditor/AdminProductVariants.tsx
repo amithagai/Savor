@@ -21,7 +21,6 @@ const COLOR_ID_PATTERN = /^[a-z0-9]+(?:-[a-z0-9]+)*$/
 
 type Props = {
   productId: string
-  token: string | null
   variants: ProductVariant[]
   onChange: (variants: ProductVariant[]) => void
 }
@@ -86,7 +85,7 @@ function toDraft(variant: ProductVariant): VariantDraft {
   }
 }
 
-export default function AdminProductVariants({ productId, token, variants, onChange }: Props) {
+export default function AdminProductVariants({ productId, variants, onChange }: Props) {
   const [drafts, setDrafts] = useState<Record<string, VariantDraft>>({ new: emptyDraft })
   const [busy, setBusy] = useState('')
   const [error, setError] = useState('')
@@ -118,7 +117,7 @@ export default function AdminProductVariants({ productId, token, variants, onCha
     setBusy(`${key}-${kind}`)
     setError('')
     try {
-      const result = await api.upload<{ url: string }>('/admin/media', file, token)
+      const result = await api.upload<{ url: string }>('/admin/media', file)
       setDraftField(key, kind, result.url)
     } catch (uploadError) {
       setError(uploadError instanceof ApiError ? uploadError.message : 'העלאת הקובץ נכשלה')
@@ -172,8 +171,8 @@ export default function AdminProductVariants({ productId, token, variants, onCha
     }
     try {
       const saved = key === 'new'
-        ? await api.post<ProductVariant>(`/admin/products/${productId}/variants`, payload, token)
-        : await api.patch<ProductVariant>(`/admin/products/${productId}/variants/${key}`, payload, token)
+        ? await api.post<ProductVariant>(`/admin/products/${productId}/variants`, payload)
+        : await api.patch<ProductVariant>(`/admin/products/${productId}/variants/${key}`, payload)
       const next = key === 'new'
         ? [...variants, saved]
         : variants.map((variant) => variant.id === saved.id ? saved : variant)
@@ -195,7 +194,7 @@ export default function AdminProductVariants({ productId, token, variants, onCha
     setBusy(`${variant.id}-delete`)
     setError('')
     try {
-      await api.delete(`/admin/products/${productId}/variants/${variant.id}`, token)
+      await api.delete(`/admin/products/${productId}/variants/${variant.id}`)
       onChange(variants.filter((item) => item.id !== variant.id))
       setDrafts((current) => {
         const next = { ...current }

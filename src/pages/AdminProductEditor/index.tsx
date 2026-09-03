@@ -92,7 +92,7 @@ function detailToForm(product: AdminProductDetail): FormState {
 export default function AdminProductEditor() {
   const { productId } = useParams()
   const isNew = productId === 'new'
-  const { token, logout } = useAdminAuth()
+  const { logout } = useAdminAuth()
   const navigate = useNavigate()
   const [form, setForm] = useState<FormState>(emptyForm)
   const [categories, setCategories] = useState<Category[]>([])
@@ -108,9 +108,9 @@ export default function AdminProductEditor() {
   const [categoryName, setCategoryName] = useState('')
 
   useEffect(() => {
-    api.get<Category[]>('/admin/categories', token).then(setCategories).catch(() => setError('טעינת הקטגוריות נכשלה'))
+    api.get<Category[]>('/admin/categories').then(setCategories).catch(() => setError('טעינת הקטגוריות נכשלה'))
     if (!isNew && productId) {
-      api.get<AdminProductDetail>(`/admin/products/${productId}`, token)
+      api.get<AdminProductDetail>(`/admin/products/${productId}`)
         .then((product) => {
           setForm(detailToForm(product))
           setVariants(product.variants || [])
@@ -125,7 +125,7 @@ export default function AdminProductEditor() {
         })
         .finally(() => setLoading(false))
     }
-  }, [isNew, productId, token, logout, navigate])
+  }, [isNew, productId, logout, navigate])
 
   const setField = <K extends keyof FormState>(key: K, value: FormState[K]) => {
     setForm((current) => ({ ...current, [key]: value }))
@@ -139,7 +139,7 @@ export default function AdminProductEditor() {
     try {
       const urls: string[] = []
       for (const file of Array.from(files)) {
-        const result = await api.upload<{ url: string }>('/admin/media', file, token)
+        const result = await api.upload<{ url: string }>('/admin/media', file)
         urls.push(result.url)
       }
       setForm((current) => {
@@ -196,7 +196,7 @@ export default function AdminProductEditor() {
     try {
       const category = await api.post<Category>('/admin/categories', {
         name: categoryName.trim(), slug: toSlug(categoryName), parent_id: null, sort_order: categories.length,
-      }, token)
+      })
       setCategories((current) => [...current, category])
       setField('category_id', category.id)
       setCategoryName('')
@@ -258,8 +258,8 @@ export default function AdminProductEditor() {
     }
     try {
       const result = isNew
-        ? await api.post<AdminProductDetail>('/admin/products', payload, token)
-        : await api.patch<AdminProductDetail>(`/admin/products/${productId}`, payload, token)
+        ? await api.post<AdminProductDetail>('/admin/products', payload)
+        : await api.patch<AdminProductDetail>(`/admin/products/${productId}`, payload)
       setForm(detailToForm(result))
       setVariants(result.variants || [])
       setSaved(true)
@@ -276,7 +276,7 @@ export default function AdminProductEditor() {
     setUploadingPdf(true)
     setError('')
     try {
-      const result = await api.upload<{ url: string }>('/admin/media', file, token)
+      const result = await api.upload<{ url: string }>('/admin/media', file)
       setField('installation_pdf_url', result.url)
     } catch (err) {
       setError(err instanceof ApiError ? err.message : 'העלאת חוברת ההרכבה נכשלה')
@@ -291,7 +291,7 @@ export default function AdminProductEditor() {
     setDeleting(true)
     setError('')
     try {
-      await api.delete(`/admin/products/${productId}`, token)
+      await api.delete(`/admin/products/${productId}`)
       navigate('/admin/products', { replace: true })
     } catch (err) {
       setError(err instanceof ApiError ? err.message : 'מחיקת המוצר נכשלה')
@@ -467,7 +467,6 @@ export default function AdminProductEditor() {
           {!isNew && productId && (
             <AdminProductVariants
               productId={productId}
-              token={token}
               variants={variants}
               onChange={setVariants}
             />

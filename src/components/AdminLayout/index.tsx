@@ -9,7 +9,7 @@ import { adminLoginPath } from '../../lib/adminRoutes'
 import { useAdminAuth } from '../../context/useAdminAuth'
 
 export default function AdminLayout() {
-  const { token, logout } = useAdminAuth()
+  const { logout } = useAdminAuth()
   const navigate = useNavigate()
   const [passwordDialogOpen, setPasswordDialogOpen] = useState(false)
   const [currentPassword, setCurrentPassword] = useState('')
@@ -18,8 +18,8 @@ export default function AdminLayout() {
   const [passwordError, setPasswordError] = useState('')
   const [passwordLoading, setPasswordLoading] = useState(false)
 
-  const handleLogout = () => {
-    logout()
+  const handleLogout = async () => {
+    await logout()
     navigate(adminLoginPath())
   }
 
@@ -62,9 +62,8 @@ export default function AdminLayout() {
       await api.patch<void>(
         '/auth/admin/password',
         { current_password: currentPassword, new_password: newPassword },
-        token,
       )
-      logout()
+      await logout()
       navigate(adminLoginPath('?password_changed=1'), { replace: true })
     } catch (error) {
       if (error instanceof ApiError && error.status === 400) {
@@ -72,7 +71,7 @@ export default function AdminLayout() {
       } else if (error instanceof ApiError && error.status === 422) {
         setPasswordError('הסיסמה החדשה אינה עומדת בדרישות')
       } else if (error instanceof ApiError && (error.status === 401 || error.status === 403)) {
-        logout()
+        await logout()
         navigate(adminLoginPath(), { replace: true })
       } else {
         setPasswordError('לא הצלחנו לשנות את הסיסמה. נסו שוב')

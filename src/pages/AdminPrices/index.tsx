@@ -27,7 +27,7 @@ const TYPE_LABELS: Record<ProductType, string> = {
 }
 
 export default function AdminPrices() {
-  const { token, logout } = useAdminAuth()
+  const { logout } = useAdminAuth()
   const navigate = useNavigate()
 
   const [products, setProducts] = useState<AdminProduct[]>([])
@@ -43,7 +43,7 @@ export default function AdminPrices() {
 
     async function load() {
       try {
-        const data = await api.get<AdminProduct[]>('/admin/products', token)
+        const data = await api.get<AdminProduct[]>('/admin/products')
         if (cancelled) return
         setProducts(data)
         setDrafts(Object.fromEntries(data.map((p) => [p.id, String(p.regular_price ?? p.current_price ?? '')])))
@@ -64,7 +64,7 @@ export default function AdminPrices() {
     return () => {
       cancelled = true
     }
-  }, [token, logout, navigate])
+  }, [logout, navigate])
 
   const handleSave = async (productId: string) => {
     const amount = Number(drafts[productId])
@@ -81,7 +81,6 @@ export default function AdminPrices() {
       const updated = await api.patch<AdminProduct>(
         `/admin/products/${productId}/price`,
         { amount, sale_amount: saleAmount },
-        token,
       )
       setProducts((prev) => prev.map((p) => (p.id === productId ? updated : p)))
       setSavedId(productId)
