@@ -1,7 +1,6 @@
-export const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000'
-const SESSION_TOKEN_STORAGE_KEY = 'savor:session-token'
-const LEGACY_SESSION_STORAGE_KEY = 'savor:session-id'
-let sessionRequest: Promise<string> | null = null
+export const API_URL = import.meta.env.VITE_API_URL || (import.meta.env.PROD ? '/api' : 'http://localhost:8000')
+let sessionRequest: Promise<void> | null = null
+let sessionGeneration = 0
 
 export class ApiError extends Error {
   status: number
@@ -12,46 +11,37 @@ export class ApiError extends Error {
   }
 }
 
-async function issueSessionToken(): Promise<string> {
-  const legacySessionId = localStorage.getItem(LEGACY_SESSION_STORAGE_KEY)
+async function issueSessionCookie(): Promise<void> {
   const res = await fetch(`${API_URL}/auth/session`, {
     method: 'POST',
-    headers: legacySessionId ? { 'X-Legacy-Session-Id': legacySessionId } : {},
+    credentials: 'include',
   })
   if (!res.ok) {
     const body = await res.json().catch(() => null)
     throw new ApiError(res.status, body?.detail || res.statusText)
   }
-  const body = await res.json() as { session_token: string }
-  if (!body.session_token) {
-    throw new ApiError(502, 'The API returned an invalid guest session')
-  }
-  localStorage.setItem(SESSION_TOKEN_STORAGE_KEY, body.session_token)
-  localStorage.removeItem(LEGACY_SESSION_STORAGE_KEY)
-  return body.session_token
 }
 
-async function getSessionToken(): Promise<string> {
-  const storedToken = localStorage.getItem(SESSION_TOKEN_STORAGE_KEY)
-  if (storedToken) {
-    return storedToken
+async function refreshSessionCookie(observedGeneration: number): Promise<void> {
+  if (observedGeneration !== sessionGeneration) {
+    return
   }
   if (!sessionRequest) {
-    sessionRequest = issueSessionToken().finally(() => {
-      sessionRequest = null
-    })
+    sessionRequest = issueSessionCookie()
+      .then(() => {
+        sessionGeneration += 1
+      })
+      .finally(() => {
+        sessionRequest = null
+      })
   }
   return sessionRequest
-}
-
-function clearSessionToken() {
-  localStorage.removeItem(SESSION_TOKEN_STORAGE_KEY)
 }
 
 function isGuestSessionError(status: number, detail: unknown): boolean {
   return status === 401 && (
     detail === 'Invalid or expired guest session'
-    || detail === 'X-Session-Token header is required'
+    || detail === 'Guest session cookie is required'
   )
 }
 
@@ -61,12 +51,11 @@ async function request<T>(
   token?: string | null,
   retryGuestSession = true,
 ): Promise<T> {
-  const sessionToken = await getSessionToken()
+  const observedSessionGeneration = sessionGeneration
   const headers = new Headers(options.headers)
   if (!(options.body instanceof FormData) && !headers.has('Content-Type')) {
     headers.set('Content-Type', 'application/json')
   }
-  headers.set('X-Session-Token', sessionToken)
   if (token) {
     headers.set('Authorization', `Bearer ${token}`)
   }
@@ -74,12 +63,13 @@ async function request<T>(
   const res = await fetch(`${API_URL}${path}`, {
     ...options,
     headers,
+    credentials: 'include',
   })
 
   if (!res.ok) {
     const body = await res.json().catch(() => null)
     if (retryGuestSession && isGuestSessionError(res.status, body?.detail)) {
-      clearSessionToken()
+      await refreshSessionCookie(observedSessionGeneration)
       return request<T>(path, options, token, false)
     }
     throw new ApiError(res.status, body?.detail || res.statusText)
