@@ -29,6 +29,7 @@ test('CSP permits model and decoder downloads from the configured providers', ()
 
   for (const source of [
     "'self'",
+    'blob:',
     'https://*.backblazeb2.com',
     'https://res.cloudinary.com',
     'https://www.gstatic.com',
