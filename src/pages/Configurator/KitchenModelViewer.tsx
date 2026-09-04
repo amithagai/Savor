@@ -1,6 +1,6 @@
 import { Component, Suspense, useCallback, useEffect, useMemo, useRef, useState, type ErrorInfo, type ReactNode } from 'react'
 import { Canvas, useThree, type ThreeEvent } from '@react-three/fiber'
-import { Edges, Html, Line, OrbitControls, Text, useGLTF } from '@react-three/drei'
+import { Edges, Html, Line, OrbitControls, useGLTF } from '@react-three/drei'
 import {
   Box3,
   type Material,
@@ -218,9 +218,21 @@ function WallGuide({ startX, lengthM, exceeds }: { startX: number; lengthM: numb
       <Line points={[[-half, 0.002, 0], [half, 0.002, 0]]} color={color} lineWidth={2} />
       <Line points={[[-half, 0.002, 0], [-half, tickHeight, 0]]} color={color} lineWidth={2} />
       <Line points={[[half, 0.002, 0], [half, tickHeight, 0]]} color={color} lineWidth={2} />
-      <Text position={[0, tickHeight + 0.05, 0]} fontSize={0.09} color={color} anchorX="center" anchorY="bottom">
-        {`${Math.round(lengthM * 100)} ס"מ${exceeds ? ' - חריגה!' : ''}`}
-      </Text>
+      <Html position={[0, tickHeight + 0.05, 0]} center>
+        <span
+          style={{
+            color,
+            direction: 'rtl',
+            fontSize: '12px',
+            fontWeight: 700,
+            pointerEvents: 'none',
+            userSelect: 'none',
+            whiteSpace: 'nowrap',
+          }}
+        >
+          {`${Math.round(lengthM * 100)} ס"מ${exceeds ? ' - חריגה!' : ''}`}
+        </span>
+      </Html>
     </group>
   )
 }
