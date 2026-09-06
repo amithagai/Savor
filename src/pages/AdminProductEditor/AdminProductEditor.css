@@ -55,6 +55,7 @@
 .admin-product-editor__ltr { direction: ltr; text-align: left; color: var(--text-muted); font-weight: 400; }
 .admin-variants__heading { display: flex; align-items: flex-start; justify-content: space-between; gap: 16px; }
 .admin-variants__heading > span { padding: 5px 9px; border-radius: 999px; background: var(--sage); color: var(--signup-button); font-size: 11px; font-weight: 700; white-space: nowrap; }
+.admin-variants__notice { color: var(--signup-button); background: #f2f8ef; border: 1px solid #cfe1c8; border-radius: 12px; padding: 11px 14px; margin-bottom: 16px; font-weight: 700; }
 .admin-variants__list { display: flex; flex-direction: column; gap: 14px; }
 .admin-variant { display: grid; grid-template-columns: 220px minmax(0, 1fr); gap: 16px; padding: 14px; border: 1px solid var(--border); border-radius: 14px; background: #fbfcfa; }
 .admin-variant__preview { min-height: 220px; overflow: hidden; border: 1px solid #d9ddd5; border-radius: 12px; background: #f3f1eb; }

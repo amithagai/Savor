@@ -1,7 +1,7 @@
 import { useState } from 'react'
 
 import { ApiError, api } from '../../lib/api'
-import type { ProductVariant } from '../../types/catalog'
+import type { AdminProductDetail, ProductVariant } from '../../types/catalog'
 import AdminModelPreview from './AdminModelPreview'
 
 const MAX_MODEL_FILE_SIZE_BYTES = 30 * 1024 * 1024
@@ -11,6 +11,8 @@ const REQUIRED_VARIANT_FIELDS_MESSAGE = 'יש למלא צבע, שם צבע, מק
 const INVALID_COLOR_ID_MESSAGE = 'מזהה הצבע צריך להיות באנגלית, למשל cream או cream-white'
 const INVALID_SALE_PRICE_MESSAGE = 'מחיר המבצע חייב להיות נמוך מהמחיר הרגיל'
 const INVALID_STOCK_MESSAGE = 'כמויות המלאי חייבות להיות מספרים שלמים ולא שליליים'
+const VARIANT_SAVED_MESSAGE = 'הווריאציה נשמרה בהצלחה'
+const VARIANT_RECOVERED_MESSAGE = 'הווריאציה כבר נשמרה קודם לכן והוחזרה לרשימה'
 const CLIENT_VALIDATION_MESSAGES = new Set([
   REQUIRED_VARIANT_FIELDS_MESSAGE,
   INVALID_COLOR_ID_MESSAGE,
@@ -89,8 +91,10 @@ export default function AdminProductVariants({ productId, variants, onChange }: 
   const [drafts, setDrafts] = useState<Record<string, VariantDraft>>({ new: emptyDraft })
   const [busy, setBusy] = useState('')
   const [error, setError] = useState('')
+  const [notice, setNotice] = useState('')
 
   const setDraftField = <K extends keyof VariantDraft>(key: string, field: K, value: VariantDraft[K]) => {
+    setNotice('')
     setError((current) => CLIENT_VALIDATION_MESSAGES.has(current) ? '' : current)
     setDrafts((current) => ({
       ...current,
@@ -116,6 +120,7 @@ export default function AdminProductVariants({ productId, variants, onChange }: 
     }
     setBusy(`${key}-${kind}`)
     setError('')
+    setNotice('')
     try {
       const result = await api.upload<{ url: string }>('/admin/media', file)
       setDraftField(key, kind, result.url)
@@ -152,6 +157,7 @@ export default function AdminProductVariants({ productId, variants, onChange }: 
     }
     setBusy(`${key}-save`)
     setError('')
+    setNotice('')
     const payload = {
       color_id: colorId,
       color_label: draft.color_label.trim(),
@@ -182,7 +188,31 @@ export default function AdminProductVariants({ productId, variants, onChange }: 
         new: key === 'new' ? emptyDraft : current.new,
         [saved.id]: toDraft(saved),
       }))
+      setNotice(VARIANT_SAVED_MESSAGE)
     } catch (saveError) {
+      if (key === 'new') {
+        try {
+          const product = await api.get<AdminProductDetail>(`/admin/products/${productId}`)
+          const existing = product.variants.find((variant) => (
+            normalizeColorId(variant.color_id) === colorId
+            || variant.sku.trim().toLowerCase() === payload.sku.toLowerCase()
+          ))
+          if (existing) {
+            const refreshedVariants = [...product.variants].sort((first, second) => first.sort_order - second.sort_order)
+            onChange(refreshedVariants)
+            setDrafts((current) => ({
+              ...current,
+              new: emptyDraft,
+              [existing.id]: toDraft(existing),
+            }))
+            setError('')
+            setNotice(VARIANT_RECOVERED_MESSAGE)
+            return
+          }
+        } catch {
+          // Preserve the original save error when the recovery lookup also fails.
+        }
+      }
       setError(saveError instanceof ApiError ? saveError.message : 'שמירת הווריאציה נכשלה')
     } finally {
       setBusy('')
@@ -193,6 +223,7 @@ export default function AdminProductVariants({ productId, variants, onChange }: 
     if (!window.confirm(`למחוק את וריאציית ${variant.color_label}?`)) return
     setBusy(`${variant.id}-delete`)
     setError('')
+    setNotice('')
     try {
       await api.delete(`/admin/products/${productId}/variants/${variant.id}`)
       onChange(variants.filter((item) => item.id !== variant.id))
@@ -220,6 +251,7 @@ export default function AdminProductVariants({ productId, variants, onChange }: 
         <span>{variants.length} וריאציות</span>
       </div>
       {error && <div className="admin-product-editor__error" role="alert">{error}</div>}
+      {notice && <div className="admin-variants__notice" role="status">{notice}</div>}
 
       <div className="admin-variants__list">
         {cards.map(({ key, variant }) => {

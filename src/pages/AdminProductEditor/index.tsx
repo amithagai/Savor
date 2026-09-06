@@ -261,7 +261,6 @@ export default function AdminProductEditor() {
         ? await api.post<AdminProductDetail>('/admin/products', payload)
         : await api.patch<AdminProductDetail>(`/admin/products/${productId}`, payload)
       setForm(detailToForm(result))
-      setVariants(result.variants || [])
       setSaved(true)
       if (isNew) navigate(`/admin/products/${result.id}`, { replace: true })
     } catch (err) {
