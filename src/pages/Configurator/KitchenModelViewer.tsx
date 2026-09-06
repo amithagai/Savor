@@ -674,7 +674,7 @@ function ConfiguratorScene({
 }
 
 export default function KitchenModelViewer(props: Props) {
-  const [interactionMode, setInteractionMode] = useState<InteractionMode>('orbit')
+  const [interactionMode, setInteractionMode] = useState<InteractionMode>('move')
   const layout = useMemo(
     () => buildCabinetLayout(props.cartItems, props.positions),
     [props.cartItems, props.positions],
