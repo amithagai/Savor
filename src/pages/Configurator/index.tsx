@@ -266,17 +266,38 @@ export default function Configurator() {
 
   useEffect(() => {
     let cancelled = false
-    api.get<ConfiguratorProduct[]>('/catalog/configurator-products')
-      .then((response) => response.map(configuratorProductFromApi).filter((product): product is CabinetProduct => product !== null))
-      .then((adminProducts) => {
-        if (cancelled) return
-        setProducts(adminProducts)
-        setCatalogStatus('ready')
-      })
-      .catch(() => {
-        if (!cancelled) setCatalogStatus('error')
-      })
-    return () => { cancelled = true }
+    let requestInFlight = false
+    let hasLoaded = false
+
+    const loadProducts = () => {
+      if (requestInFlight) return
+      requestInFlight = true
+      api.get<ConfiguratorProduct[]>('/catalog/configurator-products')
+        .then((response) => response.map(configuratorProductFromApi).filter((product): product is CabinetProduct => product !== null))
+        .then((adminProducts) => {
+          if (cancelled) return
+          setProducts(adminProducts)
+          setCatalogStatus('ready')
+          hasLoaded = true
+        })
+        .catch(() => {
+          if (!cancelled && !hasLoaded) setCatalogStatus('error')
+        })
+        .finally(() => { requestInFlight = false })
+    }
+
+    const refreshVisibleCatalog = () => {
+      if (document.visibilityState === 'visible') loadProducts()
+    }
+
+    loadProducts()
+    window.addEventListener('focus', loadProducts)
+    document.addEventListener('visibilitychange', refreshVisibleCatalog)
+    return () => {
+      cancelled = true
+      window.removeEventListener('focus', loadProducts)
+      document.removeEventListener('visibilitychange', refreshVisibleCatalog)
+    }
   }, [])
 
   useEffect(() => {
