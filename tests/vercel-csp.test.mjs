@@ -34,6 +34,7 @@ test('CSP permits model and decoder downloads from the configured providers', ()
     'https://res.cloudinary.com',
     'https://www.gstatic.com',
     'https://raw.githack.com',
+    'https://raw.githubusercontent.com',
   ]) {
     assert(connections.includes(source), `connect-src is missing ${source}`)
   }
