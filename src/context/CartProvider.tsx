@@ -3,14 +3,27 @@ import type { ReactNode } from 'react'
 
 import { CartContext } from './CartContext'
 import type { CartItem } from './CartContext'
-
-const STORAGE_KEY = 'savor:cart'
+import {
+  CART_STORAGE_KEY,
+  LEGACY_CART_STORAGE_KEY,
+  markCartRecoveryNotice,
+  sanitizeStoredCart,
+} from '../lib/cartStorage'
 
 function loadStoredCart(): CartItem[] {
   try {
-    const raw = localStorage.getItem(STORAGE_KEY)
-    return raw ? JSON.parse(raw) : []
+    const raw = localStorage.getItem(CART_STORAGE_KEY)
+      ?? localStorage.getItem(LEGACY_CART_STORAGE_KEY)
+    if (!raw) return []
+
+    const parsed: unknown = JSON.parse(raw)
+    const cart = sanitizeStoredCart(parsed)
+    if (!Array.isArray(parsed) || cart.length !== parsed.length) {
+      markCartRecoveryNotice()
+    }
+    return cart
   } catch {
+    markCartRecoveryNotice()
     return []
   }
 }
@@ -51,7 +64,12 @@ export function CartProvider({ children }: CartProviderProps) {
   const [cartItems, setCartItems] = useState<CartItem[]>(loadStoredCart)
 
   useEffect(() => {
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(cartItems))
+    try {
+      localStorage.setItem(CART_STORAGE_KEY, JSON.stringify(cartItems))
+      localStorage.removeItem(LEGACY_CART_STORAGE_KEY)
+    } catch {
+      // Keep the in-memory cart usable when persistent storage is unavailable.
+    }
   }, [cartItems])
 
   const addToCart = (item: CartItem) => {
@@ -62,13 +80,13 @@ export function CartProvider({ children }: CartProviderProps) {
     setCartItems((currentItems) => mergeCartItems(currentItems, items))
   }
 
-  const removeFromCart = (id: number | string) => {
+  const removeFromCart = (id: string) => {
     setCartItems((currentItems) =>
       currentItems.filter((item) => cartItemKey(item) !== String(id))
     )
   }
 
-  const updateQuantity = (id: number | string, quantity: number) => {
+  const updateQuantity = (id: string, quantity: number) => {
     setCartItems((currentItems) =>
       currentItems.map((item) =>
         cartItemKey(item) === String(id) ? { ...item, quantity } : item
