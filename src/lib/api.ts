@@ -1,13 +1,19 @@
+import { apiErrorFields, formatApiErrorDetail } from './apiError'
+
 export const API_URL = import.meta.env.PROD ? '/api' : (import.meta.env.VITE_API_URL || 'http://localhost:8000')
 let sessionRequest: Promise<void> | null = null
 let sessionGeneration = 0
 
 export class ApiError extends Error {
   status: number
+  path: string
+  fields: string[]
 
-  constructor(status: number, message: string) {
+  constructor(status: number, message: string, path = '', fields: string[] = []) {
     super(message)
     this.status = status
+    this.path = path
+    this.fields = fields
   }
 }
 
@@ -18,7 +24,12 @@ async function issueSessionCookie(): Promise<void> {
   })
   if (!res.ok) {
     const body = await res.json().catch(() => null)
-    throw new ApiError(res.status, body?.detail || res.statusText)
+    throw new ApiError(
+      res.status,
+      formatApiErrorDetail(body?.detail, res.statusText || 'Request failed'),
+      '/auth/session',
+      apiErrorFields(body?.detail),
+    )
   }
 }
 
@@ -67,7 +78,12 @@ async function request<T>(
       await refreshSessionCookie(observedSessionGeneration)
       return request<T>(path, options, false)
     }
-    throw new ApiError(res.status, body?.detail || res.statusText)
+    throw new ApiError(
+      res.status,
+      formatApiErrorDetail(body?.detail, res.statusText || 'Request failed'),
+      path,
+      apiErrorFields(body?.detail),
+    )
   }
 
   if (res.status === 204) {
