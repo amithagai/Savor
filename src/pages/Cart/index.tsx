@@ -1,8 +1,10 @@
-import { useMemo, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import type { ChangeEvent, FormEvent } from 'react'
 import { useNavigate, useSearchParams } from 'react-router-dom'
 import { useCart } from '../../context/useCart'
 import { api, ApiError } from '../../lib/api'
+import { clearCartRecoveryNotice, hasCartRecoveryNotice, isCartReferenceValid } from '../../lib/cartStorage'
+import { normalizeCheckoutText, normalizeIsraeliMobile } from '../../lib/checkoutInput'
 import { formatServiceFee, quoteCartServiceFees } from '../../lib/serviceFees'
 import './Cart.css'
 
@@ -34,6 +36,26 @@ const initialForm: FormState = {
   agreedToTerms: false,
 }
 
+const ORDER_FIELD_LABELS: Record<string, string> = {
+  full_name: 'שם מלא',
+  phone: 'טלפון',
+  email: 'אימייל',
+  street: 'כתובת רחוב',
+  city: 'עיר',
+  region: 'מדינה או אזור',
+  apartment: 'דירה',
+  id_number: 'תעודת זהות',
+}
+
+function orderValidationMessage(error: ApiError): string {
+  const labels = error.fields
+    .map((field) => ORDER_FIELD_LABELS[field])
+    .filter((label): label is string => Boolean(label))
+  return labels.length
+    ? `יש לבדוק את השדות הבאים: ${Array.from(new Set(labels)).join(', ')}.`
+    : 'אחד מפרטי הלקוח אינו תקין. בדקו את השדות ונסו שוב.'
+}
+
 function formatPrice(value: number) {
   return value.toLocaleString('he-IL')
 }
@@ -48,13 +70,19 @@ export default function Cart() {
   const [wantsInstallation, setWantsInstallation] = useState(false)
   const [isSubmitting, setIsSubmitting] = useState(false)
   const paymentState = searchParams.get('payment')
-  const [paymentError, setPaymentError] = useState(
-    paymentState === 'failed'
-      ? 'התשלום לא אושר על ידי HYP. לא בוצע חיוב ואפשר לנסות שוב.'
-      : paymentState === 'cancelled'
-        ? 'התשלום בוטל. העגלה נשמרה ואפשר לנסות שוב.'
-        : ''
-  )
+  const [recoveredStoredCart] = useState(hasCartRecoveryNotice)
+  const [paymentError, setPaymentError] = useState(() => {
+    if (recoveredStoredCart) {
+      return 'הסרנו מהעגלה מוצר ישן שלא ניתן היה לאמת. הוסיפו אותו מחדש מהקטלוג.'
+    }
+    if (paymentState === 'failed') return 'התשלום לא אושר על ידי HYP. לא בוצע חיוב ואפשר לנסות שוב.'
+    if (paymentState === 'cancelled') return 'התשלום בוטל. העגלה נשמרה ואפשר לנסות שוב.'
+    return ''
+  })
+
+  useEffect(() => {
+    if (recoveredStoredCart) clearCartRecoveryNotice()
+  }, [recoveredStoredCart])
 
   const itemsTotal = useMemo(
     () => cartItems.reduce((sum, item) => sum + item.price * item.quantity, 0),
@@ -69,15 +97,22 @@ export default function Cart() {
 
   const checkoutIssues = useMemo(() => {
     const issues: string[] = []
-    const fullNameParts = form.fullName.trim().split(/\s+/).filter(Boolean)
-    const normalizedPhone = form.phone.replace(/[\s-]/g, '')
-    const hasValidEmail = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(form.email.trim())
+    const fullName = normalizeCheckoutText(form.fullName)
+    const fullNameParts = fullName.split(/\s+/).filter(Boolean)
+    const normalizedPhone = normalizeIsraeliMobile(form.phone)
+    const email = form.email.trim()
+    const city = normalizeCheckoutText(form.city)
+    const region = normalizeCheckoutText(form.region)
+    const street = normalizeCheckoutText(form.streetAddress)
+    const hasValidEmail = email.length <= 254 && /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)
 
     if (cartItems.length === 0) issues.push('מוצר אחד לפחות בעגלה')
-    if (fullNameParts.length < 2) issues.push('שם מלא – שם פרטי ומשפחה')
-    if (!form.city.trim()) issues.push('עיר')
-    if (!form.region.trim()) issues.push('מדינה או אזור')
-    if (!form.streetAddress.trim()) issues.push('כתובת רחוב ומספר בית')
+    if (fullNameParts.length < 2 || fullName.length > 100) issues.push('שם מלא – שם פרטי ומשפחה')
+    if (city.length < 2 || city.length > 100) issues.push('עיר תקינה')
+    if (region.length < 2 || region.length > 100) issues.push('מדינה או אזור תקינים')
+    if (street.length < 2 || street.length > 200) issues.push('כתובת רחוב ומספר בית תקינים')
+    if (form.apartment.trim().length > 50) issues.push('דירה – עד 50 תווים')
+    if (form.idNumber.trim().length > 20) issues.push('תעודת זהות – עד 20 תווים')
     if (!hasValidEmail) issues.push('כתובת אימייל תקינה')
     if (!/^05\d{8}$/.test(normalizedPhone)) issues.push('טלפון נייד תקין בן 10 ספרות')
     if (!form.agreedToTerms) issues.push('אישור תנאי השימוש')
@@ -107,6 +142,9 @@ export default function Cart() {
       // and locks prices, so browser-side prices can never control the charge.
       await api.delete<void>('/cart')
       for (const item of cartItems) {
+        if (!isCartReferenceValid(item)) {
+          throw new ApiError(422, 'המוצר בעגלה נשמר מגרסה ישנה.', '/cart/items')
+        }
         await api.post<unknown>('/cart/items', {
           ...(item.configurationId
             ? { configuration_id: item.configurationId }
@@ -117,14 +155,14 @@ export default function Cart() {
 
       const order = await api.post<{ id: string }>('/orders', {
         shipping_address: {
-          full_name: form.fullName,
-          phone: form.phone,
-          email: form.email,
-          street: form.streetAddress,
-          city: form.city,
-          region: form.region,
-          apartment: form.apartment || null,
-          id_number: form.idNumber || null,
+          full_name: normalizeCheckoutText(form.fullName),
+          phone: normalizeIsraeliMobile(form.phone),
+          email: form.email.trim(),
+          street: normalizeCheckoutText(form.streetAddress),
+          city: normalizeCheckoutText(form.city),
+          region: normalizeCheckoutText(form.region),
+          apartment: normalizeCheckoutText(form.apartment) || null,
+          id_number: form.idNumber.trim() || null,
         },
         delivery_method: deliveryMethod,
         wants_installation: wantsInstallation,
@@ -132,7 +170,15 @@ export default function Cart() {
       const payment = await api.post<{ checkout_url: string }>(`/payments/checkout/${order.id}`, {})
       window.location.assign(payment.checkout_url)
     } catch (error) {
-      const detail = error instanceof ApiError ? error.message : ''
+      const detail = error instanceof ApiError && error.status === 422
+        ? error.path === '/cart/items'
+          ? 'המוצר בעגלה אינו תקין או נשמר מגרסה ישנה. הסירו אותו והוסיפו מחדש מהקטלוג.'
+          : error.path === '/orders'
+            ? orderValidationMessage(error)
+            : error.message
+        : error instanceof ApiError
+          ? error.message
+          : ''
       setPaymentError(detail || 'לא הצלחנו לפתוח את התשלום. נסו שוב בעוד רגע.')
       setIsSubmitting(false)
     }
@@ -258,6 +304,8 @@ export default function Cart() {
           <input
             id="fullName"
             required
+            minLength={2}
+            maxLength={100}
             value={form.fullName}
             onChange={handleTextChange('fullName')}
           />
@@ -265,17 +313,17 @@ export default function Cart() {
 
         <div className="cart-page__field">
           <label htmlFor="idNumber">ת.ז (אופציונלי)</label>
-          <input id="idNumber" value={form.idNumber} onChange={handleTextChange('idNumber')} />
+          <input id="idNumber" maxLength={20} value={form.idNumber} onChange={handleTextChange('idNumber')} />
         </div>
 
         <div className="cart-page__field">
           <label htmlFor="city">עיר *</label>
-          <input id="city" required value={form.city} onChange={handleTextChange('city')} />
+          <input id="city" required minLength={2} maxLength={100} value={form.city} onChange={handleTextChange('city')} />
         </div>
 
         <div className="cart-page__field">
           <label htmlFor="region">מדינה / אזור *</label>
-          <input id="region" required value={form.region} onChange={handleTextChange('region')} />
+          <input id="region" required minLength={2} maxLength={100} value={form.region} onChange={handleTextChange('region')} />
         </div>
 
         <div className="cart-page__field cart-page__field--wide">
@@ -283,6 +331,7 @@ export default function Cart() {
           <div className="cart-page__field-row">
             <input
               id="apartment"
+              maxLength={50}
               placeholder="דירה, סוויטה, יחידה וכו' (אופציונלי)"
               value={form.apartment}
               onChange={handleTextChange('apartment')}
@@ -290,6 +339,8 @@ export default function Cart() {
             <input
               id="streetAddress"
               required
+              minLength={2}
+              maxLength={200}
               placeholder="מספר בית ושם רחוב"
               value={form.streetAddress}
               onChange={handleTextChange('streetAddress')}
@@ -303,6 +354,7 @@ export default function Cart() {
             id="email"
             type="email"
             required
+            maxLength={254}
             placeholder="כתובת אימייל"
             value={form.email}
             onChange={handleTextChange('email')}
@@ -315,6 +367,8 @@ export default function Cart() {
             id="phone"
             type="tel"
             required
+            inputMode="tel"
+            maxLength={25}
             placeholder="טלפון"
             value={form.phone}
             onChange={handleTextChange('phone')}
