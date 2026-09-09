@@ -19,9 +19,12 @@ function directive(name) {
 }
 
 test('CSP permits the GLTF decoders without enabling JavaScript eval', () => {
-  assert.deepEqual(directive('script-src'), ["'self'", "'wasm-unsafe-eval'"])
+  const scripts = directive('script-src')
+
+  assert(scripts.includes("'self'"))
+  assert(scripts.includes("'wasm-unsafe-eval'"))
   assert.deepEqual(directive('worker-src'), ["'self'", 'blob:'])
-  assert(!directive('script-src').includes("'unsafe-eval'"))
+  assert(!scripts.includes("'unsafe-eval'"))
 })
 
 test('CSP permits model and decoder downloads from the configured providers', () => {
@@ -38,4 +41,46 @@ test('CSP permits model and decoder downloads from the configured providers', ()
   ]) {
     assert(connections.includes(source), `connect-src is missing ${source}`)
   }
+})
+
+test('CSP permits the LogRocket SDK and session ingest endpoints', () => {
+  const scripts = directive('script-src')
+  const connections = directive('connect-src')
+
+  for (const source of [
+    'https://cdn.logrocket.io',
+    'https://cdn.lr-ingest.io',
+    'https://cdn.lr-in.com',
+    'https://cdn.lr-in-prod.com',
+    'https://cdn.lr-ingest.com',
+    'https://cdn.ingest-lr.com',
+    'https://cdn.lr-intake.com',
+    'https://cdn.intake-lr.com',
+    'https://cdn.logr-ingest.com',
+    'https://cdn.lrkt-in.com',
+    'https://cdn.lgrckt-in.com',
+    'https://cdn.logr-in.com',
+  ]) {
+    assert(scripts.includes(source), `script-src is missing ${source}`)
+  }
+
+  for (const source of [
+    'https://*.logrocket.io',
+    'https://*.lr-ingest.io',
+    'https://*.logrocket.com',
+    'https://*.lr-in.com',
+    'https://*.lr-in-prod.com',
+    'https://*.lr-ingest.com',
+    'https://*.ingest-lr.com',
+    'https://*.lr-intake.com',
+    'https://*.intake-lr.com',
+    'https://*.logr-ingest.com',
+    'https://*.lrkt-in.com',
+    'https://*.lgrckt-in.com',
+    'https://*.logr-in.com',
+  ]) {
+    assert(connections.includes(source), `connect-src is missing ${source}`)
+  }
+
+  assert.deepEqual(directive('child-src'), ["'self'", 'blob:'])
 })
