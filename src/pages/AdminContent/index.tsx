@@ -6,7 +6,9 @@ import { useAdminAuth } from '../../context/useAdminAuth'
 import { ApiError, api } from '../../lib/api'
 import { adminLoginPath } from '../../lib/adminRoutes'
 import { DEFAULT_SIZE_GUIDE_CONTENT, normalizeSizeGuideContent } from '../../lib/sizeGuide'
+import { DEFAULT_ACCESSIBILITY_CONTENT, normalizeAccessibilityContent } from '../../lib/accessibility'
 import type {
+  AccessibilityContent,
   ContactContent,
   ContentPageData,
   FooterContent,
@@ -17,7 +19,7 @@ import type {
 } from '../../types/content'
 import type { CatalogProduct } from '../../types/catalog'
 
-type ContentTab = 'home' | 'pages' | 'site'
+type ContentTab = 'home' | 'pages' | 'site' | 'accessibility'
 type Notice = { tone: 'success' | 'error'; text: string } | null
 
 const PAGE_LABELS: Record<string, string> = {
@@ -59,6 +61,7 @@ export default function AdminContent() {
   const [selectedPageSlug, setSelectedPageSlug] = useState('')
   const [footer, setFooter] = useState<SiteContentResponse<FooterContent> | null>(null)
   const [contact, setContact] = useState<SiteContentResponse<ContactContent> | null>(null)
+  const [accessibility, setAccessibility] = useState<SiteContentResponse<AccessibilityContent> | null>(null)
   const [seo, setSeo] = useState<SiteContentResponse<SeoContent> | null>(null)
   const [sizeGuide, setSizeGuide] = useState<SiteContentResponse<SizeGuideContent> | null>(null)
   const [loading, setLoading] = useState(true)
@@ -86,6 +89,11 @@ export default function AdminContent() {
         if (error instanceof ApiError && error.status === 404) return null
         throw error
       })
+    const accessibilityRequest = api.get<SiteContentResponse<AccessibilityContent>>('/admin/content/site/accessibility')
+      .catch((error) => {
+        if (error instanceof ApiError && error.status === 404) return null
+        throw error
+      })
 
     Promise.all([
       api.get<SiteContentResponse<HomeContent>>('/admin/content/site/home'),
@@ -95,8 +103,9 @@ export default function AdminContent() {
       api.get<CatalogProduct[]>('/catalog/kitchens?limit=100'),
       sizeGuideRequest,
       seoRequest,
+      accessibilityRequest,
     ])
-      .then(([homeContent, contentPages, footerContent, contactContent, catalogProducts, sizeGuideContent, seoContent]) => {
+      .then(([homeContent, contentPages, footerContent, contactContent, catalogProducts, sizeGuideContent, seoContent, accessibilityContent]) => {
         const defaultProducts = catalogProducts.filter((product) => product.attributes.featured).slice(0, 3)
         setHome({
           ...homeContent,
@@ -113,6 +122,15 @@ export default function AdminContent() {
         setSelectedPageSlug(contentPages[0]?.slug || '')
         setFooter(footerContent)
         setContact(contactContent)
+        setAccessibility(accessibilityContent
+          ? { ...accessibilityContent, data: normalizeAccessibilityContent(accessibilityContent.data) }
+          : {
+              id: '',
+              key: 'accessibility',
+              data: { ...DEFAULT_ACCESSIBILITY_CONTENT },
+              is_published: true,
+              updated_at: '',
+            })
         setSeo(seoContent || {
           id: '',
           key: 'seo',
@@ -181,6 +199,22 @@ export default function AdminContent() {
     setSizeGuide((current) => current ? { ...current, data: update(current.data) } : current)
   }
 
+  const changeAccessibility = (update: (content: AccessibilityContent) => AccessibilityContent) => {
+    setAccessibility((current) => current ? { ...current, data: update(current.data) } : current)
+  }
+
+  const updateAccessibilityDocument = (
+    index: number,
+    patch: Partial<AccessibilityContent['documents'][number]>,
+  ) => {
+    changeAccessibility((content) => ({
+      ...content,
+      documents: content.documents.map((document, documentIndex) => (
+        documentIndex === index ? { ...document, ...patch } : document
+      )),
+    }))
+  }
+
   const moveSizeGuideStep = (index: number, direction: -1 | 1) => {
     changeSizeGuide((content) => {
       const target = index + direction
@@ -207,6 +241,26 @@ export default function AdminContent() {
       setNotice({ tone: 'success', text: 'התמונה הועלתה. יש לשמור את השינויים כדי לפרסם אותה.' })
     } catch (error) {
       handleError(error, 'העלאת התמונה נכשלה')
+    } finally {
+      setUploading('')
+    }
+  }
+
+  const uploadAccessibilityDocument = async (file: File, documentId: string) => {
+    const slot = `accessibility-document-${documentId}`
+    setUploading(slot)
+    setNotice(null)
+    try {
+      const result = await api.upload<{ url: string }>('/admin/media', file)
+      changeAccessibility((content) => ({
+        ...content,
+        documents: content.documents.map((document) => (
+          document.id === documentId ? { ...document, url: result.url } : document
+        )),
+      }))
+      setNotice({ tone: 'success', text: 'המסמך הועלה. יש לשמור את פרטי הנגישות כדי לפרסם אותו.' })
+    } catch (error) {
+      handleError(error, 'העלאת המסמך נכשלה. ניתן להעלות קובץ PDF בלבד, עד 30MB.')
     } finally {
       setUploading('')
     }
@@ -311,6 +365,24 @@ export default function AdminContent() {
     }
   }
 
+  const saveAccessibility = async () => {
+    if (!accessibility) return
+    setSaving('accessibility')
+    setNotice(null)
+    try {
+      const saved = await api.put<SiteContentResponse<AccessibilityContent>>(
+        '/admin/content/site/accessibility',
+        { data: accessibility.data, is_published: true },
+      )
+      setAccessibility({ ...saved, data: normalizeAccessibilityContent(saved.data) })
+      setNotice({ tone: 'success', text: 'פרטי הנגישות נשמרו ויוצגו בעמוד הצהרת הנגישות.' })
+    } catch (error) {
+      handleError(error, 'שמירת פרטי הנגישות נכשלה')
+    } finally {
+      setSaving(null)
+    }
+  }
+
   if (loading) return <p className="admin-content__state">טוען את תוכן האתר…</p>
 
   return (
@@ -323,12 +395,13 @@ export default function AdminContent() {
       </header>
 
       <div className="admin-content__tabs" role="tablist" aria-label="אזור תוכן">
-        <button className={tab === 'home' ? 'is-active' : ''} onClick={() => { setTab('home'); setNotice(null) }}>דף הבית</button>
-        <button className={tab === 'pages' ? 'is-active' : ''} onClick={() => { setTab('pages'); setNotice(null) }}>עמודי תוכן</button>
-        <button className={tab === 'site' ? 'is-active' : ''} onClick={() => { setTab('site'); setNotice(null) }}>פרטי האתר</button>
+        <button type="button" role="tab" aria-selected={tab === 'home'} className={tab === 'home' ? 'is-active' : ''} onClick={() => { setTab('home'); setNotice(null) }}>דף הבית</button>
+        <button type="button" role="tab" aria-selected={tab === 'pages'} className={tab === 'pages' ? 'is-active' : ''} onClick={() => { setTab('pages'); setNotice(null) }}>עמודי תוכן</button>
+        <button type="button" role="tab" aria-selected={tab === 'site'} className={tab === 'site' ? 'is-active' : ''} onClick={() => { setTab('site'); setNotice(null) }}>פרטי האתר</button>
+        <button type="button" role="tab" aria-selected={tab === 'accessibility'} className={tab === 'accessibility' ? 'is-active' : ''} onClick={() => { setTab('accessibility'); setNotice(null) }}>נגישות</button>
       </div>
 
-      {notice && <p className={`admin-content__notice admin-content__notice--${notice.tone}`}>{notice.text}</p>}
+      {notice ? <p className={`admin-content__notice admin-content__notice--${notice.tone}`} role={notice.tone === 'error' ? 'alert' : 'status'}>{notice.text}</p> : null}
 
       {tab === 'home' && home && (
         <div className="admin-content__workspace">
@@ -632,11 +705,132 @@ export default function AdminContent() {
           <SaveBar label="שמירת פרטי האתר" saving={saving === 'site'} onClick={saveSite} />
         </div>
       )}
+
+      {tab === 'accessibility' && accessibility && (
+        <div className="admin-content__workspace" role="tabpanel" aria-label="ניהול הצהרת נגישות">
+          <section className="admin-content__card">
+            <div className="admin-content__section-heading">
+              <div>
+                <h2>הצהרת הנגישות</h2>
+                <p>המידע שיישמר כאן יוצג בעמוד הצהרת הנגישות הציבורי</p>
+              </div>
+            </div>
+            <p className="admin-content__accessibility-note">
+              אין לפרסם מידע שטרם אומת. שדה ריק ימשיך להציג באתר הודעה שהמידע ממתין להשלמה.
+            </p>
+            <div className="admin-content__grid">
+              <Field
+                label="תאריך עדכון ההצהרה"
+                type="date"
+                value={accessibility.data.last_updated}
+                onChange={(last_updated) => changeAccessibility((content) => ({ ...content, last_updated }))}
+              />
+            </div>
+          </section>
+
+          <section className="admin-content__card">
+            <div className="admin-content__section-heading">
+              <div><h2>רכז או רכזת נגישות</h2><p>יש למלא רק פרטים מאומתים שאפשר לפרסם לציבור</p></div>
+            </div>
+            <div className="admin-content__grid">
+              <Field label="שם מלא" value={accessibility.data.coordinator_name} onChange={(coordinator_name) => changeAccessibility((content) => ({ ...content, coordinator_name }))} />
+              <Field label="תפקיד" value={accessibility.data.coordinator_role} onChange={(coordinator_role) => changeAccessibility((content) => ({ ...content, coordinator_role }))} />
+              <Field label="טלפון ישיר" type="tel" dir="ltr" value={accessibility.data.coordinator_phone} onChange={(coordinator_phone) => changeAccessibility((content) => ({ ...content, coordinator_phone }))} />
+              <Field label="דוא״ל" type="email" dir="ltr" value={accessibility.data.coordinator_email} onChange={(coordinator_email) => changeAccessibility((content) => ({ ...content, coordinator_email }))} />
+            </div>
+          </section>
+
+          <section className="admin-content__card">
+            <div className="admin-content__section-heading">
+              <div><h2>הסדרי נגישות במקום השירות</h2><p>חניה, דרך נגישה, כניסה, מעברים, שירותים ואביזרי עזר</p></div>
+            </div>
+            <Field label="כתובת נקודת השירות או האיסוף" value={accessibility.data.pickup_address} onChange={(pickup_address) => changeAccessibility((content) => ({ ...content, pickup_address }))} />
+            <TextAreaField
+              label="פירוט ההסדרים — אפשר להפריד פסקאות באמצעות שורה ריקה"
+              rows={8}
+              value={accessibility.data.physical_arrangements}
+              onChange={(physical_arrangements) => changeAccessibility((content) => ({ ...content, physical_arrangements }))}
+            />
+          </section>
+
+          <section className="admin-content__card">
+            <div className="admin-content__section-heading">
+              <div><h2>מגבלות נגישות ידועות</h2><p>כל מגבלה בפסקה נפרדת; הרשימה תתעדכן אוטומטית באתר</p></div>
+            </div>
+            <TextAreaField
+              label="מגבלות וחלופות נגישות"
+              rows={7}
+              value={accessibility.data.known_limitations}
+              onChange={(known_limitations) => changeAccessibility((content) => ({ ...content, known_limitations }))}
+            />
+          </section>
+
+          <section className="admin-content__card">
+            <div className="admin-content__section-heading">
+              <div><h2>מסמכים נגישים</h2><p>אפשר להעלות קובצי PDF עד 30MB או להדביק קישור HTTPS קיים</p></div>
+              <span className="admin-content__selection-count">{accessibility.data.documents.length} מסמכים</span>
+            </div>
+            <div className="admin-content__accessibility-documents">
+              {accessibility.data.documents.map((document, index) => {
+                const uploadSlot = `accessibility-document-${document.id}`
+                const isUploading = uploading === uploadSlot
+                return (
+                  <section className="admin-content__subcard" key={document.id}>
+                    <header className="admin-content__document-heading">
+                      <strong>מסמך {index + 1}</strong>
+                      <button
+                        type="button"
+                        className="admin-content__remove"
+                        onClick={() => changeAccessibility((content) => ({
+                          ...content,
+                          documents: content.documents.filter((item) => item.id !== document.id),
+                        }))}
+                      >
+                        הסרת המסמך
+                      </button>
+                    </header>
+                    <div className="admin-content__grid">
+                      <Field label="שם המסמך" value={document.title} onChange={(title) => updateAccessibilityDocument(index, { title })} />
+                      <Field label="קישור למסמך" type="url" dir="ltr" value={document.url} onChange={(url) => updateAccessibilityDocument(index, { url })} />
+                    </div>
+                    <TextAreaField label="תיאור קצר — לא חובה" rows={2} value={document.description} onChange={(description) => updateAccessibilityDocument(index, { description })} />
+                    <label className={`admin-content__upload ${isUploading ? 'is-disabled' : ''}`}>
+                      {isUploading ? 'מעלה מסמך…' : 'העלאת PDF'}
+                      <input
+                        type="file"
+                        accept="application/pdf,.pdf"
+                        disabled={isUploading}
+                        onChange={(event) => {
+                          const file = event.target.files?.[0]
+                          event.target.value = ''
+                          if (file) uploadAccessibilityDocument(file, document.id)
+                        }}
+                      />
+                    </label>
+                  </section>
+                )
+              })}
+            </div>
+            <AddButton
+              label="הוספת מסמך"
+              onClick={() => changeAccessibility((content) => ({
+                ...content,
+                documents: [
+                  ...content.documents,
+                  { id: `accessibility-document-${Date.now()}`, title: '', description: '', url: '' },
+                ],
+              }))}
+            />
+          </section>
+
+          <SaveBar label="שמירת פרטי הנגישות" saving={saving === 'accessibility'} onClick={saveAccessibility} />
+        </div>
+      )}
     </div>
   )
 }
 
-function Field({ label, value, onChange, dir, type = 'text' }: { label: string; value: string; onChange: (value: string) => void; dir?: 'ltr' | 'rtl'; type?: 'text' | 'email' }) {
+function Field({ label, value, onChange, dir, type = 'text' }: { label: string; value: string; onChange: (value: string) => void; dir?: 'ltr' | 'rtl'; type?: 'text' | 'email' | 'url' | 'tel' | 'date' }) {
   return <label className="admin-content__field"><span>{label}</span><input type={type} value={value} dir={dir} onChange={(event) => onChange(event.target.value)} /></label>
 }
 

@@ -12,8 +12,8 @@ import type { HomeContent } from '../../types/content'
 export default function Home() {
   const { data, loading, error } = useSiteContent<HomeContent>('home')
 
-  if (loading) return <main className="home__state">טוען את האתר…</main>
-  if (error || !data) return <main className="home__state">לא הצלחנו לטעון את תוכן האתר.</main>
+  if (loading) return <div className="home__state">טוען את האתר…</div>
+  if (error || !data) return <div className="home__state">לא הצלחנו לטעון את תוכן האתר.</div>
 
   return (
     <>

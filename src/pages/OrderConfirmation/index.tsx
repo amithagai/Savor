@@ -54,7 +54,7 @@ export default function OrderConfirmation() {
   }, [orderId, clearCart])
 
   return (
-    <main className={styles.wrapper}>
+    <div className={styles.wrapper}>
       <img src={giff} className={styles.giff} alt="" />
       {state === 'checking' && (
         <>
@@ -78,6 +78,6 @@ export default function OrderConfirmation() {
           <Link className={styles.link} to="/cart">חזרה לעגלה</Link>
         </>
       )}
-    </main>
+    </div>
   )
 }

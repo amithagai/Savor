@@ -2,8 +2,11 @@ export default function AnnouncementBar({ items }: { items: string[] }) {
   const repeated = [...items, ...items, ...items]
 
   return (
-    <div className="announcement-bar">
-      <div className="announcement-bar__track">
+    <section className="announcement-bar" aria-label="הודעות חשובות">
+      <ul className="visually-hidden">
+        {items.map((item, index) => <li key={`${item}-${index}`}>{item}</li>)}
+      </ul>
+      <div className="announcement-bar__track" aria-hidden="true">
         {repeated.map((item, i) => (
           <span key={i} className="announcement-bar__item">
             {item}
@@ -11,6 +14,6 @@ export default function AnnouncementBar({ items }: { items: string[] }) {
           </span>
         ))}
       </div>
-    </div>
+    </section>
   )
 }

@@ -37,7 +37,7 @@ export default function SingleProducts() {
   }
 
   return (
-    <main className="catalog-page">
+    <div className="catalog-page">
       <section className="catalog-page__header">
         <h1>מוצרים בודדים</h1>
       </section>
@@ -61,6 +61,6 @@ export default function SingleProducts() {
           />
         )) : <p className="catalog-page__empty">עדיין אין יחידות ארון זמינות.</p>}
       </section>}
-    </main>
+    </div>
   )
 }

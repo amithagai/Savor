@@ -31,7 +31,7 @@ export default function BestSellersSection({ config }: { config?: HomeContent['b
         {products.map((product) => (
           <Link to={`/catalog/${product.slug}`} key={product.id} className="product-card">
             <div className="product-card__image-wrap">
-              {product.images[0] && <img src={product.images[0]} alt={product.name} className="product-card__image" loading="lazy" />}
+              {product.images[0] && <img src={product.images[0]} alt="" className="product-card__image" loading="lazy" />}
               {typeof product.attributes.badge === 'string' && <span className="product-card__badge">{product.attributes.badge}</span>}
             </div>
             <div className="product-card__info">

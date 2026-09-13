@@ -2,11 +2,13 @@ export type CabinetCategory = 'תחתונים' | 'כיור' | 'גבוהים' | '
 
 export type CabinetLayoutItem = {
   id: string
+  name?: string
   qty: number
   width: number
   category: CabinetCategory
   subtitle: string
   colorId: string
+  colorLabel?: string
   colorHex?: string
   modelSlug?: string
   modelUrl?: string
@@ -242,6 +244,26 @@ function layoutRow(instances: CabinetInstance[], positions: CabinetPositions, st
 }
 
 export type CounterRun = { start: number; end: number }
+
+export function closestAccessoryXOnCounterRuns(xCm: number, widthCm: number, counterRuns: CounterRun[]) {
+  if (counterRuns.length === 0) return xCm
+  const half = widthCm / 2
+  let bestPosition = xCm
+  let shortestDistance = Number.POSITIVE_INFINITY
+
+  counterRuns.forEach(run => {
+    const min = run.start + half
+    const max = run.end - half
+    const candidate = min <= max ? Math.min(Math.max(xCm, min), max) : (run.start + run.end) / 2
+    const distance = Math.abs(candidate - xCm)
+    if (distance < shortestDistance) {
+      bestPosition = candidate
+      shortestDistance = distance
+    }
+  })
+
+  return bestPosition
+}
 
 function counterRunsOf(row: PlacedCabinet[]): CounterRun[] {
   const extents = row

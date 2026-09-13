@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState, type FC } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState, type FC } from 'react'
 import { useNavigate } from 'react-router-dom'
 import './Configurator.css'
 import HeartIcon from '../../components/HeartIcon'
@@ -7,16 +7,23 @@ import { useCart } from '../../context/useCart'
 import type { CartItem as CheckoutCartItem } from '../../context/CartContext'
 import KitchenModelViewer from './KitchenModelViewer'
 import Configurator2DView from './Configurator2DView'
+import KeyboardPositionControls from './KeyboardPositionControls'
 import { COLORS, colorHexOf, colorIdOf, colorSwatchStyleOf, knownColorHexOf } from './colors'
 import {
   buildCabinetLayout,
+  cabinetDragPositionUpdates,
+  closestAccessoryXOnCounterRuns,
   DEFAULT_WALL_LENGTH_CM,
+  ROOM_DEPTH_CM,
+  snapCabinetXToWall,
   type AccessoryPositions,
   type CabinetCategory,
   type CabinetPositions,
   type CabinetSpatialPlacement,
   type CabinetSpatialPositions,
+  type CabinetWall,
   type KitchenAccessoryId,
+  type PlacedCabinet,
 } from './cabinetLayout'
 import { api } from '../../lib/api'
 import type { ConfiguratorProduct } from '../../types/catalog'
@@ -86,6 +93,13 @@ const HOW_STEPS = [
 ]
 
 const DEFAULT_WHATSAPP_PHONE = '972509072335'
+
+const CABINET_WALL_LABELS: Record<CabinetWall, string> = {
+  back: 'הקיר האחורי',
+  left: 'הקיר השמאלי',
+  right: 'הקיר הימני',
+  free: 'מרכז החדר',
+}
 
 function normalizeWhatsAppPhone(value?: string | null) {
   let digits = (value || '').replace(/\D/g, '')
@@ -214,7 +228,9 @@ const TotalPrice: FC<{ cartItems: Array<CartItem>; countertopPrice: number }> = 
   return (
     <>
       {(cartItems.length > 0 || countertopPrice > 0) && (
-        <p className="cfg__total">סך הכל {total.toLocaleString()} ₪</p>
+        <p className="cfg__total" role="status" aria-live="polite" aria-atomic="true">
+          סך הכל {total.toLocaleString('he-IL')} ₪
+        </p>
       )}
     </>
   )
@@ -224,11 +240,13 @@ export const ActionButton: FC<ActionButtonProps> = ({ resetAll, contactHref, onB
 
   return (
     <div className="cfg__cart-footer">
-      <button className="cfg__reset-btn" onClick={resetAll}>איפוס</button>
+      <button type="button" className="cfg__reset-btn" onClick={resetAll}>איפוס</button>
       <a className="cfg__outline-btn cfg__contact-link" href={contactHref} target="_blank" rel="noopener noreferrer">
         שמירת תכנון ויצירת קשר
+        <span className="visually-hidden"> (נפתח בלשונית חדשה)</span>
       </a>
       <button
+        type="button"
         className="cfg__buy-btn"
         onClick={onBuy}
         disabled={buyDisabled}
@@ -242,8 +260,11 @@ export const ActionButton: FC<ActionButtonProps> = ({ resetAll, contactHref, onB
 
 export default function Configurator() {
   const navigate = useNavigate()
+  const wallLengthInputRef = useRef<HTMLInputElement>(null)
+  const categoryMenuButtonRef = useRef<HTMLButtonElement>(null)
   const { data: footerContent } = useSiteContent<FooterContent>('footer')
   const [wallLength, setWallLength] = useState(String(DEFAULT_WALL_LENGTH_CM))
+  const [wallLengthError, setWallLengthError] = useState('')
   const [appliedWallLength, setAppliedWallLength] = useState<number | null>(DEFAULT_WALL_LENGTH_CM)
   const [selectedCategories, setSelectedCategories] = useState<ConfiguratorCategory[]>(['תחתונים'])
   const [selectedColors, setSelectedColors] = useState<string[]>(() => COLORS.map((color) => color.id))
@@ -261,8 +282,12 @@ export default function Configurator() {
   const [wantsCountertop, setWantsCountertop] = useState(false)
   const [buyPending, setBuyPending] = useState(false)
   const [buyError, setBuyError] = useState('')
+  const [interactionAnnouncement, setInteractionAnnouncement] = useState({ sequence: 0, message: '' })
   const { isInWishlist, toggleWishlist } = useWishlist()
   const { addItemsToCart } = useCart()
+  const announce = useCallback((message: string) => {
+    setInteractionAnnouncement((current) => ({ sequence: current.sequence + 1, message }))
+  }, [])
 
   useEffect(() => {
     let cancelled = false
@@ -314,7 +339,16 @@ export default function Configurator() {
     return () => { cancelled = true }
   }, [])
 
-  const filteredProducts = products.filter(p => selectedCategories.includes(p.category))
+  const filteredProducts = useMemo(
+    () => products.filter(product => selectedCategories.includes(product.category)),
+    [products, selectedCategories],
+  )
+  const filteredProductVariants = useMemo(
+    () => filteredProducts.flatMap(product => variantsFor(product)
+      .filter(variant => selectedColors.includes(colorIdOf(variant.colorId, variant.colorLabel)))
+      .map(variant => ({ product, variant }))),
+    [filteredProducts, selectedColors],
+  )
   const cabinetCartItems = useMemo(() => cartItems.filter(
     (item): item is CartItem & { category: CabinetCategory } => item.category !== 'ברז',
   ), [cartItems])
@@ -323,6 +357,12 @@ export default function Configurator() {
     () => buildCabinetLayout(cabinetCartItems, cabinetPositions),
     [cabinetCartItems, cabinetPositions],
   )
+  const placedCabinets = useMemo(
+    () => [...cabinetLayout.floorRow, ...cabinetLayout.wallRow],
+    [cabinetLayout],
+  )
+  const roomWallLengthCm = appliedWallLength
+    ?? Math.max(cabinetLayout.floorEnd, cabinetLayout.wallEnd, DEFAULT_WALL_LENGTH_CM)
   const countertopLengthCm = cabinetLayout.counterRuns.reduce((sum, run) => sum + run.end - run.start, 0)
   const countertopSelected = wantsCountertop && countertopLengthCm > 0
   const countertopPrice = countertopSelected && countertopRate
@@ -357,6 +397,11 @@ export default function Configurator() {
   const whatsappMessage = buildWhatsAppPlanMessage(cartItems, appliedWallLength, countertopSelection)
   const whatsappContactHref = `https://wa.me/${whatsappPhone}?text=${encodeURIComponent(whatsappMessage)}`
 
+  function closeCategoryMenu(restoreFocus = false) {
+    setCatMenuOpen(false)
+    if (restoreFocus) requestAnimationFrame(() => categoryMenuButtonRef.current?.focus())
+  }
+
   function toggleCategory(cat: ConfiguratorCategory) {
     setSelectedCategories(prev => {
       if (prev.includes(cat)) {
@@ -377,11 +422,16 @@ export default function Configurator() {
 
   function addToCart(product: CabinetProduct, variant: CabinetProductVariant) {
     if (variant.inStock === false && !variant.allowPreorder) return
+    const variantKey = variantKeyOf(variant)
+    const existing = cartItems.find(item => item.id === product.id && variantKeyOf(item) === variantKey)
+    if (existing && variant.inventoryTracking && !variant.allowPreorder && existing.qty >= (variant.availableQuantity ?? 0)) {
+      announce(`לא ניתן להוסיף עוד מהפריט ${product.name} בצבע ${variant.colorLabel}. הגעתם לכמות הזמינה במלאי.`)
+      return
+    }
+
     setCartItems(prev => {
-      const variantKey = variantKeyOf(variant)
-      const existing = prev.find(item => item.id === product.id && variantKeyOf(item) === variantKey)
-      if (existing) {
-        if (variant.inventoryTracking && !variant.allowPreorder && existing.qty >= (variant.availableQuantity ?? 0)) return prev
+      const currentItem = prev.find(item => item.id === product.id && variantKeyOf(item) === variantKey)
+      if (currentItem) {
         return prev.map(item =>
           item.id === product.id && variantKeyOf(item) === variantKey
             ? { ...item, ...variant, qty: item.qty + 1 }
@@ -390,17 +440,25 @@ export default function Configurator() {
       }
       return [...prev, { ...product, ...variant, qty: 1 }]
     })
+    announce(`${product.name} בצבע ${variant.colorLabel} נוסף למטבח שלכם.`)
   }
 
-  function setQty(id: string, variantKey: string, qty: number) {
+  function setQty(itemToUpdate: CartItem, qty: number) {
+    const id = itemToUpdate.id
+    const variantKey = variantKeyOf(itemToUpdate)
     if (qty <= 0) {
       setCartItems(prev => prev.filter(item => !(item.id === id && variantKeyOf(item) === variantKey)))
+      announce(`${itemToUpdate.name} בצבע ${itemToUpdate.colorLabel} הוסר מהמטבח שלכם.`)
     } else {
+      const maximum = itemToUpdate.inventoryTracking && !itemToUpdate.allowPreorder
+        ? itemToUpdate.availableQuantity ?? 0
+        : 10
+      const nextQty = Math.min(qty, maximum)
       setCartItems(prev => prev.map(item => {
         if (item.id !== id || variantKeyOf(item) !== variantKey) return item
-        const maximum = item.inventoryTracking && !item.allowPreorder ? item.availableQuantity ?? 0 : 10
-        return { ...item, qty: Math.min(qty, maximum) }
+        return { ...item, qty: nextQty }
       }))
+      announce(`הכמות של ${itemToUpdate.name} בצבע ${itemToUpdate.colorLabel} עודכנה ל־${nextQty}.`)
     }
   }
 
@@ -411,8 +469,10 @@ export default function Configurator() {
     setAccessories({})
     setWallLength(String(DEFAULT_WALL_LENGTH_CM))
     setAppliedWallLength(DEFAULT_WALL_LENGTH_CM)
+    setWallLengthError('')
     setWantsCountertop(false)
     setBuyError('')
+    announce('התכנון אופס לברירת המחדל.')
   }
 
   async function buyKitchen() {
@@ -485,15 +545,94 @@ export default function Configurator() {
     setAccessories(prev => ({ ...prev, [id]: xCm }))
   }, [])
 
+  const setKeyboardCabinetPlacement = useCallback((cabinet: PlacedCabinet, requested: CabinetSpatialPlacement) => {
+    const itemName = cabinet.item.name || cabinet.item.subtitle
+
+    if (requested.wall === 'back') {
+      const requestedX = Math.round(snapCabinetXToWall(requested.xCm, cabinet.width, roomWallLengthCm))
+      const backWallCabinets = placedCabinets.filter(candidate => (
+        candidate.key === cabinet.key || (cabinetSpatialPositions[candidate.key]?.wall ?? 'back') === 'back'
+      ))
+      const dragUpdates = cabinetDragPositionUpdates(
+        backWallCabinets,
+        cabinet.key,
+        requestedX,
+        roomWallLengthCm,
+      )
+      const effectiveX = Object.hasOwn(dragUpdates, cabinet.key)
+        ? dragUpdates[cabinet.key]
+        : cabinet.x
+      const positionUpdates = Object.fromEntries(
+        Object.entries({ ...dragUpdates, [cabinet.key]: effectiveX }).map(([key, xCm]) => [key, Math.round(xCm)]),
+      )
+
+      setCabinetPositions(current => ({ ...current, ...positionUpdates }))
+      setCabinetSpatialPositions(current => {
+        const next = { ...current }
+        Object.entries(positionUpdates).forEach(([key, xCm]) => {
+          if (key === cabinet.key || next[key]?.wall === 'back') {
+            next[key] = { xCm, zCm: 0, wall: 'back' }
+          }
+        })
+        return next
+      })
+      announce(`${itemName} הוצב על הקיר האחורי, ${Math.round(effectiveX)} סנטימטרים מתחילת הקיר.`)
+      return
+    }
+
+    const halfWidth = cabinet.width / 2
+    const normalized: CabinetSpatialPlacement = requested.wall === 'left' || requested.wall === 'right'
+      ? {
+          xCm: requested.wall === 'left' ? 0 : roomWallLengthCm,
+          zCm: Math.round(Math.min(Math.max(requested.zCm, halfWidth), Math.max(halfWidth, ROOM_DEPTH_CM - halfWidth))),
+          wall: requested.wall,
+        }
+      : {
+          xCm: Math.round(Math.min(Math.max(requested.xCm, halfWidth), Math.max(halfWidth, roomWallLengthCm - halfWidth))),
+          zCm: Math.round(Math.min(Math.max(requested.zCm, 0), Math.max(0, ROOM_DEPTH_CM - cabinet.spec.depth))),
+          wall: 'free',
+        }
+
+    setCabinetSpatialPositions(current => ({ ...current, [cabinet.key]: normalized }))
+    const positionDescription = normalized.wall === 'free'
+      ? `${normalized.xCm} סנטימטרים לרוחב ו־${normalized.zCm} סנטימטרים מהקיר האחורי`
+      : `${normalized.zCm} סנטימטרים מתחילת הקיר`
+    announce(`${itemName} הוצב ב${CABINET_WALL_LABELS[normalized.wall]}, ${positionDescription}.`)
+  }, [announce, cabinetSpatialPositions, placedCabinets, roomWallLengthCm])
+
+  const setKeyboardAccessoryPosition = useCallback((id: KitchenAccessoryId, requestedX: number) => {
+    const withinWall = Math.min(Math.max(requestedX, 4), Math.max(4, roomWallLengthCm - 4))
+    const nextX = Math.round(closestAccessoryXOnCounterRuns(withinWall, 8, cabinetLayout.counterRuns))
+    setAccessories(current => ({ ...current, [id]: nextX }))
+    announce(`הברז הוצב ${nextX} סנטימטרים מתחילת הקיר האחורי.`)
+  }, [announce, cabinetLayout.counterRuns, roomWallLengthCm])
+
   function applyWallLength() {
     const parsed = Number(wallLength)
-    if (Number.isFinite(parsed) && parsed > 0) {
-      setAppliedWallLength(parsed)
+    if (!Number.isFinite(parsed) || parsed <= 0) {
+      setWallLengthError('יש להזין אורך קיר גדול מאפס בסנטימטרים.')
+      wallLengthInputRef.current?.focus()
+      return
     }
+
+    setWallLengthError('')
+    setAppliedWallLength(parsed)
+    announce(`אורך קיר המטבח עודכן ל־${parsed.toLocaleString('he-IL')} סנטימטרים.`)
   }
 
   return (
     <div className="cfg" dir="rtl">
+      {interactionAnnouncement.message && (
+        <p
+          key={interactionAnnouncement.sequence}
+          className="visually-hidden"
+          role="status"
+          aria-live="polite"
+          aria-atomic="true"
+        >
+          {interactionAnnouncement.message}
+        </p>
+      )}
 
       {/* ══════════ TOP INFO SECTION ══════════ */}
       <div className="cfg__top">
@@ -512,20 +651,33 @@ export default function Configurator() {
           </div>
 
           <div className="cfg__wall-row">
-            <span className="cfg__field-label">כתבו את אורך קיר המטבח (ס"מ)</span>
+            <label className="cfg__field-label" htmlFor="cfg-wall-length">כתבו את אורך קיר המטבח (ס"מ)</label>
             <div className="cfg__wall-input-group">
               <input
+                ref={wallLengthInputRef}
+                id="cfg-wall-length"
+                name="wallLength"
                 className="cfg__wall-input"
                 type="text"
+                inputMode="decimal"
+                autoComplete="off"
                 placeholder="לדוגמה: 350"
                 value={wallLength}
-                onChange={e => setWallLength(e.target.value)}
+                aria-invalid={Boolean(wallLengthError)}
+                aria-describedby={wallLengthError ? 'cfg-wall-length-error' : exceedsWall ? 'cfg-wall-length-warning' : undefined}
+                onChange={e => {
+                  setWallLength(e.target.value)
+                  if (wallLengthError) setWallLengthError('')
+                }}
                 onKeyDown={e => e.key === 'Enter' && applyWallLength()}
               />
-              <button className="cfg__wall-update" onClick={applyWallLength}>עדכן</button>
+              <button type="button" className="cfg__wall-update" onClick={applyWallLength}>עדכן</button>
             </div>
+            {wallLengthError && (
+              <p id="cfg-wall-length-error" className="cfg__wall-warning" role="alert">{wallLengthError}</p>
+            )}
             {exceedsWall && (
-              <p className="cfg__wall-warning">
+              <p id="cfg-wall-length-warning" className="cfg__wall-warning" role="status">
                 ⚠ סך רוחב הארונות שבחרתם ({totalCabinetWidth} ס"מ) חורג מאורך הקיר שהזנתם ({appliedWallLength} ס"מ)
               </p>
             )}
@@ -539,11 +691,12 @@ export default function Configurator() {
             className="cfg__steps-hdr"
             onClick={() => setHowOpen(o => !o)}
             aria-expanded={howOpen}
+            aria-controls="cfg-how-steps"
           >
             <span className="cfg__steps-label">איך זה עובד?</span>
             <Chevron open={howOpen} />
           </button>
-          <ol className={`cfg__steps-list${howOpen ? '' : ' cfg__steps-list--closed'}`}>
+          <ol id="cfg-how-steps" className={`cfg__steps-list${howOpen ? '' : ' cfg__steps-list--closed'}`} hidden={!howOpen}>
             {HOW_STEPS.map((step, i) => (
               <li key={i}>
                 <span className="cfg__step-num">{i + 1}.</span> {step}
@@ -556,33 +709,43 @@ export default function Configurator() {
 
       <div className='cfg__filter-row'>
         <div className="cfg__catalog-hdr">
-          <h2 className="cfg__catalog-title">פריטים</h2>
-          <div className="cfg__tabs">
+          <h2 id="cfg-catalog-title" className="cfg__catalog-title">פריטים</h2>
+          <div className="cfg__tabs" role="group" aria-label="סינון לפי סוג פריט">
             {CATEGORIES.map(cat => (
               <button
+                type="button"
                 key={cat}
                 className={`cfg__tab${selectedCategories.length === 1 && selectedCategories[0] === cat ? ' cfg__tab--on' : ''}`}
                 onClick={() => setSelectedCategories([cat])}
+                aria-pressed={selectedCategories.length === 1 && selectedCategories[0] === cat}
               >
                 {cat}
               </button>
             ))}
           </div>
 
-          <div className="cfg__cat-dropdown">
+          <div
+            className="cfg__cat-dropdown"
+            onKeyDown={event => {
+              if (event.key === 'Escape' && catMenuOpen) closeCategoryMenu(true)
+            }}
+          >
             <button
+              ref={categoryMenuButtonRef}
               type="button"
               className="cfg__cat-dropdown-btn"
               onClick={() => setCatMenuOpen(o => !o)}
               aria-expanded={catMenuOpen}
+              aria-controls="cfg-category-options"
             >
               <Chevron open={catMenuOpen} />
               <span>{categoryLabel(selectedCategories)}</span>
             </button>
             {catMenuOpen && (
               <>
-                <div className="cfg__cat-backdrop" onClick={() => setCatMenuOpen(false)} />
-                <div className="cfg__cat-menu">
+                <div className="cfg__cat-backdrop" aria-hidden="true" onClick={() => closeCategoryMenu()} />
+                <fieldset id="cfg-category-options" className="cfg__cat-menu">
+                  <legend className="visually-hidden">בחירת סוגי פריטים להצגה</legend>
                   {CATEGORIES.map(cat => (
                     <label key={cat} className="cfg__cat-option">
                       <input
@@ -593,15 +756,15 @@ export default function Configurator() {
                       <span>{cat}</span>
                     </label>
                   ))}
-                </div>
+                </fieldset>
               </>
             )}
           </div>
         </div>
 
         <div className="cfg__color-row">
-          <h2 className="cfg__field-label">צבעים</h2>
-          <div className="cfg__color-dots" role="group" aria-label="סינון מוצרים לפי צבע">
+          <h2 id="cfg-color-filter-title" className="cfg__field-label">צבעים</h2>
+          <div className="cfg__color-dots" role="group" aria-labelledby="cfg-color-filter-title">
             {COLORS.map((color) => {
               const selected = selectedColors.includes(color.id)
               const isLastSelected = selected && selectedColors.length === 1
@@ -640,7 +803,7 @@ export default function Configurator() {
       <div className="cfg__main">
 
         {/* RIGHT panel: product catalog (RTL start — first in DOM) */}
-        <div className="cfg__catalog">
+        <div className="cfg__catalog" role="region" aria-labelledby="cfg-catalog-title">
           <div className="cfg__product-list">
             {catalogStatus === 'loading' && (
               <p className="cfg__catalog-state" role="status">טוען את המודלים שהועלו…</p>
@@ -651,67 +814,91 @@ export default function Configurator() {
             {catalogStatus === 'ready' && products.length === 0 && (
               <p className="cfg__catalog-state">עדיין לא הועלו מודלים לקונפיגורטור.</p>
             )}
-            {catalogStatus === 'ready' && products.length > 0 && filteredProducts.length === 0 && (
+            {catalogStatus === 'ready' && products.length > 0 && filteredProductVariants.length === 0 && (
               <p className="cfg__catalog-state">אין מודלים שהועלו בסינון הנוכחי.</p>
             )}
-            {filteredProducts.flatMap(product => variantsFor(product)
-              .filter((variant) => selectedColors.includes(colorIdOf(variant.colorId, variant.colorLabel)))
-              .map(variant => {
+            {catalogStatus === 'ready' && (
+              <p className="visually-hidden" role="status" aria-live="polite" aria-atomic="true">
+                נמצאו {filteredProductVariants.length} אפשרויות בסינון הנוכחי.
+              </p>
+            )}
+            {filteredProductVariants.map(({ product, variant }) => {
               const wishlistId = `${product.id}-${variantKeyOf(variant)}`
+              const wishlistSelected = isInWishlist(wishlistId)
+              const unavailable = variant.inStock === false && !variant.allowPreorder
               return (
-                <div
+                <article
                   key={wishlistId}
-                  className={`cfg__product${variant.inStock === false && !variant.allowPreorder ? ' cfg__product--out' : ''}`}
-                  onClick={() => addToCart(product, variant)}
-                  role="button"
-                  tabIndex={variant.inStock === false && !variant.allowPreorder ? -1 : 0}
-                  onKeyDown={e => e.key === 'Enter' && addToCart(product, variant)}
+                  className={`cfg__product${unavailable ? ' cfg__product--out' : ''}`}
                 >
-                  <div className="cfg__product-img">
-                    {variant.thumbnailUrl
-                      ? <img className="cfg__product-thumbnail cfg__product-thumbnail--photo" src={variant.thumbnailUrl} alt="" />
-                      : <span className="cfg__product-thumbnail-placeholder">ללא תמונה</span>}
-                  </div>
-                  <div className="cfg__product-info">
-                    <span className="cfg__product-name">{product.name}</span>
-                    <span className="cfg__product-price">
-                      {product.width} ס"מ מ- {variant.price.toLocaleString()} ₪
-                      {variant.originalPrice != null && <del>{variant.originalPrice.toLocaleString()} ₪</del>}
-                    </span>
-                    <span className="cfg__product-color-name">{variant.colorLabel}</span>
-                    {variant.inStock === false && <span className="cfg__product-stock">
-                      {variant.allowPreorder ? 'Pre-order' : 'אזל מהמלאי'}
-                    </span>}
-                  </div>
                   <button
                     type="button"
-                    className={`cfg__product-heart${isInWishlist(wishlistId) ? ' cfg__product-heart--on' : ''}`}
-                    aria-label={isInWishlist(wishlistId) ? 'הסרה מהמועדפים' : 'הוספה למועדפים'}
-                    onClick={e => {
-                      e.stopPropagation()
+                    className="cfg__product-select"
+                    onClick={() => addToCart(product, variant)}
+                    disabled={unavailable}
+                    aria-label={unavailable
+                      ? `${product.name} בצבע ${variant.colorLabel} אזל מהמלאי`
+                      : `${variant.inStock === false ? 'הזמנה מוקדמת של' : 'הוספת'} ${product.name} בצבע ${variant.colorLabel} למטבח שלכם`}
+                  >
+                    <span className="cfg__product-img">
+                      {variant.thumbnailUrl
+                        ? <img className="cfg__product-thumbnail cfg__product-thumbnail--photo" src={variant.thumbnailUrl} alt="" />
+                        : <span className="cfg__product-thumbnail-placeholder">ללא תמונה</span>}
+                    </span>
+                    <span className="cfg__product-info">
+                      <span className="cfg__product-name">{product.name}</span>
+                      <span className="cfg__product-price">
+                        {product.width} ס"מ מ- {variant.price.toLocaleString('he-IL')} ₪
+                        {variant.originalPrice != null && <del>{variant.originalPrice.toLocaleString('he-IL')} ₪</del>}
+                      </span>
+                      <span className="cfg__product-color-name">{variant.colorLabel}</span>
+                      {variant.inStock === false && <span className="cfg__product-stock">
+                        {variant.allowPreorder ? 'זמין להזמנה מוקדמת' : 'אזל מהמלאי'}
+                      </span>}
+                    </span>
+                  </button>
+                  <button
+                    type="button"
+                    className={`cfg__product-heart${wishlistSelected ? ' cfg__product-heart--on' : ''}`}
+                    aria-label={`${wishlistSelected ? 'הסרת' : 'הוספת'} ${product.name} בצבע ${variant.colorLabel} ${wishlistSelected ? 'מהמועדפים' : 'למועדפים'}`}
+                    aria-pressed={wishlistSelected}
+                    onClick={() => {
                       toggleWishlist({
                         id: wishlistId,
                         name: product.name,
                         subtitle: product.subtitle,
                         price: variant.price,
                       })
+                      announce(`${product.name} בצבע ${variant.colorLabel} ${wishlistSelected ? 'הוסר מהמועדפים' : 'נוסף למועדפים'}.`)
                     }}
                   >
-                    <HeartIcon filled={isInWishlist(wishlistId)} />
+                    <HeartIcon filled={wishlistSelected} />
                   </button>
-                  <div
+                  <span
                     className="cfg__product-swatch"
                     style={colorSwatchStyleOf(variant.colorId, variant.colorLabel, variant.colorHex)}
                     title={`צבע ${variant.colorLabel}`}
+                    role="img"
+                    aria-label={`צבע ${variant.colorLabel}`}
                   />
-                </div>
+                </article>
               )
-            }))}
+            })}
           </div>
         </div>
 
         {/* CENTER panel: visualization canvas */}
-        <div className="cfg__canvas">
+        <div
+          className="cfg__canvas"
+          role="region"
+          aria-labelledby="cfg-visual-title"
+          aria-describedby="cfg-visual-summary cfg-visual-instructions"
+        >
+          <h2 id="cfg-visual-title" className="visually-hidden">תצוגת תכנון המטבח</h2>
+          <p id="cfg-visual-summary" className="visually-hidden">
+            התכנון כולל {cartItems.reduce((sum, item) => sum + item.qty, 0)} פריטים
+            {countertopSelected ? ' ומשטח עליון' : ''}, לאורך קיר של {appliedWallLength ?? 0} סנטימטרים.
+          </p>
           {viewMode === '3D' ? (
             <div className="cfg__canvas-area">
               <KitchenModelViewer
@@ -742,29 +929,29 @@ export default function Configurator() {
               />
             </div>
           )}
-          <div className="cfg__view-btns">
+          <div className="cfg__view-btns" role="group" aria-label="סוג התצוגה">
             {(['3D', '2D'] as const).map(mode => (
               <button
+                type="button"
                 key={mode}
                 className={`cfg__view-btn${viewMode === mode ? ' cfg__view-btn--on' : ''}`}
                 onClick={() => setViewMode(mode)}
+                aria-pressed={viewMode === mode}
               >
                 {mode}
               </button>
             ))}
           </div>
-          <div className="cfg__drag-hint">
-            {viewMode === '3D'
-              ? 'בחרו הזזת פריטים, גררו על הרצפה והתקרבו לקיר כדי להצמיד'
-              : 'גררו ארונות וברזים למיקום הרצוי'}
-          </div>
+          <p id="cfg-visual-instructions" className="cfg__drag-hint">
+            גררו בתצוגה או השתמשו בבקרי המקלדת שברשימת המטבח
+          </p>
         </div>
 
         {/* LEFT panel: shopping list (RTL end — last in DOM) */}
         <div className="cfg__cart">
-          <h2 className="cfg__cart-title">המטבח שלכם</h2>
+          <h2 id="cfg-cart-title" className="cfg__cart-title">המטבח שלכם</h2>
 
-          <div className="cfg__cart-items">
+          <div className="cfg__cart-items" role="region" aria-labelledby="cfg-cart-title">
             {cartItems.length === 0 && (
               <p className="cfg__cart-empty">לחצו על מוצר כדי להוסיף</p>
             )}
@@ -780,8 +967,8 @@ export default function Configurator() {
                     <select
                       className="cfg__qty-select"
                       value={item.qty}
-                      aria-label={`כמות עבור ${item.name}`}
-                      onChange={e => setQty(item.id, variantKeyOf(item), Number(e.target.value))}
+                      aria-label={`כמות עבור ${item.name} בצבע ${item.colorLabel}`}
+                      onChange={e => setQty(item, Number(e.target.value))}
                     >
                       {Array.from({ length: Math.max(1, item.inventoryTracking && !item.allowPreorder ? Math.min(10, item.availableQuantity ?? 0) : 10) }, (_, index) => index + 1).map(n => (
                         <option key={n} value={n}>{n}</option>
@@ -791,8 +978,8 @@ export default function Configurator() {
                   <button
                     type="button"
                     className="cfg__ci-decrease"
-                    onClick={() => setQty(item.id, variantKeyOf(item), item.qty - 1)}
-                    aria-label={item.qty === 1 ? `הסרת ${item.name}` : `הפחתת כמות ${item.name}`}
+                    onClick={() => setQty(item, item.qty - 1)}
+                    aria-label={item.qty === 1 ? `הסרת ${item.name} בצבע ${item.colorLabel}` : `הפחתת כמות ${item.name} בצבע ${item.colorLabel}`}
                     title={item.qty === 1 ? 'הסרת מוצר' : 'הפחתת כמות'}
                   >
                     {item.qty === 1 ? '×' : '−'}
@@ -807,6 +994,15 @@ export default function Configurator() {
               </div>
             ))}
           </div>
+
+          <KeyboardPositionControls
+            cabinets={placedCabinets}
+            wallLengthCm={roomWallLengthCm}
+            spatialPositions={cabinetSpatialPositions}
+            accessories={visibleAccessories}
+            onCabinetPlacementChange={setKeyboardCabinetPlacement}
+            onAccessoryPositionChange={setKeyboardAccessoryPosition}
+          />
 
           <div className={`cfg__countertop-option${countertopSelected ? ' cfg__countertop-option--selected' : ''}`}>
             <div className="cfg__countertop-copy">
@@ -824,7 +1020,11 @@ export default function Configurator() {
               className="cfg__countertop-toggle"
               aria-pressed={countertopSelected}
               disabled={countertopLengthCm <= 0 || countertopRateStatus !== 'ready'}
-              onClick={() => setWantsCountertop((current) => !current)}
+              onClick={() => {
+                const nextSelection = !wantsCountertop
+                setWantsCountertop(nextSelection)
+                announce(nextSelection ? 'המשטח העליון נוסף לתכנון.' : 'המשטח העליון הוסר מהתכנון.')
+              }}
             >
               {countertopSelected ? 'הסרת משטח' : 'הוספת משטח'}
             </button>

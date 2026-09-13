@@ -119,6 +119,61 @@
   margin: 3px;
 }
 
+.cookie-banner {
+  position: fixed;
+  bottom: 28px;
+  left: 28px;
+  z-index: 400;
+  display: flex;
+  gap: 14px;
+  align-items: flex-start;
+  max-width: 340px;
+  padding: 18px 20px;
+  border-radius: 16px;
+  background: var(--white);
+  box-shadow: 0 6px 24px rgba(0, 0, 0, 0.14);
+  direction: rtl;
+}
+
+.cookie-banner__icon {
+  flex-shrink: 0;
+  font-size: 28px;
+}
+
+.cookie-banner__body p {
+  margin-bottom: 12px;
+  color: var(--text);
+  font-size: 13px;
+  line-height: 1.55;
+}
+
+.cookie-banner__link {
+  color: var(--signup-button);
+  text-decoration: underline;
+}
+
+.cookie-banner__actions {
+  display: flex;
+  gap: 16px;
+  align-items: center;
+}
+
+.cookie-banner__accept,
+.cookie-banner__dismiss {
+  border: none;
+  background: none;
+  font-size: 13px;
+}
+
+.cookie-banner__accept {
+  color: var(--signup-button);
+  font-weight: 600;
+}
+
+.cookie-banner__dismiss {
+  color: #555;
+}
+
 @media (min-width: 769px) {
   .footer__logo {
     transform: translateX(6px);
@@ -135,6 +190,20 @@
   justify-content: space-between;
   gap: 12px;
   flex-wrap: wrap;
+}
+
+.footer__accessibility-link {
+  display: inline-flex;
+  min-height: 44px;
+  align-items: center;
+  color: var(--text);
+  font-weight: 600;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+
+.footer__accessibility-link:hover {
+  color: var(--signup-button);
 }
 
 .footer__admin-link {
@@ -225,6 +294,13 @@
   .footer__email-row {
     width: 100%;
     max-width: 280px;
+  }
+
+  .cookie-banner {
+    right: 16px;
+    bottom: 96px;
+    left: 16px;
+    max-width: none;
   }
 
 

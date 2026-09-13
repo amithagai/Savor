@@ -16,6 +16,7 @@ import { addSketchUpModelOutlines } from '../../lib/modelOutlines'
 import {
   buildCabinetLayout,
   cabinetDragPositionUpdates,
+  closestAccessoryXOnCounterRuns,
   COUNTERTOP_DEPTH_CM,
   COUNTERTOP_HEIGHT_CM,
   DEFAULT_WALL_LENGTH_CM,
@@ -36,7 +37,7 @@ import {
 
 type Props = {
   cartItems: CabinetLayoutItem[]
-  faucetItems: Array<{ id: string; width: number; modelUrl?: string }>
+  faucetItems: Array<{ id: string; width: number; modelUrl?: string; qty?: number }>
   wallLengthCm?: number | null
   positions: CabinetPositions
   onPositionsChange: (positions: CabinetPositions) => void
@@ -425,18 +426,6 @@ function ConfiguratorScene({
     target.setPointerCapture?.(event.pointerId)
   }
 
-  function clampAccessoryX(xCm: number, widthCm: number) {
-    if (layout.counterRuns.length === 0) return xCm
-    const half = widthCm / 2
-    const choices = layout.counterRuns.map(run => {
-      const min = run.start + half
-      const max = run.end - half
-      const candidate = min <= max ? Math.min(Math.max(xCm, min), max) : (run.start + run.end) / 2
-      return { candidate, distance: Math.abs(candidate - xCm) }
-    })
-    return choices.sort((a, b) => a.distance - b.distance)[0].candidate
-  }
-
   function moveDrag(event: ThreeEvent<PointerEvent>) {
     if (!drag) return
     event.stopPropagation()
@@ -470,7 +459,7 @@ function ConfiguratorScene({
       scheduleUpdate({
         accessory: {
           id: drag.key as KitchenAccessoryId,
-          xCm: Math.round(clampAccessoryX(rawX, drag.widthCm)),
+          xCm: Math.round(closestAccessoryXOnCounterRuns(rawX, drag.widthCm, layout.counterRuns)),
         },
       })
     }
@@ -687,9 +676,21 @@ export default function KitchenModelViewer(props: Props) {
     layout.wallEnd,
     DEFAULT_WALL_LENGTH_CM,
   ) * CM
+  const visibleItemCount = props.cartItems.reduce((sum, item) => sum + item.qty, 0)
+    + props.faucetItems.reduce((sum, item) => sum + (item.qty ?? 1), 0)
 
   return (
-    <div className="cfg3d__viewer">
+    <div
+      className="cfg3d__viewer"
+      role="group"
+      aria-labelledby="cfg3d-viewer-title"
+      aria-describedby="cfg3d-viewer-description"
+    >
+      <h3 id="cfg3d-viewer-title" className="visually-hidden">הדמיית מטבח תלת־ממדית</h3>
+      <p id="cfg3d-viewer-description" className="visually-hidden">
+        בהדמיה מוצגים {visibleItemCount} פריטים לאורך קיר של {wallWidthCm.toLocaleString('he-IL')} סנטימטרים.
+        את הפריטים והכמויות אפשר לשנות ברשימות שמסביב להדמיה; את המיקום אפשר לשנות בגרירה או באמצעות בקרי המקלדת.
+      </p>
       <div className="cfg3d__interaction-toggle" role="group" aria-label="מצב שליטה בתצוגת תלת־ממד">
         <button
           type="button"

@@ -1,5 +1,6 @@
-import React, { useState } from 'react'
-import { EmnailInput } from '../../../components/Input/EmailInput'
+import { useState } from 'react'
+import type { ChangeEvent, FormEvent } from 'react'
+import { EmailInput } from '../../../components/Input/EmailInput'
 import type { HomeContent } from '../../../types/content'
 
 
@@ -7,28 +8,36 @@ export default function NewsletterSection({ content }: { content: HomeContent['n
   const [email, setEmail] = useState('')
   const [agreed, setAgreed] = useState(false)
 
-  const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault()
+  const handleSubmit = (event: FormEvent<HTMLFormElement>) => {
+    event.preventDefault()
     if (!agreed || !email) return
     // TODO: wire to backend
     setEmail('')
     setAgreed(false)
   }
 
-  const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => setEmail(e.target.value)
+  const handleChange = (event: ChangeEvent<HTMLInputElement>) => setEmail(event.target.value)
 
   return (
     <section className="newsletter">
       <p className="newsletter__subtitle">{content.subtitle}</p>
-      <h2 className="newsletter__title">{content.title}</h2>
+      <h2 id="home-newsletter-title" className="newsletter__title">{content.title}</h2>
 
-      <form className="newsletter__form" onSubmit={handleSubmit}>
-        <EmnailInput handleChange={handleChange} email={email} /> 
-        <label className="newsletter__consent">
+      <form className="newsletter__form" aria-labelledby="home-newsletter-title" onSubmit={handleSubmit}>
+        <EmailInput
+          id="home-newsletter-email"
+          label="כתובת אימייל להרשמה לניוזלטר"
+          handleChange={handleChange}
+          email={email}
+        />
+        <label className="newsletter__consent" htmlFor="home-newsletter-consent">
           <input
+            id="home-newsletter-consent"
+            name="newsletterConsent"
             type="checkbox"
             checked={agreed}
-            onChange={(e) => setAgreed(e.target.checked)}
+            onChange={(event) => setAgreed(event.target.checked)}
+            required
           />
           <span>
             {content.consent}

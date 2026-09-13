@@ -76,6 +76,13 @@
   line-height: 1.25;
 }
 
+.contact__form-help {
+  margin: -8px 0 18px;
+  color: var(--text-muted);
+  font-size: 13px;
+  line-height: 1.6;
+}
+
 .contact__form {
   display: flex;
   flex-direction: column;
@@ -107,7 +114,6 @@
   color: var(--text);
   font: inherit;
   font-size: 14px;
-  outline: none;
   transition: border-color 0.18s, box-shadow 0.18s;
 }
 
@@ -148,6 +154,27 @@
 
 .contact__form button[type='submit']:not(:disabled):hover {
   opacity: 0.88;
+}
+
+.contact__field input[aria-invalid='true'],
+.contact__field textarea[aria-invalid='true'] {
+  border-color: #8d2525;
+}
+
+.contact__field-error {
+  color: #8d2525;
+  font-size: 12px;
+  font-weight: 500;
+  line-height: 1.4;
+}
+
+.contact__validation-summary {
+  padding: 9px 11px;
+  border: 1px solid #f0caca;
+  border-radius: 8px;
+  background: #fff0f0;
+  color: #8d2525;
+  font-size: 13px;
 }
 
 .contact__success {
