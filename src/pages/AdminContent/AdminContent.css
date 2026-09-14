@@ -49,6 +49,11 @@
 .admin-content__body-editor { min-height: 360px; }
 .admin-content__state { padding: 32px 0; color: var(--text-muted); }
 .admin-content__selection-count { padding: 6px 10px; border-radius: 999px; background: var(--sage); color: var(--signup-button); font-size: 12px; font-weight: 800; }
+.admin-content__accessibility-note { margin: 0 0 18px; padding: 11px 13px; border: 1px solid #d6c58a; border-radius: 11px; background: #fff8e5; color: #5f4a12; font-size: 13px; line-height: 1.6; }
+.admin-content__accessibility-documents { display: grid; gap: 14px; }
+.admin-content__document-heading { display: flex; align-items: center; justify-content: space-between; gap: 16px; }
+.admin-content__document-heading strong { color: #36543a; font-size: 13px; }
+.admin-content__subcard .admin-content__upload { margin-top: 4px; }
 .admin-content__featured-list { display: grid; gap: 10px; margin-top: 16px; }
 .admin-content__featured-product { display: grid; grid-template-columns: 64px minmax(0, 1fr) auto; align-items: center; gap: 13px; padding: 10px; border: 1px solid var(--border); border-radius: 13px; background: #fafbf9; }
 .admin-content__featured-image { width: 64px; aspect-ratio: 1; display: grid; place-items: center; overflow: hidden; border-radius: 9px; background: var(--footer-bg); color: var(--text-muted); font-size: 10px; }

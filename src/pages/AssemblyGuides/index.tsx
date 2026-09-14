@@ -37,7 +37,7 @@ export default function AssemblyGuides() {
   }, [products])
 
   return (
-    <main className="assembly-guides">
+    <div className="assembly-guides">
       <header className="assembly-guides__header">
         <span>תוכן והדרכה</span>
         <h1>חוברות הרכבה</h1>
@@ -56,7 +56,7 @@ export default function AssemblyGuides() {
             <article className="assembly-guide" key={product.id}>
               <div className="assembly-guide__image">
                 {product.images[0]
-                  ? <img src={product.images[0]} alt={product.name} />
+                  ? <img src={product.images[0]} alt="" />
                   : <span>ללא תמונה</span>}
               </div>
               <div className="assembly-guide__content">
@@ -65,12 +65,13 @@ export default function AssemblyGuides() {
                 <a href={product.installation_pdf_url!} target="_blank" rel="noopener noreferrer">
                   צפייה בחוברת PDF
                   <span aria-hidden="true">↗</span>
+                  <span className="visually-hidden"> (נפתח בלשונית חדשה)</span>
                 </a>
               </div>
             </article>
           ))}
         </section>
       )}
-    </main>
+    </div>
   )
 }

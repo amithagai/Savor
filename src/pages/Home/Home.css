@@ -141,60 +141,6 @@
 }
 
 /* Cookie banner */
-.cookie-banner {
-  position: fixed;
-  bottom: 28px;
-  left: 28px;
-  z-index: 10;
-  background: var(--white);
-  border-radius: 16px;
-  padding: 18px 20px;
-  max-width: 340px;
-  box-shadow: 0 6px 24px rgba(0,0,0,0.14);
-  display: flex;
-  gap: 14px;
-  align-items: flex-start;
-  direction: rtl;
-}
-
-.cookie-banner__icon {
-  font-size: 28px;
-  flex-shrink: 0;
-}
-
-.cookie-banner__body p {
-  font-size: 13px;
-  line-height: 1.55;
-  color: var(--text);
-  margin-bottom: 12px;
-}
-
-.cookie-banner__link {
-  color: var(--green);
-  text-decoration: underline;
-}
-
-.cookie-banner__actions {
-  display: flex;
-  gap: 16px;
-  align-items: center;
-}
-
-.cookie-banner__accept {
-  font-size: 13px;
-  font-weight: 600;
-  color: var(--green);
-  background: none;
-  border: none;
-}
-
-.cookie-banner__dismiss {
-  font-size: 13px;
-  color: var(--text-muted);
-  background: none;
-  border: none;
-}
-
 /* ─── Best Sellers ───────────────────────────────── */
 .best-sellers {
   padding: 64px 60px;
@@ -712,13 +658,6 @@
     width: 100%;
   }
 
-  /* ─── Cookie banner ─────────────────────────────── */
-  .cookie-banner {
-    left: 16px;
-    right: 16px;
-    bottom: 96px;
-    max-width: none;
-  }
 }
 .home__state {
   min-height: 55vh;

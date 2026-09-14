@@ -31,7 +31,7 @@ export default function Accessories() {
   }
 
   return (
-    <main className="catalog-page">
+    <div className="catalog-page">
       <section className="catalog-page__header">
         <h1>מוצרים משלימים</h1>
         {categories.length > 0 && <section className="accessories-page__filters" aria-label="סינון לפי קטגוריה">
@@ -57,6 +57,6 @@ export default function Accessories() {
           onAddToCart={() => addProduct(product)}
         />) : <p className="catalog-page__empty">עדיין אין מוצרים בקטגוריה הזאת.</p>}
       </section>}
-    </main>
+    </div>
   )
 }

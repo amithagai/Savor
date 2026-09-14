@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import type { ChangeEvent, FormEvent } from 'react'
 import { useNavigate, useSearchParams } from 'react-router-dom'
 import { useCart } from '../../context/useCart'
@@ -23,6 +23,8 @@ type FormState = {
   phone: string
   agreedToTerms: boolean
 }
+
+type CheckoutErrors = Partial<Record<keyof FormState | 'cart', string>>
 
 const initialForm: FormState = {
   fullName: '',
@@ -68,7 +70,11 @@ export default function Cart() {
   const [form, setForm] = useState<FormState>(initialForm)
   const [deliveryMethod, setDeliveryMethod] = useState<DeliveryMethod>('pickup')
   const [wantsInstallation, setWantsInstallation] = useState(false)
+  const [submitAttempted, setSubmitAttempted] = useState(false)
   const [isSubmitting, setIsSubmitting] = useState(false)
+  const checkoutFormRef = useRef<HTMLFormElement>(null)
+  const validationSummaryRef = useRef<HTMLDivElement>(null)
+  const paymentErrorRef = useRef<HTMLParagraphElement>(null)
   const paymentState = searchParams.get('payment')
   const [recoveredStoredCart] = useState(hasCartRecoveryNotice)
   const [paymentError, setPaymentError] = useState(() => {
@@ -95,8 +101,8 @@ export default function Cart() {
   // Delivery and installation are paid directly to their providers.
   const total = itemsTotal
 
-  const checkoutIssues = useMemo(() => {
-    const issues: string[] = []
+  const checkoutErrors = useMemo(() => {
+    const errors: CheckoutErrors = {}
     const fullName = normalizeCheckoutText(form.fullName)
     const fullNameParts = fullName.split(/\s+/).filter(Boolean)
     const normalizedPhone = normalizeIsraeliMobile(form.phone)
@@ -106,20 +112,35 @@ export default function Cart() {
     const street = normalizeCheckoutText(form.streetAddress)
     const hasValidEmail = email.length <= 254 && /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)
 
-    if (cartItems.length === 0) issues.push('מוצר אחד לפחות בעגלה')
-    if (fullNameParts.length < 2 || fullName.length > 100) issues.push('שם מלא – שם פרטי ומשפחה')
-    if (city.length < 2 || city.length > 100) issues.push('עיר תקינה')
-    if (region.length < 2 || region.length > 100) issues.push('מדינה או אזור תקינים')
-    if (street.length < 2 || street.length > 200) issues.push('כתובת רחוב ומספר בית תקינים')
-    if (form.apartment.trim().length > 50) issues.push('דירה – עד 50 תווים')
-    if (form.idNumber.trim().length > 20) issues.push('תעודת זהות – עד 20 תווים')
-    if (!hasValidEmail) issues.push('כתובת אימייל תקינה')
-    if (!/^05\d{8}$/.test(normalizedPhone)) issues.push('טלפון נייד תקין בן 10 ספרות')
-    if (!form.agreedToTerms) issues.push('אישור תנאי השימוש')
+    if (cartItems.length === 0) errors.cart = 'יש להוסיף מוצר אחד לפחות לעגלה.'
+    if (fullNameParts.length < 2 || fullName.length > 100) {
+      errors.fullName = 'יש להזין שם פרטי ושם משפחה, עד 100 תווים.'
+    }
+    if (city.length < 2 || city.length > 100) {
+      errors.city = 'יש להזין עיר באורך 2 עד 100 תווים.'
+    }
+    if (region.length < 2 || region.length > 100) {
+      errors.region = 'יש להזין מדינה או אזור באורך 2 עד 100 תווים.'
+    }
+    if (street.length < 2 || street.length > 200) {
+      errors.streetAddress = 'יש להזין רחוב ומספר בית, עד 200 תווים.'
+    }
+    if (form.apartment.trim().length > 50) {
+      errors.apartment = 'אפשר להזין עד 50 תווים בשדה הדירה.'
+    }
+    if (form.idNumber.trim().length > 20) {
+      errors.idNumber = 'אפשר להזין עד 20 תווים בשדה תעודת הזהות.'
+    }
+    if (!hasValidEmail) errors.email = 'יש להזין כתובת אימייל תקינה.'
+    if (!/^05\d{8}$/.test(normalizedPhone)) {
+      errors.phone = 'יש להזין מספר טלפון נייד ישראלי תקין בן 10 ספרות.'
+    }
+    if (!form.agreedToTerms) errors.agreedToTerms = 'יש לאשר את תנאי השימוש.'
 
-    return issues
+    return errors
   }, [cartItems.length, form])
 
+  const checkoutIssues = Object.values(checkoutErrors)
   const isFormValid = checkoutIssues.length === 0
 
   const handleTextChange =
@@ -133,7 +154,20 @@ export default function Cart() {
 
   const handleSubmit = async (event: FormEvent) => {
     event.preventDefault()
-    if (!isFormValid || isSubmitting) return
+    if (isSubmitting) return
+
+    setSubmitAttempted(true)
+    if (!isFormValid) {
+      setPaymentError('')
+      window.requestAnimationFrame(() => {
+        const firstInvalidField = checkoutFormRef.current?.querySelector<HTMLElement>(
+          '[aria-invalid="true"]',
+        )
+        const nextFocusTarget = firstInvalidField ?? validationSummaryRef.current
+        nextFocusTarget?.focus()
+      })
+      return
+    }
 
     setIsSubmitting(true)
     setPaymentError('')
@@ -181,11 +215,12 @@ export default function Cart() {
           : ''
       setPaymentError(detail || 'לא הצלחנו לפתוח את התשלום. נסו שוב בעוד רגע.')
       setIsSubmitting(false)
+      window.requestAnimationFrame(() => paymentErrorRef.current?.focus())
     }
   }
 
   return (
-    <main className="cart-page">
+    <div className="cart-page">
       <header className="cart-page__header">
         <h1>עגלת קניות</h1>
         <button
@@ -257,7 +292,8 @@ export default function Cart() {
           <p className="cart-page__subtotal">סך הכל מוצרים {formatPrice(total)} ₪</p>
         )}
 
-        <div className="cart-page__delivery">
+        <fieldset className="cart-page__delivery">
+          <legend>אפשרויות אספקה ושירות</legend>
           <label className="cart-page__delivery-option">
             <input
               type="radio"
@@ -295,117 +331,227 @@ export default function Cart() {
               {wantsInstallation && <span>למתקין: {formatServiceFee(installationFee, serviceQuote.requiresManualQuote)}</span>}
             </div>
           )}
-        </div>
+        </fieldset>
       </section>
 
-      <form className="cart-page__form" onSubmit={handleSubmit}>
+      <form
+        ref={checkoutFormRef}
+        className="cart-page__form"
+        aria-labelledby="checkout-form-title"
+        aria-busy={isSubmitting}
+        noValidate
+        onSubmit={handleSubmit}
+      >
+        <h2 id="checkout-form-title" className="cart-page__form-title">
+          פרטי לקוח ותשלום
+        </h2>
+
         <div className="cart-page__field">
-          <label htmlFor="fullName">שם לקוח *</label>
+          <label htmlFor="fullName">שם מלא (חובה)</label>
           <input
             id="fullName"
+            name="fullName"
+            autoComplete="name"
             required
             minLength={2}
             maxLength={100}
             value={form.fullName}
             onChange={handleTextChange('fullName')}
+            aria-invalid={submitAttempted && Boolean(checkoutErrors.fullName)}
+            aria-describedby={submitAttempted && checkoutErrors.fullName ? 'fullName-error' : undefined}
           />
+          {submitAttempted && checkoutErrors.fullName ? (
+            <span id="fullName-error" className="cart-page__field-error">{checkoutErrors.fullName}</span>
+          ) : null}
         </div>
 
         <div className="cart-page__field">
           <label htmlFor="idNumber">ת.ז (אופציונלי)</label>
-          <input id="idNumber" maxLength={20} value={form.idNumber} onChange={handleTextChange('idNumber')} />
+          <input
+            id="idNumber"
+            name="idNumber"
+            inputMode="numeric"
+            maxLength={20}
+            value={form.idNumber}
+            onChange={handleTextChange('idNumber')}
+            aria-invalid={submitAttempted && Boolean(checkoutErrors.idNumber)}
+            aria-describedby={submitAttempted && checkoutErrors.idNumber ? 'idNumber-error' : undefined}
+          />
+          {submitAttempted && checkoutErrors.idNumber ? (
+            <span id="idNumber-error" className="cart-page__field-error">{checkoutErrors.idNumber}</span>
+          ) : null}
         </div>
 
         <div className="cart-page__field">
-          <label htmlFor="city">עיר *</label>
-          <input id="city" required minLength={2} maxLength={100} value={form.city} onChange={handleTextChange('city')} />
+          <label htmlFor="city">עיר (חובה)</label>
+          <input
+            id="city"
+            name="city"
+            autoComplete="address-level2"
+            required
+            minLength={2}
+            maxLength={100}
+            value={form.city}
+            onChange={handleTextChange('city')}
+            aria-invalid={submitAttempted && Boolean(checkoutErrors.city)}
+            aria-describedby={submitAttempted && checkoutErrors.city ? 'city-error' : undefined}
+          />
+          {submitAttempted && checkoutErrors.city ? (
+            <span id="city-error" className="cart-page__field-error">{checkoutErrors.city}</span>
+          ) : null}
         </div>
 
         <div className="cart-page__field">
-          <label htmlFor="region">מדינה / אזור *</label>
-          <input id="region" required minLength={2} maxLength={100} value={form.region} onChange={handleTextChange('region')} />
+          <label htmlFor="region">מדינה / אזור (חובה)</label>
+          <input
+            id="region"
+            name="region"
+            autoComplete="address-level1"
+            required
+            minLength={2}
+            maxLength={100}
+            value={form.region}
+            onChange={handleTextChange('region')}
+            aria-invalid={submitAttempted && Boolean(checkoutErrors.region)}
+            aria-describedby={submitAttempted && checkoutErrors.region ? 'region-error' : undefined}
+          />
+          {submitAttempted && checkoutErrors.region ? (
+            <span id="region-error" className="cart-page__field-error">{checkoutErrors.region}</span>
+          ) : null}
         </div>
 
-        <div className="cart-page__field cart-page__field--wide">
-          <label htmlFor="apartment">כתובת רחוב *</label>
+        <fieldset className="cart-page__field cart-page__field--wide cart-page__address-group">
+          <legend>כתובת למשלוח</legend>
           <div className="cart-page__field-row">
-            <input
-              id="apartment"
-              maxLength={50}
-              placeholder="דירה, סוויטה, יחידה וכו' (אופציונלי)"
-              value={form.apartment}
-              onChange={handleTextChange('apartment')}
-            />
-            <input
-              id="streetAddress"
-              required
-              minLength={2}
-              maxLength={200}
-              placeholder="מספר בית ושם רחוב"
-              value={form.streetAddress}
-              onChange={handleTextChange('streetAddress')}
-            />
+            <div className="cart-page__subfield">
+              <label htmlFor="streetAddress">רחוב ומספר בית (חובה)</label>
+              <input
+                id="streetAddress"
+                name="streetAddress"
+                autoComplete="address-line1"
+                required
+                minLength={2}
+                maxLength={200}
+                value={form.streetAddress}
+                onChange={handleTextChange('streetAddress')}
+                aria-invalid={submitAttempted && Boolean(checkoutErrors.streetAddress)}
+                aria-describedby={submitAttempted && checkoutErrors.streetAddress ? 'streetAddress-error' : undefined}
+              />
+              {submitAttempted && checkoutErrors.streetAddress ? (
+                <span id="streetAddress-error" className="cart-page__field-error">{checkoutErrors.streetAddress}</span>
+              ) : null}
+            </div>
+
+            <div className="cart-page__subfield">
+              <label htmlFor="apartment">דירה / יחידה (אופציונלי)</label>
+              <input
+                id="apartment"
+                name="apartment"
+                autoComplete="address-line2"
+                maxLength={50}
+                value={form.apartment}
+                onChange={handleTextChange('apartment')}
+                aria-invalid={submitAttempted && Boolean(checkoutErrors.apartment)}
+                aria-describedby={submitAttempted && checkoutErrors.apartment ? 'apartment-error' : undefined}
+              />
+              {submitAttempted && checkoutErrors.apartment ? (
+                <span id="apartment-error" className="cart-page__field-error">{checkoutErrors.apartment}</span>
+              ) : null}
+            </div>
           </div>
-        </div>
+        </fieldset>
 
         <div className="cart-page__field">
-          <label htmlFor="email">כתובת אימייל *</label>
+          <label htmlFor="email">כתובת אימייל (חובה)</label>
           <input
             id="email"
+            name="email"
             type="email"
+            autoComplete="email"
             required
             maxLength={254}
-            placeholder="כתובת אימייל"
             value={form.email}
             onChange={handleTextChange('email')}
+            aria-invalid={submitAttempted && Boolean(checkoutErrors.email)}
+            aria-describedby={submitAttempted && checkoutErrors.email ? 'email-error' : undefined}
           />
+          {submitAttempted && checkoutErrors.email ? (
+            <span id="email-error" className="cart-page__field-error">{checkoutErrors.email}</span>
+          ) : null}
         </div>
 
         <div className="cart-page__field">
-          <label htmlFor="phone">טלפון *</label>
+          <label htmlFor="phone">טלפון נייד (חובה)</label>
           <input
             id="phone"
+            name="phone"
             type="tel"
+            autoComplete="tel"
             required
             inputMode="tel"
             maxLength={25}
-            placeholder="טלפון"
             value={form.phone}
             onChange={handleTextChange('phone')}
+            aria-invalid={submitAttempted && Boolean(checkoutErrors.phone)}
+            aria-describedby={submitAttempted && checkoutErrors.phone ? 'phone-error' : undefined}
           />
+          {submitAttempted && checkoutErrors.phone ? (
+            <span id="phone-error" className="cart-page__field-error">{checkoutErrors.phone}</span>
+          ) : null}
         </div>
 
         <div className="cart-page__payment">
-          <label className="cart-page__terms">
-            <input type="checkbox" checked={form.agreedToTerms} onChange={handleTermsChange} />
+          <label className="cart-page__terms" htmlFor="agreedToTerms">
+            <input
+              id="agreedToTerms"
+              name="agreedToTerms"
+              type="checkbox"
+              checked={form.agreedToTerms}
+              onChange={handleTermsChange}
+              aria-invalid={submitAttempted && Boolean(checkoutErrors.agreedToTerms)}
+              aria-describedby={submitAttempted && checkoutErrors.agreedToTerms ? 'agreedToTerms-error' : undefined}
+            />
             <span>
-              קראתי והסכמתי ל<a href="/terms">תנאי השימוש</a> *
+              קראתי והסכמתי ל<a href="/terms">תנאי השימוש</a> (חובה)
             </span>
           </label>
+          {submitAttempted && checkoutErrors.agreedToTerms ? (
+            <span id="agreedToTerms-error" className="cart-page__field-error">{checkoutErrors.agreedToTerms}</span>
+          ) : null}
 
           <p className="cart-page__total">סך הכל לתשלום באתר: {formatPrice(total)} ₪</p>
 
-          {paymentError && <p className="cart-page__payment-error" role="alert">{paymentError}</p>}
+          {paymentError ? (
+            <p ref={paymentErrorRef} className="cart-page__payment-error" role="alert" tabIndex={-1}>
+              {paymentError}
+            </p>
+          ) : null}
 
-          {!isFormValid && !!cartItems.length && (
-            <div className="cart-page__validation-hint" id="checkout-requirements" role="status" aria-live="polite">
-              <strong>כדי להמשיך לתשלום יש להשלים:</strong>
+          {submitAttempted && !isFormValid ? (
+            <div
+              ref={validationSummaryRef}
+              className="cart-page__validation-hint"
+              id="checkout-requirements"
+              role="alert"
+              tabIndex={-1}
+            >
+              <strong>יש לתקן את הפרטים הבאים:</strong>
               <ul>
                 {checkoutIssues.map((issue) => <li key={issue}>{issue}</li>)}
               </ul>
             </div>
-          )}
+          ) : null}
 
           <button
             type="submit"
             className="cart-page__submit"
-            disabled={!isFormValid || isSubmitting}
-            aria-describedby={!isFormValid ? 'checkout-requirements' : undefined}
+            disabled={isSubmitting}
+            aria-describedby={submitAttempted && !isFormValid ? 'checkout-requirements' : undefined}
           >
             {isSubmitting ? 'פותחים תשלום מאובטח…' : 'מעבר לתשלום מאובטח'}
           </button>
         </div>
       </form>
-    </main>
+    </div>
   )
 }

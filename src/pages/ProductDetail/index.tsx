@@ -67,8 +67,8 @@ export default function ProductDetail() {
       .finally(() => setLoading(false))
   }, [productId])
 
-  if (loading) return <main className="product-detail"><p className="product-detail__state">טוען מוצר…</p></main>
-  if (error || !product) return <main className="product-detail"><p className="product-detail__state">{error}</p></main>
+  if (loading) return <div className="product-detail"><p className="product-detail__state">טוען מוצר…</p></div>
+  if (error || !product) return <div className="product-detail"><p className="product-detail__state">{error}</p></div>
 
   const catalogPath = product.product_type === 'ACCESSORY'
     ? '/accessories'
@@ -114,7 +114,7 @@ export default function ProductDetail() {
   }
 
   return (
-    <main className="product-detail">
+    <div className="product-detail">
       <div className="product-detail__hero">
         <div className="product-detail__gallery">
           <div className="product-detail__main-image">
@@ -164,7 +164,7 @@ export default function ProductDetail() {
 
           <div className="product-detail__meta">
             {product.attributes.delivery_days != null && <p className="product-detail__delivery">זמן אספקה עד {String(product.attributes.delivery_days)} ימי עסקים</p>}
-            {product.installation_pdf_url && <a className="product-detail__pdf" href={product.installation_pdf_url} target="_blank" rel="noreferrer"><span>הורדת הוראות התקנה</span><DownloadIcon /></a>}
+            {product.installation_pdf_url && <a className="product-detail__pdf" href={product.installation_pdf_url} target="_blank" rel="noreferrer"><span>הורדת הוראות התקנה <span className="visually-hidden">(נפתח בלשונית חדשה)</span></span><DownloadIcon /></a>}
           </div>
         </section>
       </div>
@@ -200,6 +200,6 @@ export default function ProductDetail() {
           })}
         </div>
       </section>}
-    </main>
+    </div>
   )
 }

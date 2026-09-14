@@ -29,6 +29,7 @@ export default function Catalog() {
   const [products, setProducts] = useState<CatalogProduct[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
+  const [cartAnnouncement, setCartAnnouncement] = useState({ sequence: 0, message: '' })
   const [searchParams] = useSearchParams()
   const { addToCart } = useCart()
 
@@ -60,10 +61,14 @@ export default function Catalog() {
       productType: product.product_type,
       quantity: 1,
     })
+    setCartAnnouncement((current) => ({
+      sequence: current.sequence + 1,
+      message: `${product.name} נוסף לעגלת הקניות.`,
+    }))
   }
 
   return (
-    <main className="catalog-page">
+    <div className="catalog-page">
       <section className="catalog-page__header">
         <h1>{selectedLayout === 'corner' ? 'מטבחים פינתיים' : selectedSize === 'הכל' ? 'מטבחים' : `מטבח ${selectedSize}`}</h1>
         <nav className="catalog-page__filters" aria-label="סינון מטבחים">
@@ -80,9 +85,24 @@ export default function Catalog() {
         </nav>
       </section>
 
-      {loading && <p className="catalog-page__empty">טוען מטבחים…</p>}
-      {!loading && error && <p className="catalog-page__empty">{error}</p>}
-      {!loading && !error && <section className="catalog-page__grid">
+      {cartAnnouncement.message && (
+        <p
+          key={cartAnnouncement.sequence}
+          className="visually-hidden"
+          role="status"
+          aria-live="polite"
+          aria-atomic="true"
+        >
+          {cartAnnouncement.message}
+        </p>
+      )}
+
+      {loading && <p className="catalog-page__empty" role="status">טוען מטבחים…</p>}
+      {!loading && error && <p className="catalog-page__empty" role="alert">{error}</p>}
+      {!loading && !error && <section className="catalog-page__grid" aria-label="תוצאות הקטלוג">
+        <p className="visually-hidden" role="status" aria-live="polite" aria-atomic="true">
+          נמצאו {visibleProducts.length} מטבחים בסינון הנוכחי.
+        </p>
         {visibleProducts.length > 0 ? visibleProducts.map((product) => (
           <ProductCard
             key={product.id}
@@ -99,6 +119,6 @@ export default function Catalog() {
           />
         )) : <p className="catalog-page__empty">{selectedLayout === 'corner' ? 'עדיין אין מטבחים פינתיים זמינים.' : `עדיין אין מטבחים זמינים${selectedSize !== 'הכל' ? ` במידה ${selectedSize}` : ''}.`}</p>}
       </section>}
-    </main>
+    </div>
   )
 }

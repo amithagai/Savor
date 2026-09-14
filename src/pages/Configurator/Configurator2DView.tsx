@@ -2,6 +2,7 @@ import { useMemo, useRef, useState, type PointerEvent as ReactPointerEvent } fro
 import {
   buildCabinetLayout,
   cabinetDragPositionUpdates,
+  closestAccessoryXOnCounterRuns,
   COUNTERTOP_HEIGHT_CM,
   DEFAULT_WALL_LENGTH_CM,
   doorCount,
@@ -313,19 +314,6 @@ export default function Configurator2DView({
     svgRef.current?.setPointerCapture(event.pointerId)
   }
 
-  function clampAccessoryX(x: number, width: number) {
-    if (backCounterRuns.length === 0) return x
-    const half = width / 2
-    return backCounterRuns
-      .map(run => {
-        const min = run.start + half
-        const max = run.end - half
-        const candidate = min <= max ? Math.min(Math.max(x, min), max) : (run.start + run.end) / 2
-        return { candidate, distance: Math.abs(candidate - x) }
-      })
-      .sort((a, b) => a.distance - b.distance)[0].candidate
-  }
-
   function moveDrag(event: ReactPointerEvent<SVGSVGElement>) {
     const drag = dragRef.current
     if (!drag) return
@@ -360,7 +348,10 @@ export default function Configurator2DView({
         }
       })
     } else {
-      onAccessoryPositionChange(drag.key as KitchenAccessoryId, Math.round(clampAccessoryX(rawX, drag.width)))
+      onAccessoryPositionChange(
+        drag.key as KitchenAccessoryId,
+        Math.round(closestAccessoryXOnCounterRuns(rawX, drag.width, backCounterRuns)),
+      )
     }
   }
 

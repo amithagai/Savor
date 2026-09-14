@@ -11,7 +11,7 @@ export default function SizeGuide() {
   const guide = useSiteContent<SizeGuideContent>('size-guide')
 
   if (loading && guide.loading) {
-    return <main className="size-guide"><div className="size-guide__container">טוען…</div></main>
+    return <div className="size-guide"><div className="size-guide__container">טוען…</div></div>
   }
 
   const savedGuide = !guide.error && guide.data && Array.isArray(guide.data.steps) ? normalizeSizeGuideContent(guide.data) : null
@@ -20,7 +20,7 @@ export default function SizeGuide() {
   const pageTitle = !page || error || legacyTitles.includes(page.title) ? 'מפת הדרכים לבדיקת מידות:' : page.title
 
   return (
-    <main className="size-guide">
+    <div className="size-guide">
       <div className="size-guide__container">
         <div className="size-guide__content">
           <header className="size-guide__header">
@@ -45,7 +45,7 @@ export default function SizeGuide() {
           )}
         </div>
       </div>
-    </main>
+    </div>
   )
 }
 

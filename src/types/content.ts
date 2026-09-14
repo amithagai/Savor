@@ -71,6 +71,25 @@ export type ContactContent = {
   email?: string
 }
 
+export type AccessibilityDocument = {
+  id: string
+  title: string
+  description: string
+  url: string
+}
+
+export type AccessibilityContent = {
+  coordinator_name: string
+  coordinator_role: string
+  coordinator_phone: string
+  coordinator_email: string
+  pickup_address: string
+  physical_arrangements: string
+  known_limitations: string
+  last_updated: string
+  documents: AccessibilityDocument[]
+}
+
 export type SizeGuideStep = {
   id: string
   title: string
