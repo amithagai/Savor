@@ -3,6 +3,7 @@ import { Outlet, useLocation } from 'react-router-dom'
 import Navbar from '../Navbar'
 import Footer from '../Footer'
 import SiteMetadata from '../SiteMetadata'
+import AccessibilityWidget from '../AccessibilityWidget'
 
 export default function Layout() {
   const location = useLocation()
@@ -21,6 +22,7 @@ export default function Layout() {
   return (
     <>
       <SiteMetadata />
+      <div id="site-content">
       <a className="skip-link" href="#main-content">
         דילוג לתוכן הראשי
       </a>
@@ -29,6 +31,8 @@ export default function Layout() {
         <Outlet />
       </main>
       <Footer />
+      </div>
+      <AccessibilityWidget />
     </>
   )
 }
