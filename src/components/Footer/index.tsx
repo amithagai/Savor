@@ -112,6 +112,12 @@ export default function Footer() {
           <div className="footer__bottom">
             <span>{content?.copyright || '© 2026 כל הזכויות שמורות לסאבור מטבחים'}</span>
             <Link className="footer__accessibility-link" to="/accessibility">הצהרת נגישות</Link>
+            <button
+              id="accessibility-settings-link"
+              type="button"
+              className="footer__accessibility-link"
+              onClick={() => window.dispatchEvent(new Event('savor:open-accessibility'))}
+            >הגדרות נגישות</button>
           </div>
         </div>
       </footer>
