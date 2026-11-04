@@ -1,4 +1,5 @@
 import assert from 'node:assert/strict'
+import { createHash } from 'node:crypto'
 import { readFile } from 'node:fs/promises'
 import test from 'node:test'
 
@@ -17,6 +18,31 @@ function directive(name) {
 
   return value?.split(/\s+/).slice(1) ?? []
 }
+
+test('CSP allows the exact inline GTM bootstrap without allowing arbitrary inline scripts', async () => {
+  // Browsers normalize CRLF before hashing inline script text.
+  // Set CSP_HTML_PATH=dist/index.html to also validate the production build.
+  const html = (await readFile(process.env.CSP_HTML_PATH ?? new URL('../index.html', import.meta.url), 'utf8'))
+    .replace(/\r\n?/g, '\n')
+  const bootstrap = [...html.matchAll(/<script\b[^>]*>([\s\S]*?)<\/script>/g)]
+    .map((match) => match[1])
+    .filter((script) => script.includes('GTM-T7LL35J4'))
+  assert.equal(bootstrap.length, 1, 'Expected exactly one inline GTM bootstrap')
+  const hash = createHash('sha256').update(bootstrap[0]).digest('base64')
+  assert(directive('script-src').includes(`'sha256-${hash}'`), 'GTM bootstrap is blocked by CSP')
+  assert(!directive('script-src').includes("'unsafe-inline'"))
+  assert(!directive('script-src').includes("'unsafe-eval'"))
+})
+
+test('CSP allows GTM loading, connections, noscript iframe and preview resources', () => {
+  for (const name of ['script-src', 'connect-src', 'frame-src', 'style-src']) {
+    assert(directive(name).includes('https://www.googletagmanager.com'), `${name} blocks GTM`)
+  }
+  assert(directive('connect-src').includes('https://www.google.com'))
+  assert(directive('script-src').includes('https://tagmanager.google.com'))
+  assert(directive('style-src').includes('https://tagmanager.google.com'))
+  assert(directive('font-src').includes('data:'))
+})
 
 test('CSP permits the GLTF decoders without enabling JavaScript eval', () => {
   const scripts = directive('script-src')
