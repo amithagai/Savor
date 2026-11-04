@@ -44,6 +44,30 @@ test('CSP allows GTM loading, connections, noscript iframe and preview resources
   assert(directive('font-src').includes('data:'))
 })
 
+test('CSP permits Analytics and Ads collection after GTM has loaded', () => {
+  const connections = directive('connect-src')
+  // Regression: these two collection endpoints were blocked in production.
+  for (const url of [
+    'https://analytics.google.com/g/collect',
+    'https://ad.doubleclick.net/ccm/s/collect',
+  ]) {
+    assert(connections.includes(new URL(url).origin), `CSP blocks ${url}`)
+  }
+  for (const source of [
+    'https://*.google-analytics.com',
+    'https://*.g.doubleclick.net',
+    'https://www.googleadservices.com',
+    'https://pagead2.googlesyndication.com',
+  ]) {
+    assert(connections.includes(source), `connect-src is missing ${source}`)
+  }
+  for (const source of ['https://www.googleadservices.com', 'https://www.google.com']) {
+    assert(directive('script-src').includes(source), `script-src is missing ${source}`)
+  }
+  assert(!connections.includes('*'))
+  assert(!connections.includes('https:'))
+})
+
 test('CSP permits the GLTF decoders without enabling JavaScript eval', () => {
   const scripts = directive('script-src')
 
